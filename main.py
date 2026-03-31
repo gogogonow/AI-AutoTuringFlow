@@ -13,7 +13,13 @@ if missing:
     sys.exit(1)
 
 # 初始化底层大模型
-llm = ChatOpenAI(model_name="gpt-4o", temperature=0.2)
+# 现在改为调用 GitHub 提供的 GPT-4o 接口：
+llm = ChatOpenAI(
+    model_name="gpt-4o", 
+    temperature=0.2,
+    api_key=os.environ["GITHUB_TOKEN"], # 直接使用 GitHub 的 Token
+    base_url="https://models.inference.ai.azure.com" # 指向 GitHub Models 的网关
+)
 
 # ==========================================
 # 1. 定义 Agents (专家团队)
