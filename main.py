@@ -21,6 +21,16 @@ llm = ChatOpenAI(
     api_key=os.environ.get("GITHUB_TOKEN") 
 )
 
+llm = ChatOpenAI(
+    # OpenRouter 的专属模型命名格式：提供商/模型名
+    model_name="anthropic/claude-4.6-opus", 
+    temperature=0.2, # 保持严谨的代码生成温度
+    # 强制将请求发给 OpenRouter 的网关
+    base_url="https://openrouter.ai/api/v1", 
+    # 读取我们刚才配好的 OpenRouter Key
+    api_key=os.environ.get("OPENROUTER_API_KEY")
+)
+
 # ==========================================
 # 1. 定义 Agents (专家团队)
 # ==========================================
