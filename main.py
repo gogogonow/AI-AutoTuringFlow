@@ -1,56 +1,82 @@
 import os
-import sys
+from dotenv import load_dotenv
 from crewai import Agent, Task, Crew, Process
 from langchain_openai import ChatOpenAI
+
+# 导入你之前写好的工具 (假设路径为 tools/github_tools.py 和 tools/file_tools.py)
 from tools.github_tools import fetch_requirement_tool, create_pr_tool
 from tools.file_tools import write_code_tool
 
-# 验证必需的环境变量
-required_env_vars = ["OPENAI_API_KEY", "GITHUB_TOKEN", "REPO_NAME", "ISSUE_NUMBER"]
-missing = [v for v in required_env_vars if not os.environ.get(v)]
-if missing:
-    print(f"❌ Missing required environment variables: {', '.join(missing)}")
-    sys.exit(1)
+# 加载本地 .env 文件（如果是本地调试的话）
+load_dotenv()
 
-# 初始化底层大模型
-# 现在改为调用 GitHub 提供的 GPT-4o 接口：
+# ==========================================
+# 0. 初始化底层大模型 (接入 GitHub Models)
+# ==========================================
+print("正在连接大模型神经中枢...")
 llm = ChatOpenAI(
     model_name="gpt-4o", 
     temperature=0.2,
-    api_key=os.environ["GITHUB_TOKEN"], # 直接使用 GitHub 的 Token
-    base_url="https://models.inference.ai.azure.com" # 指向 GitHub Models 的网关
+    base_url="https://models.inference.ai.azure.com", 
+    api_key=os.environ.get("GITHUB_TOKEN") 
 )
 
 # ==========================================
 # 1. 定义 Agents (专家团队)
 # ==========================================
 
-# 架构师 Agent
 architect = Agent(
-    role='系统架构师',
-    goal='分析需求，设计清晰的软件架构、技术栈选择和文件结构。',
-    backstory='你是一位拥有多年工具链开发经验的资深架构师，精通 Python、Java 以及自动化脚本设计。你总是能将模糊的需求转化为高度结构化的设计文档。',
+    role='首席系统架构师',
+    goal='分析原始需求，输出包含技术栈选型、前后端 API 契约设计、以及跨语言调用的核心架构文档。',
+    backstory='你是一位拥有深厚通信研发工具链和硬件自动化设计经验的首席架构师。你擅长规划高可用、可扩展的系统，精通 Java/Web 技术栈与 Python 自动化脚本的融合。你能够精准定义前后端交互协议，并擅长拆解复杂的业务流程，为多团队协作奠定基础。',
     verbose=True,
     allow_delegation=False,
     llm=llm
 )
 
-# 研发 Agent
-developer = Agent(
-    role='高级软件工程师',
-    goal='严格按照架构师的设计编写健壮、可维护的代码，并保存到本地文件系统。',
-    backstory='你是一个极其严谨的程序员，擅长编写各种自动化脚本和后端逻辑。你能完美地调用工具把代码写入正确的文件路径。',
+ui_designer = Agent(
+    role='UI/UX 交互设计师',
+    goal='基于架构师的需求，设计全局 UI 规范、界面布局结构以及交互流程（输出 Markdown 描述）。',
+    backstory='你精通 B 端复杂工程系统和工具链界面的设计。你深谙用户体验，擅长规划包含复杂参数配置面板、以及用于承载 WebGL/3D 渲染模型（如 ODB++ 或 STP 文件解析结果）的视图容器交互逻辑，能为前端开发提供清晰的组件划分建议。',
+    verbose=True,
+    allow_delegation=False,
+    llm=llm
+)
+
+frontend_dev = Agent(
+    role='高级前端工程师',
+    goal='严格遵循 UI 规范和 API 契约，编写高质量的现代前端代码，并保存到本地文件。',
+    backstory='你精通现代 Web 技术栈。你不仅擅长构建响应式的组件库，还拥有丰富的浏览器端渲染经验，能够从容应对包含复杂 DOM 结构或 Three.js 可视化视窗的高性能前端开发需求。',
     verbose=True,
     tools=[write_code_tool],
     allow_delegation=False,
     llm=llm
 )
 
-# DevOps Agent
-devops = Agent(
-    role='DevOps 工程师',
-    goal='将本地写好的代码提交到远端仓库，并创建 Pull Request。',
-    backstory='你负责整个研发流程的最后一环，熟练掌握 Git 工作流和 GitHub API。',
+backend_dev = Agent(
+    role='高级后端工程师',
+    goal='基于架构师的设计，编写健壮的后端服务、核心算法逻辑以及自动化解析脚本，并保存到本地文件。',
+    backstory='你是一个极其严谨的后端极客，精通高并发架构。你擅长使用 Java 和 Python 开发自动化任务调度、CAD 自动化脚本、以及解析大型复杂工程文件结构。你编写的代码逻辑清晰且包含完善的异常处理。',
+    verbose=True,
+    tools=[write_code_tool],
+    allow_delegation=False,
+    llm=llm
+)
+
+qa_engineer = Agent(
+    role='自动化测试工程师 (SDET)',
+    goal='审查前后端生成的代码，编写并完善单元测试和接口集成测试脚本，并保存到本地。',
+    backstory='你拥有“破坏者”的思维，对代码缺陷有着敏锐的嗅觉。你精通现代测试框架，致力于通过高覆盖率的测试用例（尤其是针对核心算法和数据解析模块）确保代码的健壮性和边界异常处理能力。',
+    verbose=True,
+    tools=[write_code_tool], 
+    allow_delegation=False,
+    llm=llm
+)
+
+devops_engineer = Agent(
+    role='DevOps 与发布工程师',
+    goal='在代码写入完成后，将工作区提交到远端并创建 Pull Request。',
+    backstory='你是 CI/CD 流水线的大师，熟练掌握 Git 工作流和 GitHub API，确保代码从开发环境平滑过渡到版本库，为最终的人工 Review 做好准备。',
     verbose=True,
     tools=[create_pr_tool],
     allow_delegation=False,
@@ -58,29 +84,44 @@ devops = Agent(
 )
 
 # ==========================================
-# 2. 定义 Tasks (工作流)
+# 2. 定义 Tasks (流水线节点)
 # ==========================================
 
-# 任务 1：解析需求并设计
-design_task = Task(
-    description='调用 fetch_requirement_tool 获取 Issue 需求。基于需求，输出详细的架构设计，包括必须创建的文件路径及其包含的类或函数的详细说明。',
-    expected_output='一份包含目录结构和各文件职责说明的架构设计方案。',
+task_architecture = Task(
+    description='调用 fetch_requirement_tool 获取原始 Issue 需求。基于需求，输出详细的架构设计，包括目录结构、API 接口定义以及数据库/数据结构设计。',
+    expected_output='一份结构清晰的系统架构设计文档。',
     agent=architect,
     tools=[fetch_requirement_tool]
 )
 
-# 任务 2：编写代码
-coding_task = Task(
-    description='基于架构师的设计，生成完整的、可运行的代码。必须调用 write_code_tool 将代码写入对应的文件路径中。不要只写片段，要写完整的生产级代码。',
-    expected_output='所有的代码文件都已成功写入本地文件系统。',
-    agent=developer
+task_ui_design = Task(
+    description='读取架构师的架构设计文档。为该系统设计交互流程和界面布局，详细描述各个组件的功能、位置以及可能需要的 3D 渲染视图区域。',
+    expected_output='一份详细的前端 UI 布局与交互规范文档。',
+    agent=ui_designer
 )
 
-# 任务 3：提交 PR
-pr_task = Task(
-    description='代码写入完成后，调用 create_pr_tool 创建一个新的 Git 分支并提交 Pull Request。分支名请以 "feature/ai-" 开头。',
-    expected_output='成功创建 PR 的 URL 链接。',
-    agent=devops
+task_frontend = Task(
+    description='基于 UI 规范和架构 API 契约，编写完整的前端页面或组件代码（HTML/CSS/JS 或对应的框架代码）。必须调用 write_code_tool 将代码写入本地的 `frontend/` 目录。',
+    expected_output='前端代码已成功生成并写入本地 frontend 目录。',
+    agent=frontend_dev
+)
+
+task_backend = Task(
+    description='基于架构设计文档，编写完整的后端 API 逻辑、数据解析脚本或核心算法。必须调用 write_code_tool 将代码写入本地的 `backend/` 目录。',
+    expected_output='后端代码已成功生成并写入本地 backend 目录。',
+    agent=backend_dev
+)
+
+task_qa = Task(
+    description='审查前端和后端生成的代码。针对后端的解析逻辑或核心 API，以及前端的关键组件，编写自动化测试用例。必须调用 write_code_tool 将测试代码写入本地的 `tests/` 目录。',
+    expected_output='自动化测试用例已成功生成并写入本地 tests 目录。',
+    agent=qa_engineer
+)
+
+task_devops = Task(
+    description='确认所有代码（frontend, backend, tests）都已写入完毕后，调用 create_pr_tool 创建一个新的 Git 分支（如 feature/ai-auto-dev）并提交 Pull Request。',
+    expected_output='成功创建 GitHub Pull Request 的 URL。',
+    agent=devops_engineer
 )
 
 # ==========================================
@@ -88,13 +129,16 @@ pr_task = Task(
 # ==========================================
 
 software_factory = Crew(
-    agents=[architect, developer, devops],
-    tasks=[design_task, coding_task, pr_task],
-    process=Process.sequential # 顺序执行：设计 -> 编码 -> 提PR
+    agents=[architect, ui_designer, frontend_dev, backend_dev, qa_engineer, devops_engineer],
+    tasks=[task_architecture, task_ui_design, task_frontend, task_backend, task_qa, task_devops],
+    process=Process.sequential # 严格按照瀑布流顺序执行
 )
 
 if __name__ == "__main__":
-    print("🚀 AI Multi-Agent Software Factory Starting...")
-    result = software_factory.kickoff()
-    print("✅ Workflow Completed. Result:")
-    print(result)
+    print("🚀 启动 6 人全栈 AI 研发团队...")
+    try:
+        result = software_factory.kickoff()
+        print("\n✅ 流水线执行完毕！最终报告：")
+        print(result)
+    except Exception as e:
+        print(f"\n❌ 执行过程中出现异常: {str(e)}")
