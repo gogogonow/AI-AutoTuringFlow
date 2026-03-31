@@ -14,12 +14,12 @@ load_dotenv()
 # 0. 初始化底层大模型 (接入 GitHub Models)
 # ==========================================
 print("正在连接大模型神经中枢...")
-llm = ChatOpenAI(
-    model_name="claude-4-6-opus", 
-    temperature=0.2,
-    base_url="https://models.inference.ai.azure.com", 
-    api_key=os.environ.get("GITHUB_TOKEN") 
-)
+# llm = ChatOpenAI(
+#     model_name="claude-4-6-opus", 
+#     temperature=0.2,
+#     base_url="https://models.inference.ai.azure.com", 
+#     api_key=os.environ.get("GITHUB_TOKEN") 
+# )
 
 llm = ChatOpenAI(
     # OpenRouter 的专属模型命名格式：提供商/模型名
