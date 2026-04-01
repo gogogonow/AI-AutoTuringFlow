@@ -1,7 +1,8 @@
 import os
 from dotenv import load_dotenv
 from crewai import Agent, Task, Crew, Process
-from langchain_openai import ChatOpenAI
+# from langchain_openai import ChatOpenAI
+from langchain_openrouter import ChatOpenRouter
 
 # 导入你之前写好的工具 (假设路径为 tools/github_tools.py 和 tools/file_tools.py)
 from tools.github_tools import fetch_requirement_tool, create_pr_tool
@@ -14,12 +15,12 @@ load_dotenv()
 # 0. 初始化底层大模型 (接入 GitHub Models)
 # ==========================================
 print("正在连接大模型神经中枢...")
-llm = ChatOpenAI(
-    model_name="gpt-5", 
-    temperature=0.2,
-    base_url="https://models.inference.ai.azure.com", 
-    api_key=os.environ.get("GITHUB_TOKEN") 
-)
+# llm = ChatOpenAI(
+#     model_name="gpt-5", 
+#     temperature=0.2,
+#     base_url="https://models.inference.ai.azure.com", 
+#     api_key=os.environ.get("GITHUB_TOKEN") 
+# )
 
 # llm = ChatOpenAI(
 #     # OpenRouter 的专属模型命名格式：提供商/模型名
@@ -30,6 +31,16 @@ llm = ChatOpenAI(
 #     # 读取我们刚才配好的 OpenRouter Key
 #     api_key=os.environ.get("OPENROUTER_API_KEY")
 # )
+
+llm = ChatOpenRouter(
+    # OpenRouter 的专属模型命名格式：提供商/模型名
+    model_name="anthropic/claude-4.6-sonnet", 
+    temperature=0.2, # 保持严谨的代码生成温度
+    # 强制将请求发给 OpenRouter 的网关
+    base_url="https://openrouter.ai/api/v1", 
+    # 读取我们刚才配好的 OpenRouter Key
+    api_key=os.environ.get("OPENROUTER_API_KEY")
+)
 
 # ==========================================
 # 1. 定义 Agents (专家团队)
