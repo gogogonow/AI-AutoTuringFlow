@@ -17,8 +17,8 @@ load_dotenv()
 print("正在连接大模型神经中枢...")
 
 llm_reasoning = LLM(
-    # 通过 openrouter/ 前缀，底层自动使用 OpenRouter 的通道
-    model="openrouter/deepseek/deepseek-r1",
+    # 架构设计与 UI 设计：使用 GPT-5 进行深度推理
+    model="openrouter/openai/gpt-5",
     temperature=0.2,
     max_tokens=8192,
     api_key=os.environ.get("OPENROUTER_API_KEY"),
@@ -30,10 +30,23 @@ llm_reasoning = LLM(
 )
 
 llm_coding = LLM(
-    # 通过 openrouter/ 前缀，底层自动使用 OpenRouter 的通道
-    model="openrouter/openai/gpt-4o",
+    # 代码生成：使用 Claude Sonnet 4 进行高质量代码编写
+    model="openrouter/anthropic/claude-sonnet-4",
     temperature=0.2,
     max_tokens=8192,
+    api_key=os.environ.get("OPENROUTER_API_KEY"),
+    base_url="https://openrouter.ai/api/v1",
+    extra_headers={
+        "HTTP-Referer": "https://github.com/gogogonow/AI-AutoTuringFlow",
+        "X-Title": "AI-AutoTuringFlow-Factory"
+    }
+)
+
+llm_light = LLM(
+    # DevOps 轻量级任务：使用 GPT-4o-mini 节省成本
+    model="openrouter/openai/gpt-4o-mini",
+    temperature=0.2,
+    max_tokens=4096,
     api_key=os.environ.get("OPENROUTER_API_KEY"),
     base_url="https://openrouter.ai/api/v1",
     extra_headers={
@@ -52,7 +65,7 @@ architect = Agent(
     backstory='你是一位拥有深厚通信研发工具链和硬件自动化设计经验的首席架构师。你擅长规划高可用、可扩展的系统，精通 Java/Web 技术栈与 Python 自动化脚本的融合。你能够精准定义前后端交互协议，并擅长拆解复杂的业务流程，为多团队协作奠定基础。',
     verbose=True,
     allow_delegation=False,
-    llm=llm_coding
+    llm=llm_reasoning
 )
 
 ui_designer = Agent(
@@ -101,7 +114,7 @@ devops_engineer = Agent(
     verbose=True,
     tools=[create_pr_tool],
     allow_delegation=False,
-    llm=llm_coding
+    llm=llm_light
 )
 
 # ==========================================
