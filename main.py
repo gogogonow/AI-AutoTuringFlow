@@ -23,7 +23,7 @@ print("正在连接大模型神经中枢...")
 
 llm = ChatOpenAI(
     # OpenRouter 的专属模型命名格式：提供商/模型名
-    model_name="anthropic/claude-4.6-opus", 
+    model_name="anthropic/claude-4.6-sonnet", 
     temperature=0.2, # 保持严谨的代码生成温度
     # 强制将请求发给 OpenRouter 的网关
     base_url="https://openrouter.ai/api/v1", 
