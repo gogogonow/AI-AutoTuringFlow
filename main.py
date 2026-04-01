@@ -31,7 +31,7 @@ llm_reasoning = LLM(
 
 llm_coding = LLM(
     # 代码生成：使用 Claude Sonnet 4 进行高质量代码编写
-    model="openrouter/anthropic/claude-sonnet-4",
+    model="openrouter/anthropic/claude-sonnet-4.6",
     temperature=0.2,
     max_tokens=8192,
     api_key=os.environ.get("OPENROUTER_API_KEY"),
