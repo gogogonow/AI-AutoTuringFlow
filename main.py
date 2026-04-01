@@ -37,7 +37,7 @@ llm = ChatOpenRouter(
     model="anthropic/claude-4.6-sonnet", 
     temperature=0.2, # 保持严谨的代码生成温度
     # 读取我们刚才配好的 OpenRouter Key
-    api_key=os.environ.get("OPENROUTER_API_KEY")
+    api_key=os.environ.get("OPENROUTER_API_KEY"),
 
     # ------------------ 3. 高级玩法：防 403 拦截的自动容灾 (Fallback) ------------------
     # 依然可以通过 model_kwargs 向底层注入 OpenRouter 特有的路由机制。
