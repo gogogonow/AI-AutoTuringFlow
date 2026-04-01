@@ -159,7 +159,7 @@ architect = Agent(
     backstory='你是一位拥有深厚通信研发工具链和硬件自动化设计经验的首席架构师。你擅长规划高可用、可扩展的系统，精通 Java/Web 技术栈与 Python 自动化脚本的融合。你能够精准定义前后端交互协议，并擅长拆解复杂的业务流程，为多团队协作奠定基础。',
     verbose=True,
     allow_delegation=False,
-    llm=llm_reasoning
+    llm=llm_coding
 )
 
 ui_designer = Agent(
@@ -208,7 +208,7 @@ devops_engineer = Agent(
     verbose=True,
     tools=[create_pr_tool],
     allow_delegation=False,
-    llm=llm_reasoning
+    llm=llm_coding
 )
 
 # ==========================================
