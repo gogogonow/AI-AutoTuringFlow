@@ -79,7 +79,7 @@ print("正在连接大模型神经中枢...")
 # x-ai/grok-4.1-fast
 # z-ai/glm-5
 
-llm_gpt-5.2-pro = LLM(
+llm_gpt_5.2_pro = LLM(
     # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
     model="openrouter/openai/gpt-5.2-pro", 
     temperature=0.2,
@@ -88,7 +88,7 @@ llm_gpt-5.2-pro = LLM(
     base_url="https://openrouter.ai/api/v1"
 )
 
-llm_deepseek-r1 = LLM(
+llm_deepseek_r1 = LLM(
     # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
     model="openrouter/deepseek/deepseek-r1", 
     temperature=0.2,
@@ -97,7 +97,7 @@ llm_deepseek-r1 = LLM(
     base_url="https://openrouter.ai/api/v1"
 )
 
-llm_gemini-3.1-pro-preview = LLM(
+llm_gemini_3.1_pro_preview = LLM(
     # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
     model="openrouter/google/gemini-3.1-pro-preview", 
     temperature=0.2,
@@ -106,7 +106,7 @@ llm_gemini-3.1-pro-preview = LLM(
     base_url="https://openrouter.ai/api/v1"
 )
 
-llm_kimi-k2-thinking = LLM(
+llm_kimi_k2_thinking = LLM(
     # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
     model="openrouter/moonshotai/kimi-k2-thinking", 
     temperature=0.2,
@@ -115,7 +115,7 @@ llm_kimi-k2-thinking = LLM(
     base_url="https://openrouter.ai/api/v1"
 )
 
-llm_gpt-5.3-chat = LLM(
+llm_gpt_5.3_chat = LLM(
     # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
     model="openrouter/openai/gpt-5.3-chat", 
     temperature=0.2,
@@ -124,7 +124,7 @@ llm_gpt-5.3-chat = LLM(
     base_url="https://openrouter.ai/api/v1"
 )
 
-llm_qwen3-235b-a22b = LLM(
+llm_qwen3_235b_a22b = LLM(
     # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
     model="openrouter/qwen/qwen3-235b-a22b", 
     temperature=0.2,
