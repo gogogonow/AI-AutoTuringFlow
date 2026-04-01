@@ -80,7 +80,7 @@ ui_designer = Agent(
 frontend_dev = Agent(
     role='高级前端工程师',
     goal='严格遵循 UI 规范和 API 契约，编写高质量的现代前端代码，并保存到本地文件。',
-    backstory='你精通现代 Web 技术栈。你不仅擅长构建响应式的组件库，还拥有丰富的浏览器端渲染经验，能够从容应对包含复杂 DOM 结构或 Three.js 可视化视窗的高性能前端开发需求。',
+    backstory='你精通现代 Web 技术栈。你不仅擅长构建响应式的组件库，还拥有丰富的浏览器端渲染经验，能够从容应对包含复杂 DOM 结构或200行+大表的高性能前端开发需求。',
     verbose=True,
     tools=[write_code_tool],
     allow_delegation=False,
@@ -90,7 +90,7 @@ frontend_dev = Agent(
 backend_dev = Agent(
     role='高级后端工程师',
     goal='基于架构师的设计，编写健壮的后端服务、核心算法逻辑以及自动化解析脚本，并保存到本地文件。',
-    backstory='你是一个极其严谨的后端极客，精通高并发架构。你擅长使用 Java 和 Python 开发自动化任务调度、CAD 自动化脚本、以及解析大型复杂工程文件结构。你编写的代码逻辑清晰且包含完善的异常处理。',
+    backstory='你是一个极其严谨的后端极客，精通高并发架构。你擅长使用 Java 和 Python 开发后端服务。你编写的代码逻辑清晰且包含完善的异常处理。',
     verbose=True,
     tools=[write_code_tool],
     allow_delegation=False,
@@ -129,7 +129,7 @@ task_architecture = Task(
 )
 
 task_ui_design = Task(
-    description='读取架构师的架构设计文档。为该系统设计交互流程和界面布局，详细描述各个组件的功能、位置以及可能需要的 3D 渲染视图区域。',
+    description='读取架构师的架构设计文档。为该系统设计交互流程和界面布局，详细描述各个组件的功能、位置。',
     expected_output='一份详细的前端 UI 布局与交互规范文档。',
     agent=ui_designer,
     context=[task_architecture]
