@@ -19,7 +19,6 @@ print("正在连接大模型神经中枢...")
 llm_reasoning = LLM(
     # 架构设计与 UI 设计：使用 GPT-5 进行深度推理
     model="gpt-5",
-    temperature=0.2,
     max_completion_tokens=8192,
     api_key=os.environ.get("OAIPRO_API_KEY"),
     base_url="https://api.oaipro.com/v1"
@@ -28,7 +27,6 @@ llm_reasoning = LLM(
 llm_coding = LLM(
     # 代码生成：使用 Claude Sonnet 4 进行高质量代码编写
     model="claude-sonnet-4-6",
-    temperature=0.2,
     max_completion_tokens=8192,
     api_key=os.environ.get("OAIPRO_API_KEY"),
     base_url="https://api.oaipro.com/v1"
@@ -37,7 +35,6 @@ llm_coding = LLM(
 llm_light = LLM(
     # DevOps 轻量级任务：使用 GPT-4o-mini 节省成本
     model="gpt-4o-mini",
-    temperature=0.2,
     max_completion_tokens=4096,
     api_key=os.environ.get("OAIPRO_API_KEY"),
     base_url="https://api.oaipro.com/v1"
