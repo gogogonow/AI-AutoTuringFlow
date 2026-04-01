@@ -38,8 +38,23 @@ def create_pr_tool(branch_name: str, pr_title: str, commit_message: str) -> str:
             subprocess.run(["git", "checkout", branch_name], check=True)
 
         subprocess.run(["git", "add", "."], check=True)
-        subprocess.run(["git", "commit", "-m", commit_message], check=True)
-        subprocess.run(["git", "push", "origin", branch_name], check=True)
+        # 如果没有新内容可提交，commit 可能会失败，此处忽略该错误
+        subprocess.run(["git", "commit", "-m", commit_message])
+
+        # 先尝试普通 push；若远端分支已有不同提交则先 rebase 再推，
+        # 若 rebase 也失败（如冲突），则用 --force-with-lease 强制推送
+        push_result = subprocess.run(["git", "push", "origin", branch_name], capture_output=True, text=True)
+        if push_result.returncode != 0:
+            rebase_result = subprocess.run(
+                ["git", "pull", "--rebase", "origin", branch_name],
+                capture_output=True, text=True
+            )
+            if rebase_result.returncode == 0:
+                subprocess.run(["git", "push", "origin", branch_name], check=True)
+            else:
+                # rebase 失败时中止，改用 force-with-lease 推送
+                subprocess.run(["git", "rebase", "--abort"], capture_output=True)
+                subprocess.run(["git", "push", "--force-with-lease", "origin", branch_name], check=True)
     finally:
         # 清除 URL 中的 token，防止泄露到日志
         subprocess.run(["git", "remote", "set-url", "origin", clean_url], check=True)
