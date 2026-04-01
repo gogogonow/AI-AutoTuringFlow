@@ -12,143 +12,35 @@ from tools.file_tools import write_code_tool
 load_dotenv()
 
 # ==========================================
-# 0. 初始化底层大模型 (接入 GitHub Models)
+# 0. 初始化底层大模型 (接入 OpenRouter)
 # ==========================================
 print("正在连接大模型神经中枢...")
-# llm = ChatOpenAI(
-#     model_name="gpt-5", 
-#     temperature=0.2,
-#     base_url="https://models.inference.ai.azure.com", 
-#     api_key=os.environ.get("GITHUB_TOKEN") 
-# )
-
-# llm = ChatOpenAI(
-#     # OpenRouter 的专属模型命名格式：提供商/模型名
-#     model_name="anthropic/claude-4.6-sonnet", 
-#     temperature=0.2, # 保持严谨的代码生成温度
-#     # 强制将请求发给 OpenRouter 的网关
-#     base_url="https://openrouter.ai/api/v1", 
-#     # 读取我们刚才配好的 OpenRouter Key
-#     api_key=os.environ.get("OPENROUTER_API_KEY")
-# )
-
-# llm = ChatOpenRouter(
-#     # OpenRouter 的专属模型命名格式：提供商/模型名
-#     model="anthropic/claude-4.6-sonnet", 
-#     temperature=0.2, # 保持严谨的代码生成温度
-#     # 读取我们刚才配好的 OpenRouter Key
-#     api_key=os.environ.get("OPENROUTER_API_KEY"),
-
-#     # ------------------ 3. 高级玩法：防 403 拦截的自动容灾 (Fallback) ------------------
-#     # 依然可以通过 model_kwargs 向底层注入 OpenRouter 特有的路由机制。
-#     # 如果 Claude 傲娇拒答，瞬间无缝切换到备胎模型，保证流水线不中断！
-#     model_kwargs={
-#         "extra_body": {
-#             "route": "fallback",
-#             "models": [
-#                 "openai/gpt-5", # 首选：最强代码大脑
-#                 "deepseek/deepseek-coder"      # 备胎 1：纯粹的代码神仙，毫无安全审查包袱
-#             ]
-#         }
-#     }
-# )
-
 
 llm_reasoning = LLM(
-    # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
-    model="deepseek/deepseek-r1", 
+    # 通过 openrouter/ 前缀，底层自动使用 OpenRouter 的通道
+    model="openrouter/deepseek/deepseek-r1",
     temperature=0.2,
-    api_key=os.environ.get("GITHUB_TOKEN") ,
-    base_url="https://models.inference.ai.azure.com"
+    max_tokens=8192,
+    api_key=os.environ.get("OPENROUTER_API_KEY"),
+    base_url="https://openrouter.ai/api/v1",
+    extra_headers={
+        "HTTP-Referer": "https://github.com/gogogonow/AI-AutoTuringFlow",
+        "X-Title": "AI-AutoTuringFlow-Factory"
+    }
 )
 
 llm_coding = LLM(
-    # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
-    model="openai/gpt-4o", 
+    # 通过 openrouter/ 前缀，底层自动使用 OpenRouter 的通道
+    model="openrouter/openai/gpt-4o",
     temperature=0.2,
-    max_tokens=2000,
-    api_key=os.environ.get("GITHUB_TOKEN") ,
-    base_url="https://models.inference.ai.azure.com"
+    max_tokens=8192,
+    api_key=os.environ.get("OPENROUTER_API_KEY"),
+    base_url="https://openrouter.ai/api/v1",
+    extra_headers={
+        "HTTP-Referer": "https://github.com/gogogonow/AI-AutoTuringFlow",
+        "X-Title": "AI-AutoTuringFlow-Factory"
+    }
 )
-
-# llm_gpt_5_2_pro = LLM(
-#     # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
-#     model="openrouter/openai/gpt-5.2-pro", 
-#     temperature=0.2,
-#     max_tokens=8192,
-#     api_key=os.environ.get("OPENROUTER_API_KEY"),
-#     base_url="https://openrouter.ai/api/v1",
-#     extra_headers={
-#         "HTTP-Referer": "https://github.com/gogogonow/AI-AutoTuringFlow",
-#         "X-Title": "AI-AutoTuringFlow-Factory"
-#     }
-# )
-
-# llm_deepseek_r1 = LLM(
-#     # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
-#     model="openrouter/deepseek/deepseek-r1", 
-#     temperature=0.2,
-#     max_tokens=8192,
-#     api_key=os.environ.get("OPENROUTER_API_KEY"),
-#     base_url="https://openrouter.ai/api/v1",
-#     extra_headers={
-#         "HTTP-Referer": "https://github.com/gogogonow/AI-AutoTuringFlow",
-#         "X-Title": "AI-AutoTuringFlow-Factory"
-#     }
-# )
-
-# llm_gemini_3_1_pro_preview = LLM(
-#     # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
-#     model="openrouter/google/gemini-3.1-pro-preview", 
-#     temperature=0.2,
-#     max_tokens=8192,
-#     api_key=os.environ.get("OPENROUTER_API_KEY"),
-#     base_url="https://openrouter.ai/api/v1",
-#     extra_headers={
-#         "HTTP-Referer": "https://github.com/gogogonow/AI-AutoTuringFlow",
-#         "X-Title": "AI-AutoTuringFlow-Factory"
-#     }
-# )
-
-# llm_kimi_k2_thinking = LLM(
-#     # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
-#     model="openrouter/moonshotai/kimi-k2-thinking", 
-#     temperature=0.2,
-#     max_tokens=8192,
-#     api_key=os.environ.get("OPENROUTER_API_KEY"),
-#     base_url="https://openrouter.ai/api/v1",
-#     extra_headers={
-#         "HTTP-Referer": "https://github.com/gogogonow/AI-AutoTuringFlow",
-#         "X-Title": "AI-AutoTuringFlow-Factory"
-#     }
-# )
-
-# llm_gpt_5_3_chat = LLM(
-#     # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
-#     model="openrouter/openai/gpt-5.3-chat", 
-#     temperature=0.2,
-#     max_tokens=8192,
-#     api_key=os.environ.get("OPENROUTER_API_KEY"),
-#     base_url="https://openrouter.ai/api/v1",
-#     extra_headers={
-#         "HTTP-Referer": "https://github.com/gogogonow/AI-AutoTuringFlow",
-#         "X-Title": "AI-AutoTuringFlow-Factory"
-#     }
-# )
-
-# llm_qwen3_235b_a22b = LLM(
-#     # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
-#     model="openrouter/qwen/qwen3-235b-a22b", 
-#     temperature=0.2,
-#     max_tokens=8192,
-#     api_key=os.environ.get("OPENROUTER_API_KEY"),
-#     base_url="https://openrouter.ai/api/v1",
-#     extra_headers={
-#         "HTTP-Referer": "https://github.com/gogogonow/AI-AutoTuringFlow",
-#         "X-Title": "AI-AutoTuringFlow-Factory"
-#     }
-# )
-
 
 # ==========================================
 # 1. 定义 Agents (专家团队)
