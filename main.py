@@ -53,9 +53,80 @@ print("正在连接大模型神经中枢...")
 #     }
 # )
 
-llm = LLM(
+
+# deepseek/deepseek-r1
+# google/gemini-2.5-flash-lite
+# google/gemini-3-flash-preview
+# google/gemini-3-pro-preview
+# google/gemini-3.1-pro-preview
+# meta-llama/llama-3.3-70b-instruct
+
+# moonshotai/kimi-k2-thinking
+# moonshotai/kimi-k2.5
+# openai/gpt-5
+# openai/gpt-5-mini
+# openai/gpt-5-nano
+# openai/gpt-5.1
+# openai/gpt-5.2
+# openai/gpt-5.2-pro
+# openai/gpt-5.3-chat
+# openai/gpt-oss-120b
+# perplexity/sonar
+# qwen/qwen3-235b-a22b
+# x-ai/grok-3
+# x-ai/grok-3-mini
+# x-ai/grok-4
+# x-ai/grok-4.1-fast
+# z-ai/glm-5
+
+llm_gpt-5.2-pro = LLM(
     # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
-    model="openrouter/anthropic/claude-4.6-sonnet", 
+    model="openrouter/openai/gpt-5.2-pro", 
+    temperature=0.2,
+    max_tokens=8192,
+    api_key=os.environ.get("OPENROUTER_API_KEY"),
+    base_url="https://openrouter.ai/api/v1"
+)
+
+llm_deepseek-r1 = LLM(
+    # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
+    model="openrouter/deepseek/deepseek-r1", 
+    temperature=0.2,
+    max_tokens=8192,
+    api_key=os.environ.get("OPENROUTER_API_KEY"),
+    base_url="https://openrouter.ai/api/v1"
+)
+
+llm_gemini-3.1-pro-preview = LLM(
+    # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
+    model="openrouter/google/gemini-3.1-pro-preview", 
+    temperature=0.2,
+    max_tokens=8192,
+    api_key=os.environ.get("OPENROUTER_API_KEY"),
+    base_url="https://openrouter.ai/api/v1"
+)
+
+llm_kimi-k2-thinking = LLM(
+    # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
+    model="openrouter/moonshotai/kimi-k2-thinking", 
+    temperature=0.2,
+    max_tokens=8192,
+    api_key=os.environ.get("OPENROUTER_API_KEY"),
+    base_url="https://openrouter.ai/api/v1"
+)
+
+llm_gpt-5.3-chat = LLM(
+    # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
+    model="openrouter/openai/gpt-5.3-chat", 
+    temperature=0.2,
+    max_tokens=8192,
+    api_key=os.environ.get("OPENROUTER_API_KEY"),
+    base_url="https://openrouter.ai/api/v1"
+)
+
+llm_qwen3-235b-a22b = LLM(
+    # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
+    model="openrouter/qwen/qwen3-235b-a22b", 
     temperature=0.2,
     max_tokens=8192,
     api_key=os.environ.get("OPENROUTER_API_KEY"),
@@ -72,7 +143,7 @@ architect = Agent(
     backstory='你是一位拥有深厚通信研发工具链和硬件自动化设计经验的首席架构师。你擅长规划高可用、可扩展的系统，精通 Java/Web 技术栈与 Python 自动化脚本的融合。你能够精准定义前后端交互协议，并擅长拆解复杂的业务流程，为多团队协作奠定基础。',
     verbose=True,
     allow_delegation=False,
-    llm=llm
+    llm=llm_gpt-5.2-pro
 )
 
 ui_designer = Agent(
@@ -81,7 +152,7 @@ ui_designer = Agent(
     backstory='你精通 B 端复杂工程系统和工具链界面的设计。你深谙用户体验，擅长规划包含复杂参数配置面板、以及用于承载 WebGL/3D 渲染模型（如 ODB++ 或 STP 文件解析结果）的视图容器交互逻辑，能为前端开发提供清晰的组件划分建议。',
     verbose=True,
     allow_delegation=False,
-    llm=llm
+    llm=llm_gpt-5.3-chat
 )
 
 frontend_dev = Agent(
@@ -91,7 +162,7 @@ frontend_dev = Agent(
     verbose=True,
     tools=[write_code_tool],
     allow_delegation=False,
-    llm=llm
+    llm=llm_gemini-3.1-pro-preview
 )
 
 backend_dev = Agent(
@@ -101,7 +172,7 @@ backend_dev = Agent(
     verbose=True,
     tools=[write_code_tool],
     allow_delegation=False,
-    llm=llm
+    llm=llm_deepseek-r1
 )
 
 qa_engineer = Agent(
@@ -111,7 +182,7 @@ qa_engineer = Agent(
     verbose=True,
     tools=[write_code_tool], 
     allow_delegation=False,
-    llm=llm
+    llm=llm_kimi-k2-thinking
 )
 
 devops_engineer = Agent(
@@ -121,7 +192,7 @@ devops_engineer = Agent(
     verbose=True,
     tools=[create_pr_tool],
     allow_delegation=False,
-    llm=llm
+    llm=llm_qwen3-235b-a22b
 )
 
 # ==========================================
