@@ -56,7 +56,7 @@ print("正在连接大模型神经中枢...")
 
 llm_reasoning = LLM(
     # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
-    model="openai/DeepSeek-R1", 
+    model="deepseek/deepseek-r1", 
     temperature=0.2,
     api_key=os.environ.get("GITHUB_TOKEN") ,
     base_url="https://models.inference.ai.azure.com"
