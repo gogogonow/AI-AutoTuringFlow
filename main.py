@@ -66,6 +66,7 @@ llm_coding = LLM(
     # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
     model="openai/gpt-4o", 
     temperature=0.2,
+    max_tokens=2000,
     api_key=os.environ.get("GITHUB_TOKEN") ,
     base_url="https://models.inference.ai.azure.com"
 )
@@ -225,31 +226,36 @@ task_architecture = Task(
 task_ui_design = Task(
     description='读取架构师的架构设计文档。为该系统设计交互流程和界面布局，详细描述各个组件的功能、位置以及可能需要的 3D 渲染视图区域。',
     expected_output='一份详细的前端 UI 布局与交互规范文档。',
-    agent=ui_designer
+    agent=ui_designer,
+    context=[task_architecture]
 )
 
 task_frontend = Task(
     description='基于 UI 规范和架构 API 契约，编写完整的前端页面或组件代码（HTML/CSS/JS 或对应的框架代码）。必须调用 write_code_tool 将代码写入本地的 `frontend/` 目录。',
     expected_output='前端代码已成功生成并写入本地 frontend 目录。',
-    agent=frontend_dev
+    agent=frontend_dev,
+    context=[task_ui_design]
 )
 
 task_backend = Task(
     description='基于架构设计文档，编写完整的后端 API 逻辑、数据解析脚本或核心算法。必须调用 write_code_tool 将代码写入本地的 `backend/` 目录。',
     expected_output='后端代码已成功生成并写入本地 backend 目录。',
-    agent=backend_dev
+    agent=backend_dev,
+    context=[task_architecture]
 )
 
 task_qa = Task(
     description='审查前端和后端生成的代码。针对后端的解析逻辑或核心 API，以及前端的关键组件，编写自动化测试用例。必须调用 write_code_tool 将测试代码写入本地的 `tests/` 目录。',
     expected_output='自动化测试用例已成功生成并写入本地 tests 目录。',
-    agent=qa_engineer
+    agent=qa_engineer,
+    context=[task_backend, task_frontend]
 )
 
 task_devops = Task(
     description='确认所有代码（frontend, backend, tests）都已写入完毕后，调用 create_pr_tool 创建一个新的 Git 分支（如 feature/ai-auto-dev）并提交 Pull Request。',
     expected_output='成功创建 GitHub Pull Request 的 URL。',
-    agent=devops_engineer
+    agent=devops_engineer,
+    context=[task_qa]
 )
 
 # ==========================================
