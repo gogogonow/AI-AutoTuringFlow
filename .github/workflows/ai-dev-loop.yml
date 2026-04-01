@@ -26,7 +26,6 @@ jobs:
       - name: Execute Multi-Agent Workflow
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-          OPENAI_API_KEY: ${{ secrets.GH_PAT }} # 需在仓库 Settings -> Secrets 中配置
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           REPO_NAME: ${{ github.repository }}
