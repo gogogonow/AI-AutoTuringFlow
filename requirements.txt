@@ -1,5 +1,4 @@
 crewai==0.28.8
-langchain-openai
 langchain-openrouter
 PyGithub==2.3.0
 python-dotenv
