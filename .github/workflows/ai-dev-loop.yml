@@ -26,7 +26,7 @@ jobs:
       - name: Execute Multi-Agent Workflow
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OAIPRO_API_KEY: ${{ secrets.OAIPRO_API_KEY }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           REPO_NAME: ${{ github.repository }}
         run: python main.py
