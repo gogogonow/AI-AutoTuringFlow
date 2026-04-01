@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
-from crewai import Agent, Task, Crew, Process
+from crewai import Agent, Task, Crew, Process, LLM
 # from langchain_openai import ChatOpenAI
-from langchain_openrouter import ChatOpenRouter
+# from langchain_openrouter import ChatOpenRouter
 
 # 导入你之前写好的工具 (假设路径为 tools/github_tools.py 和 tools/file_tools.py)
 from tools.github_tools import fetch_requirement_tool, create_pr_tool
@@ -32,25 +32,34 @@ print("正在连接大模型神经中枢...")
 #     api_key=os.environ.get("OPENROUTER_API_KEY")
 # )
 
-llm = ChatOpenRouter(
-    # OpenRouter 的专属模型命名格式：提供商/模型名
-    model="anthropic/claude-4.6-sonnet", 
-    temperature=0.2, # 保持严谨的代码生成温度
-    # 读取我们刚才配好的 OpenRouter Key
-    api_key=os.environ.get("OPENROUTER_API_KEY"),
+# llm = ChatOpenRouter(
+#     # OpenRouter 的专属模型命名格式：提供商/模型名
+#     model="anthropic/claude-4.6-sonnet", 
+#     temperature=0.2, # 保持严谨的代码生成温度
+#     # 读取我们刚才配好的 OpenRouter Key
+#     api_key=os.environ.get("OPENROUTER_API_KEY"),
 
-    # ------------------ 3. 高级玩法：防 403 拦截的自动容灾 (Fallback) ------------------
-    # 依然可以通过 model_kwargs 向底层注入 OpenRouter 特有的路由机制。
-    # 如果 Claude 傲娇拒答，瞬间无缝切换到备胎模型，保证流水线不中断！
-    model_kwargs={
-        "extra_body": {
-            "route": "fallback",
-            "models": [
-                "openai/gpt-5", # 首选：最强代码大脑
-                "deepseek/deepseek-coder"      # 备胎 1：纯粹的代码神仙，毫无安全审查包袱
-            ]
-        }
-    }
+#     # ------------------ 3. 高级玩法：防 403 拦截的自动容灾 (Fallback) ------------------
+#     # 依然可以通过 model_kwargs 向底层注入 OpenRouter 特有的路由机制。
+#     # 如果 Claude 傲娇拒答，瞬间无缝切换到备胎模型，保证流水线不中断！
+#     model_kwargs={
+#         "extra_body": {
+#             "route": "fallback",
+#             "models": [
+#                 "openai/gpt-5", # 首选：最强代码大脑
+#                 "deepseek/deepseek-coder"      # 备胎 1：纯粹的代码神仙，毫无安全审查包袱
+#             ]
+#         }
+#     }
+# )
+
+llm = LLM(
+    # 只要加上 openrouter/ 前缀，底层就会自动使用 OpenRouter 的通道
+    model="openrouter/anthropic/claude-4.6-sonnet", 
+    temperature=0.2,
+    max_tokens=8192,
+    api_key=os.environ.get("OPENROUTER_API_KEY"),
+    base_url="https://openrouter.ai/api/v1"
 )
 
 # ==========================================
