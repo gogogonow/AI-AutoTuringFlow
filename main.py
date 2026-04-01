@@ -85,7 +85,11 @@ llm_gpt_5_2_pro = LLM(
     temperature=0.2,
     max_tokens=8192,
     api_key=os.environ.get("OPENROUTER_API_KEY"),
-    base_url="https://openrouter.ai/api/v1"
+    base_url="https://openrouter.ai/api/v1",
+    extra_headers={
+        "HTTP-Referer": "https://github.com/gogogonow/AI-AutoTuringFlow",
+        "X-Title": "AI-AutoTuringFlow-Factory"
+    }
 )
 
 llm_deepseek_r1 = LLM(
@@ -94,7 +98,11 @@ llm_deepseek_r1 = LLM(
     temperature=0.2,
     max_tokens=8192,
     api_key=os.environ.get("OPENROUTER_API_KEY"),
-    base_url="https://openrouter.ai/api/v1"
+    base_url="https://openrouter.ai/api/v1",
+    extra_headers={
+        "HTTP-Referer": "https://github.com/gogogonow/AI-AutoTuringFlow",
+        "X-Title": "AI-AutoTuringFlow-Factory"
+    }
 )
 
 llm_gemini_3_1_pro_preview = LLM(
@@ -103,7 +111,11 @@ llm_gemini_3_1_pro_preview = LLM(
     temperature=0.2,
     max_tokens=8192,
     api_key=os.environ.get("OPENROUTER_API_KEY"),
-    base_url="https://openrouter.ai/api/v1"
+    base_url="https://openrouter.ai/api/v1",
+    extra_headers={
+        "HTTP-Referer": "https://github.com/gogogonow/AI-AutoTuringFlow",
+        "X-Title": "AI-AutoTuringFlow-Factory"
+    }
 )
 
 llm_kimi_k2_thinking = LLM(
@@ -112,7 +124,11 @@ llm_kimi_k2_thinking = LLM(
     temperature=0.2,
     max_tokens=8192,
     api_key=os.environ.get("OPENROUTER_API_KEY"),
-    base_url="https://openrouter.ai/api/v1"
+    base_url="https://openrouter.ai/api/v1",
+    extra_headers={
+        "HTTP-Referer": "https://github.com/gogogonow/AI-AutoTuringFlow",
+        "X-Title": "AI-AutoTuringFlow-Factory"
+    }
 )
 
 llm_gpt_5_3_chat = LLM(
@@ -121,7 +137,11 @@ llm_gpt_5_3_chat = LLM(
     temperature=0.2,
     max_tokens=8192,
     api_key=os.environ.get("OPENROUTER_API_KEY"),
-    base_url="https://openrouter.ai/api/v1"
+    base_url="https://openrouter.ai/api/v1",
+    extra_headers={
+        "HTTP-Referer": "https://github.com/gogogonow/AI-AutoTuringFlow",
+        "X-Title": "AI-AutoTuringFlow-Factory"
+    }
 )
 
 llm_qwen3_235b_a22b = LLM(
@@ -130,7 +150,11 @@ llm_qwen3_235b_a22b = LLM(
     temperature=0.2,
     max_tokens=8192,
     api_key=os.environ.get("OPENROUTER_API_KEY"),
-    base_url="https://openrouter.ai/api/v1"
+    base_url="https://openrouter.ai/api/v1",
+    extra_headers={
+        "HTTP-Referer": "https://github.com/gogogonow/AI-AutoTuringFlow",
+        "X-Title": "AI-AutoTuringFlow-Factory"
+    }
 )
 
 # ==========================================
