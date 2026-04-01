@@ -15,7 +15,7 @@ load_dotenv()
 # ==========================================
 print("正在连接大模型神经中枢...")
 llm = ChatOpenAI(
-    model_name="openai/gpt-5", 
+    model_name="gpt-5", 
     temperature=0.2,
     base_url="https://models.inference.ai.azure.com", 
     api_key=os.environ.get("GITHUB_TOKEN") 
