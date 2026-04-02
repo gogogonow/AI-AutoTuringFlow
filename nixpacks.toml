@@ -4,3 +4,6 @@
 
 [phases.build]
 cmds = ["echo 'ERROR: This is a monorepo. Set Root Directory to backend/ or frontend/ in Railway service settings. See DEPLOYMENT.md for instructions.' && exit 1"]
+
+[start]
+cmd = "echo 'ERROR: This is a monorepo. Set Root Directory to backend/ or frontend/ in Railway service settings. See DEPLOYMENT.md for instructions.' && exit 1"

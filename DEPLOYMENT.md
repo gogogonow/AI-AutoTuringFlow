@@ -394,6 +394,7 @@ docker compose up --build
 
 | 问题 | 排查思路 | 解决方法 |
 |---|---|---|
+| Railway 启动报 `RuntimeError: GitHub client is not initialised` 或出现 `/app/main.py` 错误 | **Root Directory 未设置**。Railway 从仓库根目录部署时，会检测到根目录的 `requirements.txt` 和 `main.py`，将其当作 Python 项目运行（`/app/main.py` 是 CI 专用的 AI 编排脚本，不是后端服务） | 在 Railway 控制台点击后端服务 → **Settings** → 将 **Root Directory** 设为 `backend`，保存后重新部署。Railway 将读取 `backend/railway.json` 使用 Dockerfile 构建 Spring Boot |
 | 后端容器反复重启 | MySQL 未就绪或凭据错误 | `docker compose logs mysql`；检查 `MYSQL*` 变量是否与 MySQL 容器配置一致 |
 | 前端 `/api/` 返回 502 | `BACKEND_URL` 配置错误 | 确认 Railway 前端服务的 `BACKEND_URL` 变量值；检查后端服务名是否与内网地址匹配 |
 | Railway 数据库连接失败 | MySQL 变量未引用到后端服务 | 在后端服务 Variables 面板添加对 MySQL 插件变量的引用 |
