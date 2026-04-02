@@ -1,162 +1,346 @@
-# Deployment Setup Guide
+# 部署指南
 
-This guide covers two approaches for deploying the application:
+本指南提供两种部署方式：
 
-- **[Method A](#method-a-self-hosted-server--ssh--docker-compose-recommended)** – Self-hosted server via SSH + Docker Compose (current default, most control)
-- **[Method B](#method-b-cloud-platform-github-app-zero-server-management)** – Cloud platform GitHub Apps (Railway / Render / Fly.io, zero server management)
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Developer merges PR → main                                     │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │ triggers
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  GitHub Actions: Build and Deploy workflow                      │
-│                                                                 │
-│  Job 1: build-and-push                                          │
-│    1. Set up JDK 21 (Temurin)                                   │
-│    2. mvn package → optical-modules-backend-1.0.0.jar           │
-│    3. docker build + push → ghcr.io/<repo>/backend:<sha>        │
-│    4. docker build + push → ghcr.io/<repo>/frontend:<sha>       │
-│                                                                 │
-│  Job 2: deploy  (needs job 1, environment: production)          │
-│    1. scp docker-compose.yml + backend/database/ to server      │
-│    2. SSH → write .env → docker compose pull → compose up -d    │
-│    3. Health-check loop (30 × 5 s) on backend container         │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │ SSH
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  Linux Server  /opt/optical-modules                             │
-│                                                                 │
-│  [frontend :80]  →  [backend :8080]  →  [mysql :3306]          │
-│   Nginx/Alpine      Spring Boot JRE21    MySQL 8.0              │
-└─────────────────────────────────────────────────────────────────┘
-```
+- **[方案 B — Railway（推荐）](#方案-b-railway-部署推荐)** – Railway 云平台一键部署，零服务器管理，免费额度即可起步
+- **[方案 A — 自有服务器](#方案-a自有服务器--ssh--docker-compose)** – 自有服务器 + SSH + Docker Compose，完全掌控
 
 ---
 
-## Method A: Self-Hosted Server + SSH + Docker Compose (Recommended)
+## 架构说明
 
-### Prerequisites
+```
+用户浏览器
+    │  HTTP/HTTPS
+    ▼
+前端服务（Nginx + 静态文件，端口 80）
+    │  /api/* 反向代理
+    ▼
+后端服务（Spring Boot，端口 8080）
+    │  JDBC
+    ▼
+MySQL 数据库（端口 3306）
+```
 
-| Requirement | Notes |
+- **前端**：纯静态 HTML/CSS/JS，由 Nginx 托管；`/api/` 路径反向代理到后端，后端地址通过 `BACKEND_URL` 环境变量配置。
+- **后端**：Spring Boot 3 + JDK 21，打包为可执行 JAR，通过 Docker 运行。数据库连接通过 `MYSQLHOST` / `MYSQLPORT` / `MYSQLDATABASE` / `MYSQLUSER` / `MYSQLPASSWORD` 环境变量配置。
+- **数据库**：MySQL 8.0，初次启动时自动执行 `schema.sql` 和 `data.sql`。
+
+---
+
+## 方案 B：Railway 部署（推荐）
+
+Railway 是一个支持 Docker 的云平台，连接 GitHub 仓库后每次推送即自动重新部署，内置 MySQL 插件，无需管理服务器。
+
+### 前置条件
+
+| 条件 | 说明 |
 |---|---|
-| Linux cloud server (Ubuntu 22.04+) | Alibaba ECS / Tencent CVM / DigitalOcean Droplet / etc. |
-| Docker Engine ≥ 24 + Docker Compose v2 | Installed on the server |
-| Domain name (optional, for HTTPS) | DNS A record pointing to the server IP |
+| GitHub 账号 | 仓库需托管在 GitHub |
+| Railway 账号 | 访问 [railway.app](https://railway.app)，用 GitHub 账号登录 |
+
+Railway 每月提供 **$5 免费额度**，足够运行三个服务（前端、后端、MySQL）进行开发和演示。
 
 ---
 
-### Step A-1 – Prepare the Server
+### 配置文件说明
 
-#### Install Docker and Docker Compose v2
+本仓库已预先配置好 Railway 所需的所有文件，无需手动修改代码：
 
-```bash
-# Ubuntu 22.04
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER   # run docker without sudo
-newgrp docker
-docker compose version          # must show v2+
+| 文件 | 作用 |
+|---|---|
+| `railway.json` | 后端服务配置，指定 `backend/Dockerfile` |
+| `frontend/railway.json` | 前端服务配置，指定 `frontend/Dockerfile` |
+| `frontend/nginx.conf` | Nginx 配置，`BACKEND_URL` 变量在容器启动时由 `envsubst` 替换 |
+| `frontend/docker-entrypoint.sh` | 容器入口脚本，负责替换 nginx.conf 中的环境变量后启动 Nginx |
+| `backend/src/main/resources/application.properties` | 已配置为读取 Railway MySQL 插件注入的 `MYSQL*` 环境变量 |
+
+---
+
+### 步骤 1：创建 Railway 项目
+
+1. 登录 [railway.app](https://railway.app)
+2. 点击右上角 **New Project（新建项目）**
+3. 选择 **Deploy from GitHub repo（从 GitHub 仓库部署）**
+4. 首次使用需授权 Railway 访问你的 GitHub，完成后选择本仓库
+
+Railway 会自动检测根目录的 `railway.json`，按照其中的配置开始构建**后端服务**。
+
+---
+
+### 步骤 2：添加 MySQL 数据库插件
+
+1. 在项目 Canvas（画布）界面，点击 **+ Add a Service（添加服务）**
+2. 选择 **Database → MySQL**
+3. Railway 会自动创建 MySQL 实例，并生成以下连接变量：
+
+| 变量名 | 说明 |
+|---|---|
+| `MYSQLHOST` | MySQL 主机地址（Railway 内网） |
+| `MYSQLPORT` | MySQL 端口（默认 3306） |
+| `MYSQLDATABASE` | 数据库名 |
+| `MYSQLUSER` | 数据库用户名 |
+| `MYSQLPASSWORD` | 数据库密码 |
+
+4. 点击后端服务 → **Variables（环境变量）** → **Add a Variable Reference（添加变量引用）**，将上述 5 个 MySQL 变量引用到后端服务
+
+> Railway 有时会自动完成变量引用，请确认后端服务的 Variables 面板中包含 `MYSQLHOST` 等 5 个变量。
+
+---
+
+### 步骤 3：确认后端服务配置
+
+1. 点击项目中的后端服务（名称通常与仓库名一致）
+2. 进入 **Settings（设置）** 选项卡，确认以下设置：
+
+   | 设置项 | 预期值 |
+   |---|---|
+   | Source Repo | 本仓库 |
+   | Root Directory | 留空（使用仓库根目录） |
+   | Builder | `DOCKERFILE` |
+   | Dockerfile Path | `backend/Dockerfile` |
+
+3. 进入 **Variables** 选项卡，确认 5 个 `MYSQL*` 变量已存在
+4. 等待构建完成，状态变为绿色 ✅
+
+---
+
+### 步骤 4：（可选）为后端生成公网域名
+
+如需从浏览器直接访问后端 API，或用于测试：
+
+1. 点击后端服务 → **Settings → Networking（网络）**
+2. 点击 **Generate Domain（生成域名）**
+3. 获得类似 `https://xxx.up.railway.app` 的公网 URL
+
+> 前端通过 Railway **私有内网**访问后端，不需要公网域名。但如果你想把 `BACKEND_URL` 设为公网地址，这里的 URL 也可以使用。
+
+---
+
+### 步骤 5：添加前端服务
+
+1. 在项目 Canvas，点击 **+ Add a Service → GitHub Repo**
+2. 选择同一个仓库
+3. 点击新创建的前端服务 → **Settings**，配置以下内容：
+
+   | 设置项 | 填写内容 |
+   |---|---|
+   | **Root Directory（根目录）** | `frontend` |
+   | **Builder** | `DOCKERFILE`（会自动读取 `frontend/railway.json`） |
+   | **Dockerfile Path** | `Dockerfile`（相对于 `frontend/` 目录） |
+
+4. 点击 **Save** 后 Railway 会自动触发前端构建
+
+---
+
+### 步骤 6：配置前端环境变量 `BACKEND_URL`
+
+前端 Nginx 在容器启动时通过 `BACKEND_URL` 环境变量确定后端地址。Railway 同一项目内的服务通过**私有内网**通信，地址格式为：
+
+```
+http://<服务名>.railway.internal:<端口>
 ```
 
-#### Create the deployment directory
+**操作步骤**：
+
+1. 点击前端服务 → **Variables（环境变量）**
+2. 点击 **New Variable（新增变量）**，添加：
+
+   | 变量名 | 值 |
+   |---|---|
+   | `BACKEND_URL` | `http://backend.railway.internal:8080` |
+
+   > 其中 `backend` 是后端服务在 Railway 中显示的**服务名**（可在服务设置中查看）。若名称不同，请对应修改。
+
+3. 保存后 Railway 会自动重新部署前端
+
+> **备选方案**：如果不确定内网地址，也可以使用后端的公网域名（步骤 4 中生成的 URL，格式为 `https://xxx.up.railway.app`，**不要**带末尾斜杠）。
+
+---
+
+### 步骤 7：为前端配置公网域名
+
+1. 点击前端服务 → **Settings → Networking**
+2. 点击 **Generate Domain（生成域名）**
+3. 获得类似 `https://frontend-xxx.up.railway.app` 的访问地址
+4. 在浏览器中打开该地址，验证：
+   - 前端页面正常加载
+   - 点击任意功能，API 请求（`/api/...`）正常返回数据
+
+---
+
+### 步骤 8：初始化数据库（首次部署必须）
+
+Railway MySQL 插件是空数据库，需手动执行初始化 SQL。
+
+**方法一：使用 Railway 内置数据库控制台**
+
+1. 点击项目中的 MySQL 服务
+2. 进入 **Data（数据）** 选项卡，打开内置 SQL 编辑器
+3. 依次粘贴并执行 `backend/database/schema.sql` 和 `backend/database/data.sql` 的内容
+
+**方法二：使用本地 MySQL 客户端**
+
+在 MySQL 服务的 **Connect** 选项卡中获取连接信息，然后执行：
 
 ```bash
+# 替换以下变量为 Railway 控制台显示的实际值
+mysql -h $MYSQLHOST -P $MYSQLPORT -u $MYSQLUSER -p"$MYSQLPASSWORD" $MYSQLDATABASE \
+  < backend/database/schema.sql
+
+mysql -h $MYSQLHOST -P $MYSQLPORT -u $MYSQLUSER -p"$MYSQLPASSWORD" $MYSQLDATABASE \
+  < backend/database/data.sql
+```
+
+---
+
+### 环境变量汇总
+
+#### 后端服务（由 MySQL 插件自动注入，无需手动填写）
+
+| 变量名 | 说明 |
+|---|---|
+| `MYSQLHOST` | MySQL 主机（Railway 内网地址） |
+| `MYSQLPORT` | MySQL 端口 |
+| `MYSQLDATABASE` | 数据库名 |
+| `MYSQLUSER` | 数据库用户名 |
+| `MYSQLPASSWORD` | 数据库密码 |
+
+#### 前端服务（手动配置）
+
+| 变量名 | 示例值 | 说明 |
+|---|---|---|
+| `BACKEND_URL` | `http://backend.railway.internal:8080` | 后端地址，Nginx 反向代理 `/api/` 时使用 |
+
+---
+
+### 自动部署（CI/CD）
+
+Railway 与 GitHub 直接集成，**每次推送到 `main` 分支后自动触发重新构建和滚动部署**，无需额外配置 GitHub Actions。
+
+---
+
+### Railway 部署架构总览
+
+```
+GitHub main 分支推送
+        │
+        ├──▶ Railway 后端服务
+        │      rootDir: .（仓库根目录）
+        │      Dockerfile: backend/Dockerfile
+        │      env: MYSQLHOST / MYSQLPORT / MYSQLDATABASE / MYSQLUSER / MYSQLPASSWORD
+        │             （由 MySQL 插件自动注入）
+        │      healthcheck: /actuator/health
+        │
+        ├──▶ Railway 前端服务
+        │      rootDir: frontend/
+        │      Dockerfile: frontend/Dockerfile
+        │      env: BACKEND_URL=http://backend.railway.internal:8080
+        │
+        └──▶ Railway MySQL 插件
+               自动注入连接变量 → 后端服务
+```
+
+---
+
+## 方案 A：自有服务器 + SSH + Docker Compose
+
+### 前置条件
+
+| 要求 | 说明 |
+|---|---|
+| Linux 云服务器（Ubuntu 22.04+） | 阿里云 ECS / 腾讯云 CVM / DigitalOcean Droplet 等 |
+| Docker Engine ≥ 24 + Docker Compose v2 | 需安装在服务器上 |
+| 域名（可选） | DNS A 记录指向服务器 IP |
+
+---
+
+### 步骤 A-1：准备服务器
+
+```bash
+# 安装 Docker 和 Docker Compose v2（Ubuntu 22.04）
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+newgrp docker
+docker compose version   # 确认 v2+
+
+# 创建部署目录
 sudo mkdir -p /opt/optical-modules
 sudo chown $USER:$USER /opt/optical-modules
 ```
 
-#### Open firewall ports
-
-Open ports **22** (SSH), **80** (HTTP), and optionally **443** (HTTPS) in your cloud provider's security group / firewall rules.
+在云服务商控制台开放防火墙端口：**22**（SSH）、**80**（HTTP）、可选 **443**（HTTPS）。
 
 ---
 
-### Step A-2 – Generate an SSH Key Pair
+### 步骤 A-2：生成 SSH 密钥对
 
-Run this on your **local machine** (not the server):
+在**本地机器**上执行：
 
 ```bash
 ssh-keygen -t ed25519 -C "github-deploy" -f ~/.ssh/deploy_key
-# Press Enter twice to leave the passphrase empty
+# 两次回车，不设置密码
 
-# Install the public key on the server
+# 将公钥安装到服务器
 ssh-copy-id -i ~/.ssh/deploy_key.pub YOUR_USER@YOUR_SERVER_IP
-# Or manually on the server:
-#   cat ~/.ssh/deploy_key.pub >> ~/.ssh/authorized_keys
-#   chmod 600 ~/.ssh/authorized_keys
 
-# Verify the key works
+# 验证连通性
 ssh -i ~/.ssh/deploy_key YOUR_USER@YOUR_SERVER_IP "echo connected"
 ```
 
-Keep the **private key** (`~/.ssh/deploy_key`) – you will paste it into GitHub Secrets next.
-
 ---
 
-### Step A-3 – Configure GitHub Secrets
+### 步骤 A-3：配置 GitHub Secrets
 
-Go to **Repository → Settings → Secrets and variables → Actions → New repository secret** and add all six secrets below:
+进入 **仓库 → Settings → Secrets and variables → Actions → New repository secret**，添加以下 6 个密钥：
 
-| Secret name | How to get it | Example |
+| Secret 名 | 说明 | 示例 |
 |---|---|---|
-| `SSH_HOST` | Server IP address or hostname | `1.2.3.4` or `myserver.com` |
-| `SSH_USER` | Linux username on the server | `ubuntu` |
-| `SSH_PRIVATE_KEY` | Full content of `~/.ssh/deploy_key` (the **private** key, starts with `-----BEGIN OPENSSH PRIVATE KEY-----`) | *(paste entire file)* |
-| `DB_ROOT_PASSWORD` | Choose a strong password for MySQL root | `MyR00tP@ss2024!` |
-| `DB_USERNAME` | Application DB username | `appuser` |
-| `DB_PASSWORD` | Application DB password | `MyApp@ss2024!` |
-
-> **⚠️ GHCR Login on the Server**  
-> The workflow passes `GITHUB_TOKEN` to the server to pull images from `ghcr.io`. This works during the workflow run, but if you want to pull images manually later (e.g. rollback), you need a Personal Access Token.  
->
-> **Optional but recommended:** Create a [GitHub PAT](https://github.com/settings/tokens) with `read:packages` scope, store it as secret `GHCR_PAT`, and in `deploy.yml` replace:
-> ```yaml
-> echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-> ```
-> with:
-> ```yaml
-> echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-> ```
->
-> **Alternative (simplest):** Make the GHCR packages **public** — go to each package page → Package settings → Change visibility → Public. Then no login is needed on the server at all.
+| `SSH_HOST` | 服务器 IP 或域名 | `1.2.3.4` |
+| `SSH_USER` | 服务器 Linux 用户名 | `ubuntu` |
+| `SSH_PRIVATE_KEY` | 私钥全文（以 `-----BEGIN OPENSSH PRIVATE KEY-----` 开头） | *(粘贴私钥)* |
+| `DB_ROOT_PASSWORD` | MySQL root 密码 | `MyR00tP@ss!` |
+| `DB_USERNAME` | 应用数据库用户名 | `appuser` |
+| `DB_PASSWORD` | 应用数据库密码 | `MyApp@ss!` |
 
 ---
 
-### Step A-4 – Create the GitHub `production` Environment
+### 步骤 A-4：创建 `production` 环境
 
-The deploy job is gated by `environment: production`. This environment must exist or the job will be skipped.
+部署 Job 依赖 `environment: production`，该环境必须提前创建：
 
-1. Go to **Repository → Settings → Environments → New environment**
-2. Name it exactly `production`
-3. *(Optional)* Add **Required reviewers** so every deployment needs manual approval
-4. *(Optional)* Add **Deployment branches** rule to restrict to `main` only
-
-All six secrets from Step A-3 can alternatively be stored at the environment level instead of the repository level for extra security.
+1. 进入 **仓库 → Settings → Environments → New environment**
+2. 命名为 `production`
+3. （可选）设置 **Required reviewers** 要求人工审批后再部署
 
 ---
 
-### Step A-5 – Enable GHCR Write Permissions
+### 步骤 A-5：开启 GHCR 写权限
 
-The workflow needs to push Docker images to GitHub Container Registry:
-
-1. Go to **Repository → Settings → Actions → General**
-2. Under **Workflow permissions**, select **Read and write permissions**
-3. Click **Save**
+1. 进入 **仓库 → Settings → Actions → General**
+2. **Workflow permissions** 选择 **Read and write permissions**
+3. 点击 **Save**
 
 ---
 
-### Step A-6 – Domain & HTTPS (Optional but Recommended)
+### 步骤 A-6：触发首次部署
 
-After the first successful deployment, configure Nginx + Certbot on the server for SSL.
+向 `main` 分支合并 PR 或直接推送，**Build and Deploy** Workflow 会：
 
-**Before running the commands below**, edit `docker-compose.yml` in your repository to change the frontend port mapping from `"80:80"` to `"8081:80"`, then merge and redeploy so the frontend container stops competing with host Nginx for port 80.
+1. 用 Maven + JDK 21 构建后端 JAR
+2. 构建并推送 Docker 镜像到 `ghcr.io/<repo>/backend:<sha>` 和 `ghcr.io/<repo>/frontend:<sha>`
+3. SSH 登录服务器，上传 `docker-compose.yml` 和 SQL 文件
+4. 写入 `.env`，执行 `docker compose pull && docker compose up -d`
+5. MySQL 首次启动时自动执行 `schema.sql` 和 `data.sql`
+6. 循环健康检查后端（最多 150 秒）
+
+---
+
+### 步骤 A-7：配置域名 + HTTPS（可选）
+
+首次部署成功后，可在服务器配置 Nginx + Let's Encrypt：
+
+先修改 `docker-compose.yml` 将前端端口从 `"80:80"` 改为 `"8081:80"`，提交并重新部署，再执行：
 
 ```bash
 sudo apt install -y nginx certbot python3-certbot-nginx
@@ -178,267 +362,42 @@ NGINXEOF
 
 sudo ln -s /etc/nginx/sites-available/optical-modules /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
-
-# Issue SSL certificate (auto-configures HTTPS redirect)
 sudo certbot --nginx -d app.yourdomain.com
 ```
 
-> Replace `app.yourdomain.com` with your actual domain and `8081` with whatever port you chose for the frontend container.
-
 ---
 
-### Step A-7 – Trigger the First Deployment
-
-Merge any pull request to `main`, or push directly. The **Build and Deploy** workflow will:
-
-1. Build the backend JAR with Maven (JDK 21)
-2. Build and push Docker images to `ghcr.io/<repo>/backend:<sha>` and `ghcr.io/<repo>/frontend:<sha>`
-3. SSH into the server, copy `docker-compose.yml` + SQL init files
-4. Write the `.env` file with injected secrets, then run `docker compose pull && docker compose up -d`
-5. MySQL initialises from `backend/database/schema.sql` + `data.sql` on first boot only
-6. Health-check the backend for up to 150 seconds
-
-Monitor progress at **Actions → Build and Deploy**.
-
----
-
-## Method B: Cloud Platform GitHub App (Zero Server Management)
-
-These platforms connect directly to your GitHub repository and deploy automatically on every push to `main`. No server, no SSH keys, no Docker daemon to manage yourself.
-
-### Comparison
-
-| Platform | Free tier | MySQL support | Code changes needed | Difficulty |
-|---|---|---|---|---|
-| **Railway** | $5 free credit/month | ✅ MySQL plugin | Minimal – `Dockerfile` already exists; only need to add `railway.json` to configure per-service | ⭐ Easy |
-| **Render** | Free for static + web service | ⚠️ PostgreSQL only (MySQL is paid) | Medium (change DB driver to PostgreSQL) | ⭐⭐ Medium |
-| **Fly.io** | Generous free tier (3 shared VMs) | ✅ via external MySQL or PlanetScale | Medium (add `fly.toml`, secrets) | ⭐⭐ Medium |
-| **DigitalOcean App Platform** | $5/month minimum | ✅ Managed MySQL (paid add-on) | Minimal | ⭐ Easy |
-
----
-
-### Option B-1: Railway
-
-Railway has a GitHub App that redeploys on every push. It supports Docker and includes a MySQL plugin with zero configuration.
-
-#### What you need to prepare
-
-1. A [Railway](https://railway.app) account (sign in with GitHub)
-2. No server, no SSH keys needed
-
-#### Code changes required
-
-**None for Docker-based deploy.** Railway auto-detects `Dockerfile` in `backend/` and `frontend/`.  
-You only need to tell Railway where each service lives by adding a `railway.json` at the repo root:
-
-```json
-{
-  "$schema": "https://railway.app/railway.schema.json",
-  "build": {
-    "builder": "DOCKERFILE",
-    "dockerfilePath": "backend/Dockerfile"
-  },
-  "deploy": {
-    "startCommand": "java -jar app.jar",
-    "healthcheckPath": "/actuator/health",
-    "restartPolicyType": "ON_FAILURE"
-  }
-}
-```
-
-For the frontend, create a separate Railway service pointing to `frontend/Dockerfile`.
-
-#### Environment variables on Railway
-
-Railway injects MySQL connection variables (`MYSQLHOST`, `MYSQLPORT`, `MYSQLDATABASE`, `MYSQLUSER`, `MYSQLPASSWORD`) when you link a MySQL plugin to your service. The existing `application.properties` uses `DB_HOST`, `DB_PORT`, etc., so you need to **replace** the existing datasource properties with Railway's variable names.
-
-Replace the datasource lines in `backend/src/main/resources/application.properties`:
-```properties
-# Replace existing DB_HOST / DB_PORT / DB_NAME / DB_USERNAME / DB_PASSWORD references with:
-spring.datasource.url=jdbc:mysql://${MYSQLHOST:localhost}:${MYSQLPORT:3306}/${MYSQLDATABASE:optical_modules}
-spring.datasource.username=${MYSQLUSER:appuser}
-spring.datasource.password=${MYSQLPASSWORD:apppassword}
-```
-
-> For local development, set the Railway variable names in your `.env` file, or keep both sets of properties by adding a Railway-specific Spring profile (`application-railway.properties`) and setting `SPRING_PROFILES_ACTIVE=railway` in the Railway Variables panel.
-
-#### Setup steps
-
-1. Go to [railway.app](https://railway.app) → **New Project → Deploy from GitHub repo**
-2. Select this repository
-3. Railway detects `Dockerfile` in `backend/` automatically
-4. Click **+ New** → **Database** → **MySQL** to add a managed MySQL instance
-5. Railway links the MySQL vars to your backend service automatically
-6. Add a second service for the frontend (point to `frontend/Dockerfile`)
-7. Set the frontend's public domain under **Settings → Networking → Generate Domain**
-
----
-
-### Option B-2: Render
-
-Render has a GitHub App and supports Docker-based web services. The free tier covers static sites and one web service, but **MySQL is a paid add-on**. The free database tier uses PostgreSQL.
-
-#### Code changes required (switching to PostgreSQL)
-
-1. Update `pom.xml` – replace the MySQL driver with PostgreSQL:
-
-```xml
-<!-- Remove: -->
-<dependency>
-  <groupId>com.mysql</groupId>
-  <artifactId>mysql-connector-j</artifactId>
-</dependency>
-
-<!-- Add: -->
-<dependency>
-  <groupId>org.postgresql</groupId>
-  <artifactId>postgresql</artifactId>
-  <scope>runtime</scope>
-</dependency>
-```
-
-2. Update `application.properties` – change the datasource URL:
-
-```properties
-spring.datasource.url=jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:optical_modules}
-spring.datasource.driver-class-name=org.postgresql.Driver
-```
-
-3. Rewrite `backend/database/schema.sql` for PostgreSQL syntax (remove `ENGINE=InnoDB`, change `AUTO_INCREMENT` to `SERIAL`, etc.)
-
-4. Add a `render.yaml` at the repo root to define services:
-
-```yaml
-services:
-  - type: web
-    name: optical-modules-backend
-    runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    envVars:
-      - key: DB_HOST
-        fromDatabase:
-          name: optical-modules-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: optical-modules-db
-          property: port
-      - key: DB_NAME
-        fromDatabase:
-          name: optical-modules-db
-          property: database
-      - key: DB_USERNAME
-        fromDatabase:
-          name: optical-modules-db
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: optical-modules-db
-          property: password
-
-  - type: web
-    name: optical-modules-frontend
-    runtime: docker
-    dockerfilePath: ./frontend/Dockerfile
-
-databases:
-  - name: optical-modules-db
-    databaseName: optical_modules
-    plan: free
-```
-
-#### Setup steps
-
-1. Go to [render.com](https://render.com) → **New → Blueprint** → connect your GitHub repo
-2. Render reads `render.yaml` and creates all services automatically
-3. Free PostgreSQL database is provisioned and linked automatically
-
----
-
-### Option B-3: Fly.io
-
-Fly.io runs your Docker containers close to users on a global edge network. It has a generous free tier (3 shared-CPU VMs) and supports MySQL via an external provider like [PlanetScale](https://planetscale.com) (free MySQL-compatible serverless DB).
-
-#### Code changes required
-
-Add a `fly.toml` for the backend at the repo root:
-
-```toml
-app = "optical-modules-backend"
-primary_region = "hkg"   # choose your nearest region
-
-[build]
-  dockerfile = "backend/Dockerfile"
-
-[http_service]
-  internal_port = 8080
-  force_https = true
-  auto_stop_machines = true
-  auto_start_machines = true
-
-[[vm]]
-  cpu_kind = "shared"
-  cpus = 1
-  memory_mb = 512
-```
-
-#### Setup steps
+## 本地开发
 
 ```bash
-# Install flyctl
-curl -L https://fly.io/install.sh | sh
-
-# Login and create the app
-fly auth login
-fly launch --no-deploy    # generates fly.toml, review and adjust
-
-# Set environment variables (DB credentials from PlanetScale)
-fly secrets set DB_HOST=... DB_USERNAME=... DB_PASSWORD=... DB_NAME=optical_modules
-
-# Add the GitHub Actions deploy step
-# In deploy.yml, replace the SSH deploy job with:
-#   uses: superfly/flyctl-actions/setup-flyctl@master
-#   run: fly deploy --remote-only
-# and add FLY_API_TOKEN to GitHub Secrets
-```
-
----
-
-## Local Development
-
-Run the full stack locally without any cloud account:
-
-```bash
-# Create a local .env file at the repository root
+# 创建本地 .env 文件（仓库根目录）
 cat > .env <<'EOF'
 DB_ROOT_PASSWORD=localrootpass
 DB_USERNAME=appuser
 DB_PASSWORD=localpass
 EOF
 
-# Build images and start all three services
+# 构建镜像并启动全部服务
 docker compose up --build
 
-# Access:
-#   Frontend:   http://localhost
-#   Backend API: http://localhost:8080/api
-#   MySQL:       localhost:3306 (user: appuser)
+# 访问地址：
+#   前端：    http://localhost
+#   后端 API：http://localhost:8080/api
+#   MySQL：   localhost:3306 (用户: appuser)
 ```
 
-> The MySQL container auto-runs `backend/database/schema.sql` and `backend/database/data.sql` on first start.  
-> To reset the database: `docker compose down -v && docker compose up --build`
+> 重置数据库：`docker compose down -v && docker compose up --build`
 
 ---
 
-## Troubleshooting
+## 故障排查
 
-| Issue | Diagnosis | Fix |
+| 问题 | 排查思路 | 解决方法 |
 |---|---|---|
-| Backend container keeps restarting | MySQL not ready yet or wrong credentials | `docker compose logs mysql` – check healthcheck; verify `DB_*` secrets match what is in `.env` |
-| `docker compose pull` fails on server with 401 | GHCR image is private and `GITHUB_TOKEN` expired | Make GHCR packages **public**, or create a PAT with `read:packages` and store as `GHCR_PAT` secret |
-| `.env` file has leading spaces on each line | heredoc indentation in YAML produces spaces | Already fixed in current `deploy.yml` (uses `cat > .env <<'EOF'` without indented content) |
-| Port 80 already in use on server | Host Nginx is running on port 80 | Either stop host Nginx (`sudo systemctl stop nginx`) or change `frontend` container port to `8081:80` and update Nginx config |
-| Database not initialised / tables missing | Init SQL only runs once on empty volume | `docker compose down -v` to delete the volume, then `docker compose up -d` to re-run init scripts |
-| Images not found on server after manual pull | `GITHUB_TOKEN` is run-scoped and expired | Use a PAT with `read:packages` stored as `GHCR_PAT`, or make packages public |
-| Backend health-check fails after 150 s | App takes too long to start (JVM cold start) | Increase `start_period` in `docker-compose.yml` (currently `60s`) or increase the retry loop in `deploy.yml` |
-| Railway MySQL env vars not found | Railway uses `MYSQLHOST` etc., not `DB_HOST` | Add the env var mapping to `application.properties` as shown in Option B-1 |
+| 后端容器反复重启 | MySQL 未就绪或凭据错误 | `docker compose logs mysql`；检查 `MYSQL*` 变量是否与 MySQL 容器配置一致 |
+| 前端 `/api/` 返回 502 | `BACKEND_URL` 配置错误 | 确认 Railway 前端服务的 `BACKEND_URL` 变量值；检查后端服务名是否与内网地址匹配 |
+| Railway 数据库连接失败 | MySQL 变量未引用到后端服务 | 在后端服务 Variables 面板添加对 MySQL 插件变量的引用 |
+| Railway 部署一直停在 Building | Dockerfile 构建失败 | 查看 Railway 构建日志，通常是依赖下载超时或代码编译错误 |
+| `docker compose pull` 报 401 | GHCR 镜像是私有的 | 将 GHCR 包设为 **Public**，或创建含 `read:packages` 权限的 PAT 存为 `GHCR_PAT` 密钥 |
+| 数据库表不存在 | SQL 初始化脚本未执行 | Railway：手动执行 `schema.sql`；本地：`docker compose down -v` 后重启 |
+| 后端健康检查 150s 超时 | JVM 冷启动慢 | 调大 `docker-compose.yml` 中 backend 的 `start_period` |
