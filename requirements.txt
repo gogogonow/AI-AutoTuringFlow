@@ -1,3 +1,4 @@
 crewai
+crewai[litellm]
 PyGithub==2.3.0
 python-dotenv
