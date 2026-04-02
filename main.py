@@ -16,13 +16,18 @@ print("正在连接大模型神经中枢...")
 
 oaipro_key = os.environ.get("OAIPRO_API_KEY", "")
 
+# 设置 Anthropic 环境变量，确保 CrewAI 原生 Anthropic 提供商不会因缺少凭证而崩溃。
+# 即使主要通过 LiteLLM 路由，某些 CrewAI 版本仍会在初始化时检查这些变量。
+os.environ.setdefault("ANTHROPIC_API_KEY", oaipro_key)
+os.environ.setdefault("ANTHROPIC_BASE_URL", "https://api.oaipro.com")
+
 # 使用 LiteLLM 统一路由所有 LLM 调用（通过 is_litellm=True 跳过 CrewAI 原生 SDK）。
-# 原生 OpenAI/Anthropic SDK 客户端直连 OAIPro 代理时，工具调用后的响应可能返回空内容；
-# LiteLLM 对代理端点的兼容性更好，能正确处理参数转换和响应解析。
+# 所有模型统一走 OAIPro 的 OpenAI 兼容接口（/v1/chat/completions），
+# 由 OAIPro 在服务端将请求转发到对应的模型提供商，避免 LiteLLM 模型名映射错误。
 
 llm_reasoning = LLM(
-    # 架构设计与 UI 设计：使用 GPT-5 进行深度推理（通过 OAIPro OpenAI 兼容接口）
-    model="openai/gpt-3.5-turbo",
+    # 架构设计与 UI 设计：使用 GPT-4o 进行深度推理（通过 OAIPro OpenAI 兼容接口）
+    model="openai/gpt-4o",
     max_tokens=8192,
     api_key=oaipro_key,
     base_url="https://api.oaipro.com/v1",
@@ -30,11 +35,13 @@ llm_reasoning = LLM(
 )
 
 llm_coding = LLM(
-    # 代码生成：使用 Claude Sonnet 4.5 进行高质量代码编写（通过 OAIPro Claude API）
-    model="anthropic/claude-sonnet-4-5-20250929",
+    # 代码生成：使用 Claude Sonnet 4.5 进行高质量代码编写
+    # 通过 openai/ 前缀走 OAIPro OpenAI 兼容接口，避免 LiteLLM Anthropic 路由
+    # 将模型名错误映射（如映射到 claude-3-7-sonnet-20250219-thinking）
+    model="openai/claude-sonnet-4-5-20250929",
     max_tokens=8192,
     api_key=oaipro_key,
-    base_url="https://api.oaipro.com",
+    base_url="https://api.oaipro.com/v1",
     is_litellm=True,
 )
 
