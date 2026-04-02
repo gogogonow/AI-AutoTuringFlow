@@ -30,11 +30,13 @@ llm_reasoning = LLM(
 )
 
 llm_coding = LLM(
-    # 代码生成：使用 Claude Sonnet 4.5 进行高质量代码编写（通过 OAIPro Claude API）
-    model="anthropic/claude-sonnet-4-5-20250929",
+    # 代码生成：使用 Claude Sonnet 4.5 进行高质量代码编写（通过 OAIPro OpenAI 兼容接口）
+    # 注意：必须使用 openai/ 前缀 + /v1 端点，anthropic/ 前缀会导致 LiteLLM 使用原生
+    # Anthropic API 格式发送工具调用，但 OAIPro 仅提供 OpenAI 兼容接口，造成工具调用被静默丢弃。
+    model="openai/claude-sonnet-4-5-20250929",
     max_tokens=8192,
     api_key=oaipro_key,
-    base_url="https://api.oaipro.com",
+    base_url="https://api.oaipro.com/v1",
     is_litellm=True,
 )
 
@@ -71,8 +73,8 @@ ui_designer = Agent(
 
 frontend_dev = Agent(
     role='高级前端工程师',
-    goal='严格遵循 UI 规范和 API 契约，编写高质量的现代前端代码，并保存到本地文件。',
-    backstory='你精通现代 Web 技术栈。你不仅擅长构建响应式的组件库，还拥有丰富的浏览器端渲染经验，能够从容应对包含复杂 DOM 结构或200行+大表的高性能前端开发需求。',
+    goal='严格遵循 UI 规范和 API 契约，编写高质量的现代前端代码。你必须使用 write_code_tool 工具将每个代码文件写入磁盘，禁止仅输出文字描述。',
+    backstory='你精通现代 Web 技术栈。你不仅擅长构建响应式的组件库，还拥有丰富的浏览器端渲染经验，能够从容应对包含复杂 DOM 结构或200行+大表的高性能前端开发需求。你的工作方式是：先构思代码，然后立即调用 write_code_tool 将完整代码写入文件。',
     verbose=True,
     tools=[write_code_tool],
     allow_delegation=False,
@@ -81,8 +83,8 @@ frontend_dev = Agent(
 
 backend_dev = Agent(
     role='高级后端工程师',
-    goal='基于架构师的设计，编写健壮的后端服务、核心算法逻辑以及自动化解析脚本，并保存到本地文件。',
-    backstory='你是一个极其严谨的后端极客，精通高并发架构。你擅长使用 Java 和 Python 开发后端服务。你编写的代码逻辑清晰且包含完善的异常处理。',
+    goal='基于架构师的设计，编写健壮的后端服务、核心算法逻辑以及自动化解析脚本。你必须使用 write_code_tool 工具将每个代码文件写入磁盘，禁止仅输出文字描述。',
+    backstory='你是一个极其严谨的后端极客，精通高并发架构。你擅长使用 Java 和 Python 开发后端服务。你编写的代码逻辑清晰且包含完善的异常处理。你的工作方式是：先构思代码，然后立即调用 write_code_tool 将完整代码写入文件。',
     verbose=True,
     tools=[write_code_tool],
     allow_delegation=False,
@@ -91,10 +93,10 @@ backend_dev = Agent(
 
 qa_engineer = Agent(
     role='自动化测试工程师 (SDET)',
-    goal='审查前后端生成的代码，编写并完善单元测试和接口集成测试脚本，并保存到本地。',
-    backstory='你拥有“破坏者”的思维，对代码缺陷有着敏锐的嗅觉。你精通现代测试框架，致力于通过高覆盖率的测试用例（尤其是针对核心算法和数据解析模块）确保代码的健壮性和边界异常处理能力。',
+    goal='审查前后端生成的代码，编写并完善单元测试和接口集成测试脚本。你必须使用 write_code_tool 工具将每个测试文件写入磁盘，禁止仅输出文字描述。',
+    backstory='你拥有“破坏者”的思维，对代码缺陷有着敏锐的嗅觉。你精通现代测试框架，致力于通过高覆盖率的测试用例（尤其是针对核心算法和数据解析模块）确保代码的健壮性和边界异常处理能力。你的工作方式是：先构思测试用例，然后立即调用 write_code_tool 将完整测试代码写入文件。',
     verbose=True,
-    tools=[write_code_tool], 
+    tools=[write_code_tool],
     allow_delegation=False,
     llm=llm_coding
 )
@@ -128,22 +130,40 @@ task_ui_design = Task(
 )
 
 task_frontend = Task(
-    description='基于 UI 规范和架构 API 契约，编写完整的前端页面或组件代码（HTML/CSS/JS 或对应的框架代码）。必须调用 write_code_tool 将代码写入本地的 `frontend/` 目录。',
-    expected_output='前端代码已成功生成并写入本地 frontend 目录。',
+    description=(
+        '基于 UI 规范和架构 API 契约，编写完整的前端页面或组件代码（HTML/CSS/JS 或对应的框架代码）。\n'
+        '【重要】你必须对每个代码文件调用 write_code_tool 工具来写入磁盘。\n'
+        '调用示例：write_code_tool(file_path="frontend/index.html", code="<!DOCTYPE html>...")\n'
+        '请为每个文件分别调用一次 write_code_tool，将代码写入 `frontend/` 目录下。\n'
+        '不要只描述你将要做什么——你必须实际执行工具调用来写入文件。'
+    ),
+    expected_output='已通过 write_code_tool 将所有前端代码文件写入 frontend/ 目录，每个文件都返回了 "Successfully wrote code to ..." 的确认信息。',
     agent=frontend_dev,
     context=[task_ui_design]
 )
 
 task_backend = Task(
-    description='基于架构设计文档，编写完整的后端 API 逻辑、数据解析脚本或核心算法。必须调用 write_code_tool 将代码写入本地的 `backend/` 目录。',
-    expected_output='后端代码已成功生成并写入本地 backend 目录。',
+    description=(
+        '基于架构设计文档，编写完整的后端 API 逻辑、数据解析脚本或核心算法。\n'
+        '【重要】你必须对每个代码文件调用 write_code_tool 工具来写入磁盘。\n'
+        '调用示例：write_code_tool(file_path="backend/app.py", code="from flask import Flask...")\n'
+        '请为每个文件分别调用一次 write_code_tool，将代码写入 `backend/` 目录下。\n'
+        '不要只描述你将要做什么——你必须实际执行工具调用来写入文件。'
+    ),
+    expected_output='已通过 write_code_tool 将所有后端代码文件写入 backend/ 目录，每个文件都返回了 "Successfully wrote code to ..." 的确认信息。',
     agent=backend_dev,
     context=[task_architecture]
 )
 
 task_qa = Task(
-    description='审查前端和后端生成的代码。针对后端的解析逻辑或核心 API，以及前端的关键组件，编写自动化测试用例。必须调用 write_code_tool 将测试代码写入本地的 `tests/` 目录。',
-    expected_output='自动化测试用例已成功生成并写入本地 tests 目录。',
+    description=(
+        '审查前端和后端生成的代码。针对后端的解析逻辑或核心 API，以及前端的关键组件，编写自动化测试用例。\n'
+        '【重要】你必须对每个测试文件调用 write_code_tool 工具来写入磁盘。\n'
+        '调用示例：write_code_tool(file_path="tests/test_api.py", code="import pytest...")\n'
+        '请为每个文件分别调用一次 write_code_tool，将测试代码写入 `tests/` 目录下。\n'
+        '不要只描述你将要做什么——你必须实际执行工具调用来写入文件。'
+    ),
+    expected_output='已通过 write_code_tool 将所有测试代码文件写入 tests/ 目录，每个文件都返回了 "Successfully wrote code to ..." 的确认信息。',
     agent=qa_engineer,
     context=[task_backend, task_frontend]
 )
