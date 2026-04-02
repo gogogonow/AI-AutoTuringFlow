@@ -22,7 +22,8 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Integration tests for ProductController after Spring Boot 3.2.0 upgrade
@@ -30,7 +31,7 @@ import static org.hamcrest.Matchers.*;
  */
 @WebMvcTest(ProductController.class)
 @DisplayName("ProductController Integration Tests")
-class ProductControllerIntegrationTest {
+public class ProductControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;

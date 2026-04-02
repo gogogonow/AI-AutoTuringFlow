@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Transactional
 @DisplayName("Spring Boot 3.2.0 Upgrade Integration Tests")
-class SpringBoot3UpgradeIntegrationTest {
+public class SpringBoot3UpgradeIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
