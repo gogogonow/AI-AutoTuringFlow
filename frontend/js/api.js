@@ -1,6 +1,6 @@
 // API 服务封装
 const API = {
-    baseURL: 'http://localhost:8000/api',
+    baseURL: '/api',
     
     // 通用请求方法
     async request(endpoint, options = {}) {
