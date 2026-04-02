@@ -1,0 +1,63 @@
+name: ⬆️ 依赖升级 / 替换
+description: 提交框架、库或 JDK 等依赖的升级或替换需求
+labels: ["mode:upgrade", "scope:fullstack"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## AI 多智能体软件工厂 — 依赖升级需求单
+        填写完成后，给 Issue 打上 `run-ai` 标签即可触发 AI 自动升级流水线。
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 影响范围
+      description: 本次升级涉及的技术范围
+      options:
+        - fullstack（全栈）
+        - frontend（仅前端）
+        - backend（仅后端）
+    validations:
+      required: true
+
+  - type: input
+    id: current_version
+    attributes:
+      label: 当前版本
+      description: 需要升级的组件及其当前版本
+      placeholder: "例如：Spring Boot 2.7.14 / JDK 11"
+    validations:
+      required: true
+
+  - type: input
+    id: target_version
+    attributes:
+      label: 目标版本
+      description: 希望升级到的目标版本
+      placeholder: "例如：Spring Boot 3.2.x / JDK 17"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 升级说明
+      description: 请描述升级的原因、已知的 breaking changes 等
+      placeholder: |
+        例如：
+        将 Spring Boot 从 2.7 升级到 3.2，同时将 JDK 从 11 升级到 17。
+        已知的主要变更：
+        - javax.* 包名迁移为 jakarta.*
+        - spring.factories 迁移为 AutoConfiguration.imports
+        - 部分 Spring Security 配置方式变更
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: 约束条件
+      description: 需要保持兼容的功能、不能修改的文件等
+      placeholder: |
+        1. 数据库表结构不变
+        2. API 接口路径保持向后兼容

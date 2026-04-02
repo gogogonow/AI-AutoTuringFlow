@@ -7,11 +7,60 @@ g = Github(os.environ["GITHUB_TOKEN"])
 repo = g.get_repo(os.environ["REPO_NAME"])
 issue_number = int(os.environ["ISSUE_NUMBER"])
 
+
+def parse_issue_config() -> dict:
+    """从 Issue 的 labels 中解析任务模式和影响范围配置。
+
+    模式 labels（互斥，默认 feature）：
+      - mode:upgrade   → 依赖升级或替换
+      - mode:feature   → 新功能需求
+      - mode:bugfix    → Bug 修复
+
+    影响范围 labels（互斥，默认 fullstack）：
+      - scope:frontend  → 仅前端
+      - scope:backend   → 仅后端
+      - scope:fullstack → 全栈
+
+    Returns:
+        dict: {"mode": str, "scope": str, "labels": list[str]}
+    """
+    issue = repo.get_issue(number=issue_number)
+    label_names = [label.name for label in issue.labels]
+
+    # 解析模式
+    mode = "feature"  # 默认为新功能模式
+    for name in label_names:
+        if name.startswith("mode:"):
+            parsed = name.split(":", 1)[1].strip()
+            if parsed in ("upgrade", "feature", "bugfix"):
+                mode = parsed
+                break
+
+    # 解析影响范围
+    scope = "fullstack"  # 默认全栈
+    for name in label_names:
+        if name.startswith("scope:"):
+            parsed = name.split(":", 1)[1].strip()
+            if parsed in ("frontend", "backend", "fullstack"):
+                scope = parsed
+                break
+
+    return {"mode": mode, "scope": scope, "labels": label_names}
+
+
 @tool("Fetch Requirement from Issue")
 def fetch_requirement_tool() -> str:
-    """获取当前触发执行的 GitHub Issue 的标题和内容，作为初始需求。"""
+    """获取当前触发执行的 GitHub Issue 的标题、内容及配置（模式和影响范围），作为初始需求。"""
     issue = repo.get_issue(number=issue_number)
-    return f"Title: {issue.title}\nBody: {issue.body}"
+    config = parse_issue_config()
+    return (
+        f"Title: {issue.title}\n"
+        f"Body: {issue.body}\n"
+        f"---\n"
+        f"任务模式: {config['mode']} (upgrade=依赖升级/替换, feature=新功能, bugfix=Bug修复)\n"
+        f"影响范围: {config['scope']} (frontend=仅前端, backend=仅后端, fullstack=全栈)\n"
+        f"所有标签: {', '.join(config['labels'])}"
+    )
 
 @tool("Create Pull Request")
 def create_pr_tool(branch_name: str, pr_title: str, commit_message: str) -> str:
