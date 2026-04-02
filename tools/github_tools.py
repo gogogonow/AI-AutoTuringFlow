@@ -32,6 +32,11 @@ def parse_issue_config() -> dict:
     Returns:
         dict: {"mode": str, "scope": str, "labels": list[str]}
     """
+    if repo is None:
+        raise RuntimeError(
+            "GitHub client is not initialised. "
+            "Ensure GITHUB_TOKEN and REPO_NAME environment variables are set."
+        )
     issue = repo.get_issue(number=issue_number)
     label_names = [label.name for label in issue.labels]
 
@@ -59,6 +64,11 @@ def parse_issue_config() -> dict:
 @tool("Fetch Requirement from Issue")
 def fetch_requirement_tool() -> str:
     """获取当前触发执行的 GitHub Issue 的标题、内容及配置（模式和影响范围），作为初始需求。"""
+    if repo is None:
+        raise RuntimeError(
+            "GitHub client is not initialised. "
+            "Ensure GITHUB_TOKEN and REPO_NAME environment variables are set."
+        )
     issue = repo.get_issue(number=issue_number)
     config = parse_issue_config()
     return (
@@ -117,5 +127,10 @@ def create_pr_tool(branch_name: str, pr_title: str, commit_message: str) -> str:
         subprocess.run(["git", "remote", "set-url", "origin", clean_url], check=True)
 
     # 使用 GitHub API 创建 PR
+    if repo is None:
+        raise RuntimeError(
+            "GitHub client is not initialised. "
+            "Ensure GITHUB_TOKEN and REPO_NAME environment variables are set."
+        )
     pr = repo.create_pull(title=pr_title, body=f"Closes #{issue_number}", head=branch_name, base="main")
     return f"Pull Request created successfully: {pr.html_url}"
