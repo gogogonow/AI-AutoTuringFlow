@@ -3,9 +3,17 @@ import subprocess
 from github import Github
 from crewai.tools import tool
 
-g = Github(os.environ["GITHUB_TOKEN"])
-repo = g.get_repo(os.environ["REPO_NAME"])
-issue_number = int(os.environ["ISSUE_NUMBER"])
+# Lazy-initialised at module level; requires GITHUB_TOKEN, REPO_NAME and
+# ISSUE_NUMBER env vars that are only available inside the CI workflow.
+# Using .get() with a fallback prevents KeyError when the module is imported
+# in environments that don't set these variables (e.g. Railway deployment).
+_github_token = os.environ.get("GITHUB_TOKEN", "")
+_repo_name = os.environ.get("REPO_NAME", "")
+_issue_number_str = os.environ.get("ISSUE_NUMBER", "0")
+
+g = Github(_github_token) if _github_token else None
+repo = g.get_repo(_repo_name) if g and _repo_name else None
+issue_number = int(_issue_number_str)
 
 
 def parse_issue_config() -> dict:
