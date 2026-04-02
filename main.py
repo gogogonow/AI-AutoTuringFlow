@@ -12,31 +12,36 @@ from tools.file_tools import write_code_tool
 load_dotenv()
 
 # ==========================================
-# 0. 初始化底层大模型 (接入 OpenRouter)
+# 0. 初始化底层大模型 (接入 OAIPro)
 # ==========================================
 print("正在连接大模型神经中枢...")
 
+oaipro_key = os.environ.get("OAIPRO_API_KEY", "")
+
+# CrewAI 原生 Anthropic 提供者需要这些环境变量
+# OAIPro 支持原生 Claude API（BaseURL: https://api.oaipro.com）
+os.environ["ANTHROPIC_API_KEY"] = oaipro_key
+os.environ["ANTHROPIC_BASE_URL"] = "https://api.oaipro.com"
+
 llm_reasoning = LLM(
-    # 架构设计与 UI 设计：使用 GPT-5 进行深度推理
+    # 架构设计与 UI 设计：使用 GPT-5 进行深度推理（通过 OAIPro OpenAI 兼容接口）
     model="openai/gpt-5-2025-08-07",
     max_completion_tokens=8192,
-    api_key=os.environ.get("OAIPRO_API_KEY"),
+    api_key=oaipro_key,
     base_url="https://api.oaipro.com/v1"
 )
 
 llm_coding = LLM(
-    # 代码生成：使用 Claude Sonnet 4 进行高质量代码编写
-    model="openai/claude-sonnet-4-5-20250929",
-    max_completion_tokens=8192,
-    api_key=os.environ.get("OAIPRO_API_KEY"),
-    base_url="https://api.oaipro.com/v1"
+    # 代码生成：使用 Claude Sonnet 4.5 进行高质量代码编写（通过 OAIPro 原生 Claude API）
+    model="claude-sonnet-4-5-20250929",
+    max_tokens=8192,
 )
 
 llm_light = LLM(
-    # DevOps 轻量级任务：使用 GPT-4o-mini 节省成本
+    # DevOps 轻量级任务：使用 GPT-4o-mini 节省成本（通过 OAIPro OpenAI 兼容接口）
     model="openai/gpt-4o-mini",
     max_completion_tokens=4096,
-    api_key=os.environ.get("OAIPRO_API_KEY"),
+    api_key=oaipro_key,
     base_url="https://api.oaipro.com/v1"
 )
 
