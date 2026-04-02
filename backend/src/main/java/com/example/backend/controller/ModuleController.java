@@ -42,7 +42,7 @@ public class ModuleController {
     public ResponseEntity<?> getModuleById(@PathVariable Integer id) {
         try {
             return moduleService.getModuleById(id)
-                .map(ResponseEntity::ok)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(createErrorResponse("Module not found with ID: " + id)));
         } catch (IllegalArgumentException e) {
