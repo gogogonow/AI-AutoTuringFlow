@@ -190,7 +190,7 @@ if needs_frontend:
         goal=dev_cfg["frontend_goal"],
         backstory=dev_cfg["frontend_backstory"],
         verbose=True,
-        tools=list(dev_tools),
+        tools=dev_tools,
         allow_delegation=False,
         llm=llm_coding,
     )
@@ -203,7 +203,7 @@ if needs_backend:
         goal=dev_cfg["backend_goal"],
         backstory=dev_cfg["backend_backstory"],
         verbose=True,
-        tools=list(dev_tools),
+        tools=dev_tools,
         allow_delegation=False,
         llm=llm_coding,
     )
