@@ -96,12 +96,13 @@ jobs:
             cd /opt/optical-modules
 
             # Write runtime env file (secrets injected from GitHub)
-            printf 'GITHUB_REPOSITORY=%s\nIMAGE_TAG=%s\nDB_ROOT_PASSWORD=%s\nDB_USERNAME=%s\nDB_PASSWORD=%s\n' \
-              '${{ github.repository }}' \
-              '${{ github.sha }}' \
-              '${{ secrets.DB_ROOT_PASSWORD }}' \
-              '${{ secrets.DB_USERNAME }}' \
-              '${{ secrets.DB_PASSWORD }}' > .env
+            cat > .env <<EOF
+            GITHUB_REPOSITORY=${{ github.repository }}
+            IMAGE_TAG=${{ github.sha }}
+            DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            EOF
 
             # Log in to GHCR on the server
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin

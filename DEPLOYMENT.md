@@ -154,14 +154,12 @@ The workflow needs to push Docker images to GitHub Container Registry:
 
 ### Step A-6 – Domain & HTTPS (Optional but Recommended)
 
-After the first successful deployment, configure Nginx + Certbot on the server for SSL:
+After the first successful deployment, configure Nginx + Certbot on the server for SSL.
+
+**Before running the commands below**, edit `docker-compose.yml` in your repository to change the frontend port mapping from `"80:80"` to `"8081:80"`, then merge and redeploy so the frontend container stops competing with host Nginx for port 80.
 
 ```bash
 sudo apt install -y nginx certbot python3-certbot-nginx
-
-# Stop the container's port 80 first to free the port for host Nginx
-# Edit docker-compose.yml: change frontend ports to "8081:80"
-# Then:
 
 sudo tee /etc/nginx/sites-available/optical-modules <<'NGINXEOF'
 server {
@@ -212,7 +210,7 @@ These platforms connect directly to your GitHub repository and deploy automatica
 
 | Platform | Free tier | MySQL support | Code changes needed | Difficulty |
 |---|---|---|---|---|
-| **Railway** | $5 free credit/month | ✅ MySQL plugin | Minimal (add `railway.json` or use `Dockerfile`) | ⭐ Easy |
+| **Railway** | $5 free credit/month | ✅ MySQL plugin | Minimal – `Dockerfile` already exists; only need to add `railway.json` to configure per-service | ⭐ Easy |
 | **Render** | Free for static + web service | ⚠️ PostgreSQL only (MySQL is paid) | Medium (change DB driver to PostgreSQL) | ⭐⭐ Medium |
 | **Fly.io** | Generous free tier (3 shared VMs) | ✅ via external MySQL or PlanetScale | Medium (add `fly.toml`, secrets) | ⭐⭐ Medium |
 | **DigitalOcean App Platform** | $5/month minimum | ✅ Managed MySQL (paid add-on) | Minimal | ⭐ Easy |
@@ -252,14 +250,17 @@ For the frontend, create a separate Railway service pointing to `frontend/Docker
 
 #### Environment variables on Railway
 
-Railway injects a `DATABASE_URL` for the MySQL plugin. Your Spring Boot app reads individual DB vars (`DB_HOST`, `DB_PORT`, etc.), so set these in Railway's **Variables** panel by parsing `DATABASE_URL`, or add a custom `application.properties` referencing the Railway-provided `MYSQLHOST`, `MYSQLPORT`, `MYSQLDATABASE`, `MYSQLUSER`, `MYSQLPASSWORD` variables.
+Railway injects MySQL connection variables (`MYSQLHOST`, `MYSQLPORT`, `MYSQLDATABASE`, `MYSQLUSER`, `MYSQLPASSWORD`) when you link a MySQL plugin to your service. The existing `application.properties` uses `DB_HOST`, `DB_PORT`, etc., so you need to **replace** the existing datasource properties with Railway's variable names.
 
-Add to `backend/src/main/resources/application.properties`:
+Replace the datasource lines in `backend/src/main/resources/application.properties`:
 ```properties
+# Replace existing DB_HOST / DB_PORT / DB_NAME / DB_USERNAME / DB_PASSWORD references with:
 spring.datasource.url=jdbc:mysql://${MYSQLHOST:localhost}:${MYSQLPORT:3306}/${MYSQLDATABASE:optical_modules}
 spring.datasource.username=${MYSQLUSER:appuser}
 spring.datasource.password=${MYSQLPASSWORD:apppassword}
 ```
+
+> For local development, set the Railway variable names in your `.env` file, or keep both sets of properties by adding a Railway-specific Spring profile (`application-railway.properties`) and setting `SPRING_PROFILES_ACTIVE=railway` in the Railway Variables panel.
 
 #### Setup steps
 
