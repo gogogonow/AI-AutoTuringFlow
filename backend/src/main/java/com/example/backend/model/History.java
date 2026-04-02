@@ -1,11 +1,14 @@
 package com.example.backend.model;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Entity
-@Table(name = "history")
+@Table(name = "history", indexes = {
+    @Index(name = "idx_module_id", columnList = "module_id"),
+    @Index(name = "idx_timestamp", columnList = "timestamp")
+})
 public class History {
 
     @Id
@@ -15,7 +18,7 @@ public class History {
     @Column(name = "module_id", nullable = false)
     private Integer moduleId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private String operation;
 
     @Column(name = "old_value", columnDefinition = "TEXT")

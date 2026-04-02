@@ -3,9 +3,17 @@ import subprocess
 from github import Github
 from crewai.tools import tool
 
-g = Github(os.environ["GITHUB_TOKEN"])
-repo = g.get_repo(os.environ["REPO_NAME"])
-issue_number = int(os.environ["ISSUE_NUMBER"])
+# Lazy-initialised at module level; requires GITHUB_TOKEN, REPO_NAME and
+# ISSUE_NUMBER env vars that are only available inside the CI workflow.
+# Using .get() with a fallback prevents KeyError when the module is imported
+# in environments that don't set these variables (e.g. Railway deployment).
+_github_token = os.environ.get("GITHUB_TOKEN", "")
+_repo_name = os.environ.get("REPO_NAME", "")
+_issue_number_str = os.environ.get("ISSUE_NUMBER", "0")
+
+g = Github(_github_token) if _github_token else None
+repo = g.get_repo(_repo_name) if g and _repo_name else None
+issue_number = int(_issue_number_str)
 
 
 def parse_issue_config() -> dict:
@@ -24,6 +32,11 @@ def parse_issue_config() -> dict:
     Returns:
         dict: {"mode": str, "scope": str, "labels": list[str]}
     """
+    if repo is None:
+        raise RuntimeError(
+            "GitHub client is not initialised. "
+            "Ensure GITHUB_TOKEN and REPO_NAME environment variables are set."
+        )
     issue = repo.get_issue(number=issue_number)
     label_names = [label.name for label in issue.labels]
 
@@ -51,6 +64,11 @@ def parse_issue_config() -> dict:
 @tool("Fetch Requirement from Issue")
 def fetch_requirement_tool() -> str:
     """获取当前触发执行的 GitHub Issue 的标题、内容及配置（模式和影响范围），作为初始需求。"""
+    if repo is None:
+        raise RuntimeError(
+            "GitHub client is not initialised. "
+            "Ensure GITHUB_TOKEN and REPO_NAME environment variables are set."
+        )
     issue = repo.get_issue(number=issue_number)
     config = parse_issue_config()
     return (
@@ -109,5 +127,10 @@ def create_pr_tool(branch_name: str, pr_title: str, commit_message: str) -> str:
         subprocess.run(["git", "remote", "set-url", "origin", clean_url], check=True)
 
     # 使用 GitHub API 创建 PR
+    if repo is None:
+        raise RuntimeError(
+            "GitHub client is not initialised. "
+            "Ensure GITHUB_TOKEN and REPO_NAME environment variables are set."
+        )
     pr = repo.create_pull(title=pr_title, body=f"Closes #{issue_number}", head=branch_name, base="main")
     return f"Pull Request created successfully: {pr.html_url}"

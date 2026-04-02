@@ -1,30 +1,34 @@
 package com.example.backend.model;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Entity
-@Table(name = "modules")
+@Table(name = "modules", indexes = {
+    @Index(name = "idx_code", columnList = "code"),
+    @Index(name = "idx_status", columnList = "status"),
+    @Index(name = "idx_vendor", columnList = "vendor")
+})
 public class Module {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 100)
     private String code;
 
     @Column(name = "create_time", nullable = false)
     private LocalDateTime createTime;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private String status;
 
-    @Column
+    @Column(length = 100)
     private String vendor;
 
-    @Column(name = "process_status")
+    @Column(name = "process_status", length = 50)
     private String processStatus;
 
     @Column(name = "enter_time")
@@ -33,10 +37,10 @@ public class Module {
     @Column(name = "exit_time")
     private LocalDateTime exitTime;
 
-    @Column(name = "ld")
+    @Column(name = "ld", length = 100)
     private String LD;
 
-    @Column(name = "pd")
+    @Column(name = "pd", length = 100)
     private String PD;
 
     @Column(columnDefinition = "TEXT")
