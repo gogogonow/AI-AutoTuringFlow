@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
     "spring.jpa.show-sql=true"
 })
 @DisplayName("ProductRepository Integration Tests")
-class ProductRepositoryTest {
+public class ProductRepositoryTest {
 
     @Autowired
     private TestEntityManager entityManager;

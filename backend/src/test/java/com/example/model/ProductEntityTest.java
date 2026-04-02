@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Testing: Jakarta namespace migration, JPA annotations, validation constraints
  */
 @DisplayName("Product Entity Regression Tests")
-class ProductEntityTest {
+public class ProductEntityTest {
 
     private Validator validator;
     private Product product;

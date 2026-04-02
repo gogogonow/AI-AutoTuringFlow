@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @DisplayName("WebConfig CORS Configuration Tests")
-class WebConfigTest {
+public class WebConfigTest {
 
     @Autowired
     private MockMvc mockMvc;
