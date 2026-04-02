@@ -22,7 +22,7 @@ oaipro_key = os.environ.get("OAIPRO_API_KEY", "")
 
 llm_reasoning = LLM(
     # 架构设计与 UI 设计：使用 GPT-5 进行深度推理（通过 OAIPro OpenAI 兼容接口）
-    model="openai/gpt-5-2025-08-07",
+    model="openai/gpt-5.4",
     max_tokens=8192,
     api_key=oaipro_key,
     base_url="https://api.oaipro.com/v1",
