@@ -1,0 +1,66 @@
+{
+  "name": "optical-module-management-tests",
+  "version": "1.0.0",
+  "description": "光模块管理系统自动化测试套件",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:backend": "cd ../backend && mvn test",
+    "test:frontend": "jest tests/frontend",
+    "test:python": "python -m pytest tests/backend/test_data_parser.py -v",
+    "test:all": "npm run test:backend && npm run test:frontend && npm run test:python",
+    "lint": "eslint tests/frontend/**/*.js",
+    "format": "prettier --write tests/**/*.js"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": ["<rootDir>/setup.js"],
+    "moduleNameMapper": {
+      "\\.(css|less|scss|sass)$": "identity-obj-proxy"
+    },
+    "collectCoverageFrom": [
+      "../frontend/js/**/*.js",
+      "!../frontend/js/vendor/**"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 75,
+        "functions": 75,
+        "lines": 75,
+        "statements": 75
+      }
+    },
+    "testMatch": [
+      "**/tests/**/*.test.js",
+      "**/tests/**/*.spec.js",
+      "**/tests/frontend/test_*.js"
+    ]
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "babel-jest": "^29.7.0",
+    "eslint": "^8.52.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.29.0",
+    "identity-obj-proxy": "^3.0.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "prettier": "^3.0.3"
+  },
+  "dependencies": {
+    "@testing-library/dom": "^9.3.3",
+    "@testing-library/jest-dom": "^6.1.4"
+  },
+  "keywords": [
+    "testing",
+    "automation",
+    "jest",
+    "junit",
+    "pytest",
+    "optical-module"
+  ],
+  "author": "SDET Team",
+  "license": "MIT"
+}

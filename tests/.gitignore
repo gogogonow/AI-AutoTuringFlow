@@ -1,0 +1,38 @@
+# 依赖目录
+node_modules/
+.pytest_cache/
+__pycache__/
+*.pyc
+
+# 测试覆盖率报告
+coverage/
+htmlcov/
+.coverage
+*.lcov
+.nyc_output/
+
+# 测试结果
+test-results/
+junit.xml
+*.log
+
+# IDE 配置
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# 临时文件
+*.tmp
+*.temp
+test_summary_*.txt
+
+# Build 输出
+dist/
+build/
+*.egg-info/
