@@ -1,0 +1,57 @@
+name: 🐛 Bug 修复
+description: 提交 Bug 报告，由 AI 多智能体团队自动定位和修复
+labels: ["mode:bugfix", "scope:fullstack"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## AI 多智能体软件工厂 — Bug 修复需求单
+        填写完成后，给 Issue 打上 `run-ai` 标签即可触发 AI 自动修复流水线。
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 影响范围
+      description: Bug 所在的技术范围
+      options:
+        - fullstack（全栈）
+        - frontend（仅前端）
+        - backend（仅后端）
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug 描述
+      description: 请详细描述 Bug 的现象
+      placeholder: |
+        例如：
+        在光模块列表页面，点击"按波长排序"后，表格数据显示为空白。
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      description: 复现该 Bug 的具体操作步骤
+      placeholder: |
+        1. 打开光模块列表页面
+        2. 点击表头的"波长"列
+        3. 观察表格内容变为空白
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+      description: 正确的行为应该是什么
+      placeholder: "表格应按波长值升序/降序排列，数据不丢失"
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 补充信息
+      description: 错误日志、截图、相关代码位置等

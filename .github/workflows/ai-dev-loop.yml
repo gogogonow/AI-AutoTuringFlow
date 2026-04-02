@@ -5,6 +5,16 @@ on:
 
 jobs:
   run-ai-agents:
+    # 当 Issue 被打上 run-ai 标签时触发
+    # 可同时通过 mode:* 和 scope:* 标签配置任务模式和影响范围：
+    #   模式 labels（互斥，默认 feature）：
+    #     - mode:upgrade   → 依赖升级或替换
+    #     - mode:feature   → 新功能需求
+    #     - mode:bugfix    → Bug 修复
+    #   影响范围 labels（互斥，默认 fullstack）：
+    #     - scope:frontend  → 仅前端
+    #     - scope:backend   → 仅后端
+    #     - scope:fullstack → 全栈
     if: github.event.label.name == 'run-ai'
     runs-on: ubuntu-latest
     permissions:
@@ -29,4 +39,5 @@ jobs:
           OAIPRO_API_KEY: ${{ secrets.OAIPRO_API_KEY }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           REPO_NAME: ${{ github.repository }}
+          CREWAI_TRACING_ENABLED: "false"
         run: python main.py

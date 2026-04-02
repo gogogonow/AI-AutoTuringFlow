@@ -1,0 +1,50 @@
+name: 🆕 新功能需求
+description: 提交新功能的开发需求，由 AI 多智能体团队自动实现
+labels: ["mode:feature", "scope:fullstack"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## AI 多智能体软件工厂 — 新功能需求单
+        填写完成后，给 Issue 打上 `run-ai` 标签即可触发 AI 自动开发流水线。
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 影响范围
+      description: 本次需求涉及的技术范围
+      options:
+        - fullstack（全栈）
+        - frontend（仅前端）
+        - backend（仅后端）
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 需求描述
+      description: 请详细描述需要实现的功能
+      placeholder: |
+        例如：
+        为光模块管理系统添加批量导入功能，支持从 Excel 文件导入光模块参数数据。
+        - 前端：上传文件组件 + 导入结果展示表格
+        - 后端：Excel 解析 API + 数据校验 + 批量入库
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      description: 功能完成后需要满足的条件
+      placeholder: |
+        1. 支持 .xlsx 和 .csv 格式
+        2. 导入时校验数据完整性
+        3. 导入失败时给出详细错误提示
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 补充说明
+      description: 其他技术约束、参考资料等
