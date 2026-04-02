@@ -26,7 +26,7 @@ llm_reasoning = LLM(
 
 llm_coding = LLM(
     # 代码生成：使用 Claude Sonnet 4 进行高质量代码编写
-    model="openai/claude-sonnet-4-6",
+    model="anthropic/claude-sonnet-4-6",
     max_completion_tokens=8192,
     api_key=os.environ.get("OAIPRO_API_KEY"),
     base_url="https://api.oaipro.com/v1"
