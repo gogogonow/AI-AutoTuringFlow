@@ -1,6 +1,4 @@
 import os
-import time
-import logging
 from dotenv import load_dotenv
 from crewai import Agent, Task, Crew, Process, LLM
 
@@ -11,8 +9,6 @@ from tools.file_tools import write_code_tool
 # 加载本地 .env 文件（如果是本地调试的话）
 load_dotenv()
 
-logging.basicConfig(level=logging.INFO)
-
 # ==========================================
 # 0. 初始化底层大模型 (接入 OAIPro)
 # ==========================================
@@ -20,40 +16,35 @@ print("正在连接大模型神经中枢...")
 
 oaipro_key = os.environ.get("OAIPRO_API_KEY", "")
 
-# CrewAI 原生 Anthropic 提供者需要这些环境变量
-# OAIPro 支持原生 Claude API（BaseURL: https://api.oaipro.com）
-os.environ["ANTHROPIC_API_KEY"] = oaipro_key
-os.environ["ANTHROPIC_BASE_URL"] = "https://api.oaipro.com"
+# 使用 LiteLLM 统一路由所有 LLM 调用（通过 is_litellm=True 跳过 CrewAI 原生 SDK）。
+# 原生 OpenAI/Anthropic SDK 客户端直连 OAIPro 代理时，工具调用后的响应可能返回空内容；
+# LiteLLM 对代理端点的兼容性更好，能正确处理参数转换和响应解析。
 
 llm_reasoning = LLM(
     # 架构设计与 UI 设计：使用 GPT-5 进行深度推理（通过 OAIPro OpenAI 兼容接口）
     model="openai/gpt-5-2025-08-07",
-    max_completion_tokens=8192,
-    temperature=0.7,
-    timeout=120,
+    max_tokens=8192,
     api_key=oaipro_key,
     base_url="https://api.oaipro.com/v1",
-    num_retries=3,
+    is_litellm=True,
 )
 
 llm_coding = LLM(
-    # 代码生成：使用 Claude Sonnet 4.5 进行高质量代码编写（通过 OAIPro 原生 Claude API）
-    model="claude-sonnet-4-5-20250929",
+    # 代码生成：使用 Claude Sonnet 4.5 进行高质量代码编写（通过 OAIPro Claude API）
+    model="anthropic/claude-sonnet-4-5-20250929",
     max_tokens=8192,
-    temperature=0.7,
-    timeout=120,
-    num_retries=3,
+    api_key=oaipro_key,
+    base_url="https://api.oaipro.com",
+    is_litellm=True,
 )
 
 llm_light = LLM(
     # DevOps 轻量级任务：使用 GPT-4o-mini 节省成本（通过 OAIPro OpenAI 兼容接口）
     model="openai/gpt-4o-mini",
-    max_completion_tokens=4096,
-    temperature=0.7,
-    timeout=120,
+    max_tokens=4096,
     api_key=oaipro_key,
     base_url="https://api.oaipro.com/v1",
-    num_retries=3,
+    is_litellm=True,
 )
 
 # ==========================================
@@ -176,24 +167,10 @@ software_factory = Crew(
 
 if __name__ == "__main__":
     print("🚀 启动 6 人全栈 AI 研发团队...")
-
-    max_attempts = 3
-    for attempt in range(1, max_attempts + 1):
-        try:
-            result = software_factory.kickoff()
-            print("\n✅ 流水线执行完毕！最终报告：")
-            print(result)
-            break
-        except ValueError as e:
-            error_msg = str(e)
-            if "None or empty" in error_msg and attempt < max_attempts:
-                wait_time = 10 * attempt
-                print(f"\n⚠️ LLM 返回空响应 (第 {attempt}/{max_attempts} 次尝试)，"
-                      f"{wait_time} 秒后重试...")
-                time.sleep(wait_time)
-            else:
-                print(f"\n❌ 执行过程中出现异常: {error_msg}")
-                raise
-        except Exception as e:
-            print(f"\n❌ 执行过程中出现异常: {str(e)}")
-            raise
+    try:
+        result = software_factory.kickoff()
+        print("\n✅ 流水线执行完毕！最终报告：")
+        print(result)
+    except Exception as e:
+        print(f"\n❌ 执行过程中出现异常: {str(e)}")
+        raise
