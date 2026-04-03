@@ -11,7 +11,7 @@ RUN rm /etc/nginx/conf.d/default.conf
 COPY /frontend/nginx.conf /etc/nginx/templates/default.conf.template
 
 # Copy static frontend files
-COPY /frontend /usr/share/nginx/html/
+COPY /frontend/* /usr/share/nginx/html/
 
 # Default backend URL (docker-compose service name).
 # Override with BACKEND_URL env var in Railway / production.
