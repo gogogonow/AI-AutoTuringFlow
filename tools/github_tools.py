@@ -20,11 +20,12 @@ def parse_issue_config() -> dict:
     """从 Issue 的 labels 中解析任务模式和影响范围配置。
 
     模式 labels（互斥，默认 feature）：
-      - mode:upgrade   → 依赖升级或替换
-      - mode:feature   → 新功能需求
-      - mode:bugfix    → Bug 修复
+      - mode:upgrade      → 依赖升级或替换
+      - mode:feature      → 新功能需求
+      - mode:bugfix       → Bug 修复
+      - mode:ui-beautify  → UI 美化（界面设计优化 + 前端增量开发）
 
-    影响范围 labels（互斥，默认 fullstack）：
+    影响范围 labels（互斥，默认 fullstack；ui-beautify 模式强制为 frontend）：
       - scope:frontend  → 仅前端
       - scope:backend   → 仅后端
       - scope:fullstack → 全栈
@@ -45,7 +46,7 @@ def parse_issue_config() -> dict:
     for name in label_names:
         if name.startswith("mode:"):
             parsed = name.split(":", 1)[1].strip()
-            if parsed in ("upgrade", "feature", "bugfix"):
+            if parsed in ("upgrade", "feature", "bugfix", "ui-beautify"):
                 mode = parsed
                 break
 
@@ -57,6 +58,10 @@ def parse_issue_config() -> dict:
             if parsed in ("frontend", "backend", "fullstack"):
                 scope = parsed
                 break
+
+    # ui-beautify 模式强制前端范围（UI 美化不涉及后端）
+    if mode == "ui-beautify":
+        scope = "frontend"
 
     return {"mode": mode, "scope": scope, "labels": label_names}
 
@@ -75,7 +80,7 @@ def fetch_requirement_tool() -> str:
         f"Title: {issue.title}\n"
         f"Body: {issue.body}\n"
         f"---\n"
-        f"任务模式: {config['mode']} (upgrade=依赖升级/替换, feature=新功能, bugfix=Bug修复)\n"
+        f"任务模式: {config['mode']} (upgrade=依赖升级/替换, feature=新功能, bugfix=Bug修复, ui-beautify=UI美化)\n"
         f"影响范围: {config['scope']} (frontend=仅前端, backend=仅后端, fullstack=全栈)\n"
         f"所有标签: {', '.join(config['labels'])}"
     )
