@@ -9,6 +9,11 @@ from tools.file_tools import (
     write_code_tool, read_code_tool, list_files_tool,
     patch_code_tool, search_code_tool,
 )
+from tools.tool_permission import get_tools_for_role
+from tools.hook_pipeline import (
+    pre_task_hook, post_task_hook, run_hooks_report, HookResult,
+)
+from tools.prompt_router import analyze_issue, enhance_task_description
 
 # 加载本地 .env 文件（如果是本地调试的话）
 load_dotenv()
@@ -54,6 +59,27 @@ ISSUE_TITLE = config["title"]
 
 print(f"📋 任务模式: {MODE} | 影响范围: {SCOPE}")
 
+# ==========================================
+# 1b. Prompt 路由分析（增强标签系统，不覆盖标签优先级）
+# ==========================================
+issue_body_text = ""
+try:
+    from tools.github_tools import repo as _gh_repo, issue_number as _issue_number
+    if _gh_repo is not None:
+        issue_body_text = _gh_repo.get_issue(number=_issue_number).body or ""
+except Exception as e:
+        print(f"⚠️  [智能路由] 获取 Issue 正文失败（{type(e).__name__}: {e}），将仅基于标题分析")
+
+route_analysis = analyze_issue(ISSUE_TITLE, issue_body_text)
+print(f"\n🧭 [智能路由分析] {route_analysis['analysis_summary']}")
+if route_analysis["detected_keywords"]:
+    print(f"   检测到关键词: {', '.join(route_analysis['detected_keywords'][:10])}")
+if route_analysis["suggested_scope"] != SCOPE:
+    print(
+        f"   💡 路由建议范围 '{route_analysis['suggested_scope']}' 与标签范围 '{SCOPE}' 不同，"
+        "以 Issue 标签为准（标签优先级更高）"
+    )
+
 needs_frontend = SCOPE in ("frontend", "fullstack")
 needs_backend = SCOPE in ("backend", "fullstack")
 
@@ -98,9 +124,7 @@ ARCHITECT_CONFIG = {
 }
 
 architect_cfg = ARCHITECT_CONFIG[MODE]
-architect_tools = [fetch_requirement_tool]
-if MODE in ("upgrade", "bugfix", "ui-beautify"):
-    architect_tools.extend([read_code_tool, list_files_tool, search_code_tool])
+architect_tools = get_tools_for_role("architect", MODE)
 
 architect = Agent(
     role='首席系统架构师',
@@ -137,12 +161,7 @@ if (MODE == "feature" and needs_frontend) or MODE == "ui-beautify":
     )
 
 # --- 前端/后端工程师配置（优化：合并 QA 职责，使用 patch_code_tool） ---
-# 工具集：feature 模式用 write；upgrade/bugfix/ui-beautify 增加 read/list/patch/search
-dev_tools_feature = [write_code_tool]
-dev_tools_modify = [
-    read_code_tool, list_files_tool, search_code_tool,
-    patch_code_tool, write_code_tool,
-]
+# 工具集通过 get_tools_for_role() 按角色 × 模式自动选取
 
 DEV_CONFIG = {
     "feature": {
@@ -200,7 +219,6 @@ DEV_CONFIG = {
 }
 
 dev_cfg = DEV_CONFIG[MODE]
-dev_tools = dev_tools_modify if MODE in ("upgrade", "bugfix", "ui-beautify") else dev_tools_feature
 
 frontend_dev = None
 if needs_frontend:
@@ -209,7 +227,7 @@ if needs_frontend:
         goal=dev_cfg["frontend_goal"],
         backstory=dev_cfg["frontend_backstory"],
         verbose=True,
-        tools=dev_tools,
+        tools=get_tools_for_role("frontend_dev", MODE),
         allow_delegation=False,
         llm=llm_coding,
     )
@@ -221,7 +239,7 @@ if needs_backend:
         goal=dev_cfg["backend_goal"],
         backstory=dev_cfg["backend_backstory"],
         verbose=True,
-        tools=dev_tools,
+        tools=get_tools_for_role("backend_dev", MODE),
         allow_delegation=False,
         llm=llm_coding,
     )
@@ -268,7 +286,7 @@ REVIEW_CONFIG = {
     },
 }
 
-review_tools = [read_code_tool, list_files_tool, search_code_tool, patch_code_tool]
+review_tools = get_tools_for_role("reviewer", MODE)
 
 reviewer = Agent(
     role='代码审查与一致性校验工程师',
@@ -332,7 +350,7 @@ TASK_ARCH_OUTPUT = {
 }
 
 task_architecture = Task(
-    description=TASK_ARCH_DESC[MODE],
+    description=enhance_task_description(TASK_ARCH_DESC[MODE], route_analysis),
     expected_output=TASK_ARCH_OUTPUT[MODE],
     agent=architect,
     tools=architect_tools,
@@ -509,6 +527,20 @@ if __name__ == "__main__":
     print(f"🚀 启动 AI 研发团队 [{MODE_LABELS[MODE]}模式 | {SCOPE_LABELS[SCOPE]}范围]")
     print(f"   参与的 Agent: {', '.join(a.role for a in agents)}")
 
+    # --- Pre-flight 检查：验证 Crew 配置合法性 ---
+    hook_results: list[HookResult] = []
+    pre_flight = pre_task_hook(
+        agent_role="architect",
+        mode=MODE,
+        task_description=str(task_architecture.description),
+        context_output="",
+    )
+    hook_results.append(pre_flight)
+    if not pre_flight.passed:
+        print(f"\n⚠️  Pre-flight 警告: {pre_flight.message}")
+    else:
+        print(f"\n✅ Pre-flight 检查通过")
+
     try:
         result = software_factory.kickoff()
         print("\n✅ Crew 执行完毕！最终报告：")
@@ -516,6 +548,19 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Crew 执行异常: {str(e)}")
         raise
+
+    # --- Post-flight 检查：验证最终输出质量 ---
+    post_flight = post_task_hook(
+        agent_role="reviewer",
+        mode=MODE,
+        task_output=str(result),
+    )
+    hook_results.append(post_flight)
+    if not post_flight.passed:
+        print(f"\n⚠️  Post-flight 警告: {post_flight.message}")
+
+    # 打印 hook 汇总报告
+    print("\n" + run_hooks_report(hook_results))
 
     # --- DevOps 去 Agent 化：直接 Python 调用创建 PR（无需 LLM 推理） ---
     issue_num_str = os.environ.get("ISSUE_NUMBER", "")
