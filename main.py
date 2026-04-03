@@ -2,8 +2,13 @@ import os
 from dotenv import load_dotenv
 from crewai import Agent, Task, Crew, Process, LLM
 
-from tools.github_tools import fetch_requirement_tool, create_pr_tool, parse_issue_config
-from tools.file_tools import write_code_tool, read_code_tool, list_files_tool
+from tools.github_tools import (
+    fetch_requirement_tool, create_pr_direct, parse_issue_config,
+)
+from tools.file_tools import (
+    write_code_tool, read_code_tool, list_files_tool,
+    patch_code_tool, search_code_tool,
+)
 
 # 加载本地 .env 文件（如果是本地调试的话）
 load_dotenv()
@@ -11,38 +16,27 @@ load_dotenv()
 # ==========================================
 # 0. 初始化底层大模型 (接入 OAIPro)
 # ==========================================
+# 优化：仅保留 2 个 LLM 层级（去掉 llm_light，DevOps 已去 Agent 化）
+# 所有模型统一通过 LiteLLM + openai/ 前缀路由到 OAIPro 兼容端点。
 print("正在连接大模型神经中枢...")
 
 oaipro_key = os.environ.get("OAIPRO_API_KEY", "")
 
-# 使用 LiteLLM 统一路由所有 LLM 调用（通过 is_litellm=True 跳过 CrewAI 原生 SDK）。
-# 原生 OpenAI/Anthropic SDK 客户端直连 OAIPro 代理时，工具调用后的响应可能返回空内容；
-# LiteLLM 对代理端点的兼容性更好，能正确处理参数转换和响应解析。
-
 llm_reasoning = LLM(
-    # 架构设计与 UI 设计：使用 GPT-5 进行深度推理（通过 OAIPro OpenAI 兼容接口）
-    model="openai/gpt-3.5-turbo",
-    max_tokens=4096,
-    api_key=oaipro_key,
-    base_url="https://api.oaipro.com/v1",
-    is_litellm=True,
-)
-
-llm_coding = LLM(
-    # 代码生成：使用 Claude Sonnet 4.5 进行高质量代码编写（通过 OAIPro OpenAI 兼容接口）
-    # 注意：必须使用 openai/ 前缀 + /v1 端点，anthropic/ 前缀会导致 LiteLLM 使用原生
-    # Anthropic API 格式发送工具调用，但 OAIPro 仅提供 OpenAI 兼容接口，造成工具调用被静默丢弃。
-    model="openai/claude-sonnet-4-5-20250929",
+    # 架构设计与 Review：使用 o4-mini 进行深度推理（通过 OAIPro OpenAI 兼容接口）
+    # 相比 gpt-3.5-turbo 大幅提升推理和结构化输出能力
+    model="openai/o4-mini",
     max_tokens=8192,
     api_key=oaipro_key,
     base_url="https://api.oaipro.com/v1",
     is_litellm=True,
 )
 
-llm_light = LLM(
-    # DevOps 轻量级任务：使用 GPT-4o-mini 节省成本（通过 OAIPro OpenAI 兼容接口）
-    model="openai/gpt-4o-mini",
-    max_tokens=4096,
+llm_coding = LLM(
+    # 代码生成：使用 Claude Sonnet 4.5 进行高质量代码编写
+    # 必须使用 openai/ 前缀，anthropic/ 会导致工具调用被静默丢弃
+    model="openai/claude-sonnet-4-5-20250929",
+    max_tokens=8192,
     api_key=oaipro_key,
     base_url="https://api.oaipro.com/v1",
     is_litellm=True,
@@ -54,8 +48,9 @@ llm_light = LLM(
 # ==========================================
 
 config = parse_issue_config()
-MODE = config["mode"]      # "upgrade" | "feature" | "bugfix" | "ui-beautify"
-SCOPE = config["scope"]    # "frontend" | "backend" | "fullstack"
+MODE = config["mode"]       # "upgrade" | "feature" | "bugfix" | "ui-beautify"
+SCOPE = config["scope"]     # "frontend" | "backend" | "fullstack"
+ISSUE_TITLE = config["title"]
 
 print(f"📋 任务模式: {MODE} | 影响范围: {SCOPE}")
 
@@ -64,53 +59,48 @@ needs_backend = SCOPE in ("backend", "fullstack")
 
 
 # ==========================================
-# 2. 模式感知的 Agent 定义
+# 2. 精简的 Agent 定义（优化：去除 QA 和 DevOps Agent）
 # ==========================================
+# Agent 精简为：架构师 + [UI设计师] + [前端] + [后端] + Review
+# - QA 职责合并到前端/后端开发 Agent（同时写代码和测试）
+# - DevOps 任务改为 Crew 结束后直接 Python 调用（无需 LLM）
 
-# --- 各模式下架构师的差异化配置 ---
+# --- 架构师配置（精简 backstory，强化结构化输出指令） ---
 ARCHITECT_CONFIG = {
     "feature": {
-        "goal": "分析原始需求，输出包含技术栈选型、前后端 API 契约设计、以及跨语言调用的核心架构文档。",
-        "backstory": (
-            "你是一位拥有深厚通信研发工具链和硬件自动化设计经验的首席架构师。"
-            "你擅长规划高可用、可扩展的系统，精通 Java/Web 技术栈与 Python 自动化脚本的融合。"
-            "你能够精准定义前后端交互协议，并擅长拆解复杂的业务流程，为多团队协作奠定基础。"
+        "goal": (
+            "分析需求，输出结构化架构设计：API 契约（路径、方法、请求/响应字段）、"
+            "数据库表结构、目录规划和文件清单。"
         ),
+        "backstory": "精通系统架构设计，擅长定义前后端 API 契约和数据模型，输出可直接执行的技术方案。",
     },
     "upgrade": {
-        "goal": "分析升级/替换需求，读取现有代码中的依赖配置和受影响的源码文件，输出包含兼容性影响评估、迁移步骤和变更清单的升级方案。",
-        "backstory": (
-            "你是一位精通技术栈演进和依赖管理的首席架构师。"
-            "你擅长分析 pom.xml、package.json 等依赖配置，识别 API 破坏性变更（如 javax→jakarta 迁移），"
-            "制定安全的升级路径。你会先使用 read_code_tool 和 list_files_tool 仔细审查现有代码结构，"
-            "再给出精确的变更清单。"
+        "goal": (
+            "分析升级需求，读取现有代码和依赖配置，输出结构化的变更规约："
+            "受影响文件清单、每个文件的具体修改内容、文件间一致性约束、分步迁移计划。"
         ),
+        "backstory": "精通依赖管理和版本迁移，擅长分析 breaking changes 并制定安全升级路径。",
     },
     "bugfix": {
-        "goal": "分析 Bug 描述，定位可能的根因，读取相关源码文件，输出包含问题分析、修复方案和回归测试建议的诊断报告。",
-        "backstory": (
-            "你是一位拥有丰富系统排障经验的首席架构师。"
-            "你擅长从 Bug 报告中提取关键线索，利用 read_code_tool 和 list_files_tool 快速定位问题代码，"
-            "分析调用链路和数据流向，找出根因并制定最小影响的修复方案。"
+        "goal": (
+            "分析 Bug 描述，读取相关源码定位根因，输出结构化诊断报告："
+            "根因分析、受影响文件和代码位置、修复方案、回归风险。"
         ),
+        "backstory": "精通系统排障，擅长从 Bug 报告快速定位问题代码并制定最小影响修复方案。",
     },
     "ui-beautify": {
-        "goal": "分析 UI 美化需求，读取现有前端代码和样式文件，评估当前界面的视觉与交互问题，输出包含设计改进方向、色彩/排版/动效规范和组件优化清单的 UI 优化方案。",
-        "backstory": (
-            "你是一位兼具技术深度和审美品位的前端架构师，精通现代 Web UI 设计体系。"
-            "你擅长审视现有界面，从视觉层次、色彩搭配、间距节奏、动效体验等维度分析问题，"
-            "并使用 read_code_tool 和 list_files_tool 深入了解现有 CSS/HTML/JS 结构，"
-            "制定渐进式的 UI 优化方案，确保美化改动不破坏现有功能。"
+        "goal": (
+            "分析 UI 美化需求，读取现有前端代码，输出 UI 优化方案："
+            "视觉问题诊断、设计改进规范（色彩/排版/间距/动效）、文件变更清单。"
         ),
+        "backstory": "兼具技术深度和审美品位的前端架构师，精通现代 Web UI 设计体系。",
     },
 }
 
-# --- 架构师（始终参与） ---
 architect_cfg = ARCHITECT_CONFIG[MODE]
-# 升级和 bugfix 模式下，架构师需要读取现有代码
 architect_tools = [fetch_requirement_tool]
 if MODE in ("upgrade", "bugfix", "ui-beautify"):
-    architect_tools.extend([read_code_tool, list_files_tool])
+    architect_tools.extend([read_code_tool, list_files_tool, search_code_tool])
 
 architect = Agent(
     role='首席系统架构师',
@@ -122,28 +112,18 @@ architect = Agent(
     llm=llm_reasoning,
 )
 
-# --- UI/UX 设计师的差异化配置 ---
+# --- UI/UX 设计师（feature+前端 或 ui-beautify 时参与） ---
 UI_DESIGNER_CONFIG = {
     "feature": {
-        "goal": "基于架构师的需求，设计全局 UI 规范、界面布局结构以及交互流程（输出 Markdown 描述）。",
-        "backstory": (
-            '你精通 B 端复杂工程系统和工具链界面的设计。'
-            '你深谙用户体验，擅长规划包含复杂参数配置面板等视图容器交互逻辑，'
-            '能为前端开发提供清晰的组件划分建议。'
-        ),
+        "goal": "基于架构设计，输出 UI 布局规范：组件划分、交互流程、界面结构。",
+        "backstory": "精通 B 端界面设计，擅长规划复杂交互逻辑和组件结构。",
     },
     "ui-beautify": {
-        "goal": "基于架构师的 UI 优化方案和现有界面分析，设计详细的视觉升级规范，包括配色方案、字体排版、间距系统、圆角阴影、动效曲线和组件样式改造细节。",
-        "backstory": (
-            '你是一位拥有极致审美追求的 UI 视觉设计师，精通现代设计趋势和 CSS 实现技巧。'
-            '你擅长将粗糙的界面改造为精致、专业的产品级 UI，'
-            '深谙色彩心理学、视觉层次理论和微交互设计，'
-            '能输出前端工程师可直接落地的详细视觉规范（包含具体的颜色值、尺寸、动画参数等）。'
-        ),
+        "goal": "基于架构师的 UI 分析，输出详细视觉升级规范：配色方案、字体排版、间距系统、动效参数。",
+        "backstory": "追求极致审美的 UI 设计师，能输出工程师可直接落地的视觉规范。",
     },
 }
 
-# --- UI/UX 设计师（在 feature 模式 + 前端范围时参与，或在 ui-beautify 模式时始终参与） ---
 ui_designer = None
 if (MODE == "feature" and needs_frontend) or MODE == "ui-beautify":
     designer_cfg = UI_DESIGNER_CONFIG.get(MODE, UI_DESIGNER_CONFIG["feature"])
@@ -156,77 +136,72 @@ if (MODE == "feature" and needs_frontend) or MODE == "ui-beautify":
         llm=llm_reasoning,
     )
 
-# --- 各模式下前端/后端工程师的差异化配置 ---
+# --- 前端/后端工程师配置（优化：合并 QA 职责，使用 patch_code_tool） ---
+# 工具集：feature 模式用 write；upgrade/bugfix/ui-beautify 增加 read/list/patch/search
+dev_tools_feature = [write_code_tool]
+dev_tools_modify = [
+    read_code_tool, list_files_tool, search_code_tool,
+    patch_code_tool, write_code_tool,
+]
+
 DEV_CONFIG = {
     "feature": {
-        "frontend_goal": "严格遵循 UI 规范和 API 契约，编写高质量的现代前端代码。你必须使用 write_code_tool 工具将每个代码文件写入磁盘，禁止仅输出文字描述。",
-        "frontend_backstory": (
-            "你精通现代 Web 技术栈。你不仅擅长构建响应式的组件库，还拥有丰富的浏览器端渲染经验，"
-            "能够从容应对包含复杂 DOM 结构或200行+大表的高性能前端开发需求。"
-            "你的工作方式是：先构思代码，然后立即调用 write_code_tool 将完整代码写入文件。"
+        "frontend_goal": (
+            "遵循 UI 规范和 API 契约，编写前端代码并编写对应的单元测试。"
+            "使用 write_code_tool 写入 frontend/ 和 tests/ 目录。"
         ),
-        "backend_goal": "基于架构师的设计，编写健壮的后端服务、核心算法逻辑以及自动化解析脚本。你必须使用 write_code_tool 工具将每个代码文件写入磁盘，禁止仅输出文字描述。",
-        "backend_backstory": (
-            "你是一个极其严谨的后端极客，精通高并发架构。你擅长使用 Java 和 Python 开发后端服务。"
-            "你编写的代码逻辑清晰且包含完善的异常处理。"
-            "你的工作方式是：先构思代码，然后立即调用 write_code_tool 将完整代码写入文件。"
+        "frontend_backstory": "精通现代 Web 技术栈，擅长构建高性能响应式前端，同时编写测试确保代码质量。",
+        "backend_goal": (
+            "基于架构设计，编写后端 API、数据模型和业务逻辑，并编写对应的单元测试。"
+            "使用 write_code_tool 写入 backend/ 和 tests/ 目录。"
+            "严格按照以下顺序处理文件：数据库DDL/migration → Entity模型 → Repository → Service → Controller → DTO。"
         ),
+        "backend_backstory": "精通 Java/Spring Boot 开发，编写严谨的后端代码并同步编写测试用例。",
     },
     "upgrade": {
-        "frontend_goal": "基于架构师的升级方案，使用 read_code_tool 读取现有前端代码，按迁移清单逐文件修改。你必须使用 write_code_tool 将修改后的完整文件写入磁盘。",
-        "frontend_backstory": (
-            "你精通前端依赖管理和框架版本迁移。你擅长处理 npm 依赖升级、API 兼容性适配和 breaking changes 修复。"
-            "你的工作方式是：先用 read_code_tool 读取现有文件，理解当前代码，然后按升级方案修改，"
-            "最后用 write_code_tool 写入修改后的完整文件。"
+        "frontend_goal": (
+            "按架构师的变更规约，对前端代码执行增量迁移。\n"
+            "优先使用 patch_code_tool 做增量修改（仅输出变更部分），仅在创建新文件时使用 write_code_tool。\n"
+            "同时编写回归测试到 tests/ 目录确保升级不破坏功能。"
         ),
-        "backend_goal": "基于架构师的升级方案，使用 read_code_tool 读取现有后端代码，按迁移清单逐文件修改。你必须使用 write_code_tool 将修改后的完整文件写入磁盘。",
-        "backend_backstory": (
-            "你精通 Java/Spring Boot 版本迁移和依赖升级。你擅长处理 Maven 依赖变更、API 废弃替换（如 javax→jakarta）、"
-            "配置文件格式迁移等工作。你的工作方式是：先用 read_code_tool 读取现有文件，理解当前代码，"
-            "然后按升级方案修改，最后用 write_code_tool 写入修改后的完整文件。"
+        "frontend_backstory": "精通前端依赖升级和框架迁移，擅长增量修改代码。",
+        "backend_goal": (
+            "按架构师的变更规约，对后端代码执行增量迁移。\n"
+            "严格按照以下顺序处理：pom.xml依赖 → 数据库DDL → Entity → Repository → Service → Controller → 配置文件。\n"
+            "优先使用 patch_code_tool 做增量修改，仅在创建新文件时使用 write_code_tool。\n"
+            "同时编写回归测试到 tests/ 目录确保升级不破坏功能。"
         ),
+        "backend_backstory": "精通 Java/Spring Boot 版本迁移，擅长处理 Maven 依赖变更和 API 废弃替换。",
     },
     "bugfix": {
-        "frontend_goal": "基于架构师的诊断报告，使用 read_code_tool 定位前端 Bug 代码，编写修复补丁。你必须使用 write_code_tool 将修复后的完整文件写入磁盘。",
-        "frontend_backstory": (
-            "你是一位擅长排查前端 Bug 的高级工程师。你精通浏览器调试、DOM 操作和异步逻辑排障。"
-            "你的工作方式是：先用 read_code_tool 读取问题文件，定位 Bug 根因，"
-            "然后编写最小化修复代码，最后用 write_code_tool 写入修复后的完整文件。"
+        "frontend_goal": (
+            "按架构师的诊断报告，修复前端 Bug。\n"
+            "使用 search_code_tool 定位问题，用 patch_code_tool 做最小化修复。\n"
+            "同时编写回归测试到 tests/ 目录确保 Bug 不复现。"
         ),
-        "backend_goal": "基于架构师的诊断报告，使用 read_code_tool 定位后端 Bug 代码，编写修复补丁。你必须使用 write_code_tool 将修复后的完整文件写入磁盘。",
-        "backend_backstory": (
-            "你是一位擅长排查后端 Bug 的高级工程师。你精通 Java 异常追踪、SQL 调试和并发问题诊断。"
-            "你的工作方式是：先用 read_code_tool 读取问题文件，定位 Bug 根因，"
-            "然后编写最小化修复代码，最后用 write_code_tool 写入修复后的完整文件。"
+        "frontend_backstory": "擅长前端 Bug 排查和精确修复，同时编写回归测试。",
+        "backend_goal": (
+            "按架构师的诊断报告，修复后端 Bug。\n"
+            "使用 search_code_tool 定位问题，用 patch_code_tool 做最小化修复。\n"
+            "同时编写回归测试到 tests/ 目录确保 Bug 不复现。"
         ),
+        "backend_backstory": "擅长后端 Bug 排查、Java 异常追踪和并发问题诊断。",
     },
     "ui-beautify": {
         "frontend_goal": (
-            "基于 UI 设计师的视觉升级规范，使用 read_code_tool 读取现有前端代码（HTML/CSS/JS），"
-            "对界面进行增量美化改造。你必须使用 write_code_tool 将修改后的完整文件写入磁盘。\n"
-            "重点关注：CSS 样式优化（配色、排版、间距、阴影、圆角）、HTML 结构微调（语义化标签、无障碍属性）、"
-            "JS 交互增强（过渡动画、微交互效果、加载状态优化）。\n"
-            "【重要】保持现有功能逻辑不变，仅做视觉和交互层面的增量改进。"
+            "按 UI 设计师的视觉规范，对前端代码做增量美化改造。\n"
+            "使用 patch_code_tool 修改 CSS 样式和 HTML 结构，保持功能逻辑不变。\n"
+            "同时编写视觉回归测试到 tests/ 目录。"
         ),
-        "frontend_backstory": (
-            "你是一位对像素级细节有极致追求的前端视觉工程师，精通 CSS3 动画、现代布局技术和响应式设计。"
-            "你擅长将设计稿精准还原为代码，对色彩、间距、字体有敏锐的感知力。"
-            "你的工作方式是：先用 read_code_tool 读取现有样式和页面文件，理解当前视觉状态，"
-            "然后按照设计师的视觉规范进行增量修改，最后用 write_code_tool 写入修改后的完整文件。"
-        ),
+        "frontend_backstory": "对像素级细节有极致追求的前端视觉工程师，精通 CSS3 和现代布局技术。",
         "backend_goal": "",
         "backend_backstory": "",
     },
 }
 
 dev_cfg = DEV_CONFIG[MODE]
+dev_tools = dev_tools_modify if MODE in ("upgrade", "bugfix", "ui-beautify") else dev_tools_feature
 
-# 升级、bugfix 和 ui-beautify 模式下，开发人员需要读取现有代码
-dev_tools = [write_code_tool]
-if MODE in ("upgrade", "bugfix", "ui-beautify"):
-    dev_tools = [read_code_tool, list_files_tool, write_code_tool]
-
-# --- 前端工程师（根据影响范围决定是否参与） ---
 frontend_dev = None
 if needs_frontend:
     frontend_dev = Agent(
@@ -239,7 +214,6 @@ if needs_frontend:
         llm=llm_coding,
     )
 
-# --- 后端工程师（根据影响范围决定是否参与） ---
 backend_dev = None
 if needs_backend:
     backend_dev = Agent(
@@ -252,290 +226,258 @@ if needs_backend:
         llm=llm_coding,
     )
 
-# --- QA 工程师的差异化配置 ---
-QA_CONFIG = {
+# --- Review Agent（新增：一致性校验，替代原 QA + 新增交叉验证） ---
+REVIEW_CONFIG = {
     "feature": {
-        "goal": "审查前后端生成的代码，编写并完善单元测试和接口集成测试脚本。你必须使用 write_code_tool 工具将每个测试文件写入磁盘，禁止仅输出文字描述。",
-        "backstory": (
-            '你拥有"破坏者"的思维，对代码缺陷有着敏锐的嗅觉。你精通现代测试框架，'
-            '致力于通过高覆盖率的测试用例（尤其是针对核心算法和数据解析模块）确保代码的健壮性和边界异常处理能力。'
-            '你的工作方式是：先构思测试用例，然后立即调用 write_code_tool 将完整测试代码写入文件。'
+        "goal": (
+            "审查所有生成的代码文件，验证一致性：\n"
+            "1. 后端 Entity 字段与 Controller DTO 是否一一对应\n"
+            "2. 前端 API 调用路径/参数是否与后端端点匹配\n"
+            "3. 数据库 DDL（如有）是否与 Entity 注解一致\n"
+            "4. 是否存在重复文件或遗漏文件\n"
+            "发现问题时使用 patch_code_tool 直接修复。"
         ),
     },
     "upgrade": {
-        "goal": "针对升级变更编写回归测试，确保升级后原有功能不受影响。使用 read_code_tool 读取已有测试，补充升级相关的兼容性测试用例。你必须使用 write_code_tool 将测试文件写入磁盘。",
-        "backstory": (
-            '你是一位专注于版本兼容性验证的测试专家。你擅长分析升级变更的影响面，'
-            '编写针对性的回归测试用例，确保 API 契约不变、数据格式兼容、边界行为一致。'
-            '你的工作方式是：先用 read_code_tool 读取已有测试，理解当前测试覆盖范围，'
-            '然后补充升级相关的回归测试，最后用 write_code_tool 写入测试文件。'
+        "goal": (
+            "审查所有升级变更，验证一致性：\n"
+            "1. 架构师变更规约中的每个条目是否都已执行\n"
+            "2. Entity 字段与 Controller/DTO 是否一致\n"
+            "3. 依赖版本是否在所有配置文件中保持一致\n"
+            "4. 是否存在遗漏的 import 更新或 API 调用替换\n"
+            "发现问题时使用 patch_code_tool 直接修复。"
         ),
     },
     "bugfix": {
-        "goal": "针对 Bug 修复编写回归测试，确保 Bug 不会复现。使用 read_code_tool 读取已有测试，补充复现 Bug 的测试用例。你必须使用 write_code_tool 将测试文件写入磁盘。",
-        "backstory": (
-            '你是一位擅长编写 Bug 复现用例的测试专家。你会根据 Bug 描述编写能精确复现问题的测试用例，'
-            '确保修复后 Bug 不会回归。你的工作方式是：先用 read_code_tool 读取已有测试，'
-            '然后编写针对 Bug 的回归测试，最后用 write_code_tool 写入测试文件。'
+        "goal": (
+            "审查 Bug 修复代码，验证：\n"
+            "1. 修复是否完整覆盖了所有受影响的代码路径\n"
+            "2. 修复是否引入了新的不一致\n"
+            "3. 相关联的文件是否都已同步更新\n"
+            "发现问题时使用 patch_code_tool 直接修复。"
         ),
     },
     "ui-beautify": {
         "goal": (
-            "针对 UI 美化变更编写视觉回归和交互测试，确保样式改动不破坏现有功能和布局。"
-            "使用 read_code_tool 读取已有测试和修改后的前端文件，验证 HTML 结构完整性和 CSS 类名一致性。"
-            "你必须使用 write_code_tool 将测试文件写入磁盘。"
-        ),
-        "backstory": (
-            '你是一位专注于前端视觉质量保证的测试专家。你擅长编写针对 UI 变更的回归测试，'
-            '验证样式修改不会导致布局错乱、元素溢出或交互失效。'
-            '你的工作方式是：先用 read_code_tool 读取已有测试和修改后的前端文件，'
-            '然后编写针对 UI 变更的视觉和交互测试，最后用 write_code_tool 写入测试文件。'
+            "审查 UI 美化变更，验证：\n"
+            "1. 功能逻辑代码未被意外修改\n"
+            "2. CSS 类名和 id 引用在 HTML/CSS/JS 中保持一致\n"
+            "3. HTML 结构完整性未被破坏\n"
+            "发现问题时使用 patch_code_tool 直接修复。"
         ),
     },
 }
 
-qa_cfg = QA_CONFIG[MODE]
-qa_tools = [write_code_tool]
-if MODE in ("upgrade", "bugfix", "ui-beautify"):
-    qa_tools = [read_code_tool, list_files_tool, write_code_tool]
+review_tools = [read_code_tool, list_files_tool, search_code_tool, patch_code_tool]
 
-qa_engineer = Agent(
-    role='自动化测试工程师 (SDET)',
-    goal=qa_cfg["goal"],
-    backstory=qa_cfg["backstory"],
+reviewer = Agent(
+    role='代码审查与一致性校验工程师',
+    goal=REVIEW_CONFIG[MODE]["goal"],
+    backstory="资深代码审查专家，擅长发现文件间的不一致、遗漏和潜在缺陷，并直接修复。",
     verbose=True,
-    tools=qa_tools,
+    tools=review_tools,
     allow_delegation=False,
     llm=llm_coding,
 )
 
-# --- DevOps 工程师（始终参与） ---
-devops_engineer = Agent(
-    role='DevOps 与发布工程师',
-    goal='在代码写入完成后，将工作区提交到远端并创建 Pull Request。',
-    backstory='你是 CI/CD 流水线的大师，熟练掌握 Git 工作流和 GitHub API，确保代码从开发环境平滑过渡到版本库，为最终的人工 Review 做好准备。',
-    verbose=True,
-    tools=[create_pr_tool],
-    allow_delegation=False,
-    llm=llm_light,
-)
-
 
 # ==========================================
-# 3. 模式感知的 Task 定义
+# 3. 模式感知的 Task 定义（优化：结构化输出 + 合并测试）
 # ==========================================
 
-# --- 各模式下架构任务的差异化描述 ---
+# --- 架构任务（强化结构化输出要求） ---
 TASK_ARCH_DESC = {
     "feature": (
-        '调用 fetch_requirement_tool 获取原始 Issue 需求。'
-        '基于需求，输出详细的架构设计，包括目录结构、API 接口定义以及数据库/数据结构设计。'
+        '调用 fetch_requirement_tool 获取 Issue 需求。\n'
+        '输出结构化架构设计，必须包含以下章节：\n'
+        '## API 契约\n列出每个接口的 HTTP 方法、路径、请求参数、响应格式\n'
+        '## 数据库设计\n列出表名、字段名、类型、约束\n'
+        '## 文件清单\n列出需要创建/修改的每个文件路径及其职责\n'
+        '## 一致性约束\n列出文件间必须保持一致的规则（如 Entity 字段必须与 DTO 一一对应）'
     ),
     "upgrade": (
-        '调用 fetch_requirement_tool 获取升级需求描述。\n'
-        '然后使用 list_files_tool 查看现有项目结构，使用 read_code_tool 读取关键配置文件（如 pom.xml、package.json 等）。\n'
-        '基于现有代码分析和升级需求，输出详细的升级方案，包括：\n'
-        '1. 当前版本与目标版本的差异分析\n'
-        '2. 受影响的文件清单\n'
-        '3. 破坏性变更（breaking changes）及其应对策略\n'
-        '4. 分步迁移计划'
+        '调用 fetch_requirement_tool 获取升级需求。\n'
+        '使用 list_files_tool 和 read_code_tool 分析现有代码。\n'
+        '输出结构化变更规约，必须包含以下章节：\n'
+        '## 版本差异分析\n当前版本 vs 目标版本的 breaking changes\n'
+        '## 变更清单\n逐文件列出：文件路径、修改类型（modify/create/delete）、具体修改内容\n'
+        '## 一致性约束\n列出变更后必须保持一致的规则\n'
+        '## 迁移步骤\n按依赖顺序排列的执行步骤'
     ),
     "bugfix": (
         '调用 fetch_requirement_tool 获取 Bug 描述。\n'
-        '然后使用 list_files_tool 和 read_code_tool 查看和分析相关源码文件。\n'
-        '基于 Bug 现象和代码分析，输出诊断报告，包括：\n'
-        '1. Bug 根因分析\n'
-        '2. 受影响的文件和代码位置\n'
-        '3. 推荐的修复方案\n'
-        '4. 需要关注的回归风险'
+        '使用 list_files_tool、search_code_tool 和 read_code_tool 定位问题。\n'
+        '输出结构化诊断报告，必须包含以下章节：\n'
+        '## 根因分析\n问题的根本原因\n'
+        '## 受影响文件\n逐文件列出：文件路径、问题代码位置、修复方案\n'
+        '## 一致性约束\n修复后需要保持一致的规则\n'
+        '## 回归风险\n需要关注的副作用'
     ),
     "ui-beautify": (
-        '调用 fetch_requirement_tool 获取 UI 美化需求描述。\n'
-        '然后使用 list_files_tool 查看 frontend/ 目录结构，使用 read_code_tool 读取现有 HTML、CSS、JS 文件。\n'
-        '基于现有界面代码和美化需求，输出 UI 优化方案，包括：\n'
-        '1. 当前界面视觉问题诊断（配色、排版、间距、一致性等）\n'
-        '2. 需要修改的文件清单及优化方向\n'
-        '3. 设计改进规范（色彩体系、字体层级、间距系统、圆角/阴影规范）\n'
-        '4. 交互增强建议（过渡动画、悬停效果、加载状态等）\n'
-        '5. 分步实施计划（确保增量改动不破坏现有功能）'
+        '调用 fetch_requirement_tool 获取 UI 美化需求。\n'
+        '使用 list_files_tool 查看 frontend/ 结构，用 read_code_tool 读取现有文件。\n'
+        '输出 UI 优化方案：\n'
+        '## 视觉问题诊断\n当前界面的具体问题\n'
+        '## 变更清单\n逐文件列出修改内容\n'
+        '## 设计规范\n色彩、排版、间距、动效的具体参数值\n'
+        '## 一致性约束\n美化改动不能破坏的功能逻辑'
     ),
+}
+
+TASK_ARCH_OUTPUT = {
+    "feature": "包含 API 契约、数据库设计、文件清单和一致性约束的结构化架构文档。",
+    "upgrade": "包含版本差异、逐文件变更清单、一致性约束和迁移步骤的结构化变更规约。",
+    "bugfix": "包含根因分析、受影响文件清单、修复方案和回归风险的结构化诊断报告。",
+    "ui-beautify": "包含视觉诊断、变更清单、设计规范和一致性约束的 UI 优化方案。",
 }
 
 task_architecture = Task(
     description=TASK_ARCH_DESC[MODE],
-    expected_output={
-        "feature": "一份结构清晰的系统架构设计文档。",
-        "upgrade": "一份包含版本差异分析、受影响文件清单和分步迁移计划的升级方案文档。",
-        "bugfix": "一份包含根因分析、修复方案和回归风险评估的 Bug 诊断报告。",
-        "ui-beautify": "一份包含视觉问题诊断、改进规范、文件变更清单和分步实施计划的 UI 优化方案文档。",
-    }[MODE],
+    expected_output=TASK_ARCH_OUTPUT[MODE],
     agent=architect,
     tools=architect_tools,
 )
 
-# --- UI 设计任务（仅 feature 模式 + 前端） ---
+# --- UI 设计任务 ---
 task_ui_design = None
 if ui_designer is not None:
     task_ui_design = Task(
-        description='读取架构师的架构设计文档。为该系统设计交互流程和界面布局，详细描述各个组件的功能、位置。',
-        expected_output='一份详细的前端 UI 布局与交互规范文档。',
+        description='基于架构设计，输出 UI 布局规范和交互流程，详细描述组件划分和视觉参数。',
+        expected_output='前端 UI 布局与交互规范文档。',
         agent=ui_designer,
         context=[task_architecture],
     )
 
-# --- 前端任务（根据影响范围） ---
+# --- 前端任务（合并了原 QA 的测试编写职责） ---
 TASK_FRONTEND_DESC = {
     "feature": (
-        '基于 UI 规范和架构 API 契约，编写完整的前端页面或组件代码（HTML/CSS/JS 或对应的框架代码）。\n'
-        '【重要】你必须对每个代码文件调用 write_code_tool 工具来写入磁盘。\n'
-        '调用示例：write_code_tool(file_path="frontend/index.html", code="<!DOCTYPE html>...")\n'
-        '请为每个文件分别调用一次 write_code_tool，将代码写入 `frontend/` 目录下。\n'
-        '不要只描述你将要做什么——你必须实际执行工具调用来写入文件。'
+        '基于 UI 规范和 API 契约编写前端代码，同时编写对应的测试用例。\n'
+        '使用 write_code_tool 将代码写入 frontend/ 目录，测试写入 tests/ 目录。\n'
+        '每个文件必须通过 write_code_tool 实际写入。'
     ),
     "upgrade": (
-        '基于架构师的升级方案，对前端代码执行迁移。\n'
-        '1. 先用 list_files_tool 查看 frontend/ 目录结构\n'
-        '2. 用 read_code_tool 逐一读取需要修改的文件\n'
-        '3. 按升级方案修改代码（更新依赖引用、适配新 API、修复废弃用法等）\n'
-        '4. 用 write_code_tool 将修改后的完整文件写入磁盘\n'
-        '【重要】每个修改的文件都必须通过 write_code_tool 写入完整内容。'
+        '按架构师的变更规约，逐条执行前端迁移：\n'
+        '1. 用 search_code_tool 定位需修改的代码\n'
+        '2. 用 read_code_tool 读取目标文件\n'
+        '3. 用 patch_code_tool 做增量修改（仅输出变更部分，节省 token）\n'
+        '4. 新文件用 write_code_tool 创建\n'
+        '5. 编写回归测试到 tests/ 目录\n'
+        '完成后检查变更规约中的每个前端条目是否都已处理。'
     ),
     "bugfix": (
-        '基于架构师的 Bug 诊断报告，修复前端代码中的缺陷。\n'
-        '1. 用 read_code_tool 读取诊断报告中指出的问题文件\n'
-        '2. 定位并修复 Bug（保持最小化变更原则）\n'
-        '3. 用 write_code_tool 将修复后的完整文件写入磁盘\n'
-        '【重要】每个修改的文件都必须通过 write_code_tool 写入完整内容。'
+        '按诊断报告修复前端 Bug：\n'
+        '1. 用 search_code_tool 定位问题代码\n'
+        '2. 用 patch_code_tool 做最小化修复\n'
+        '3. 编写回归测试到 tests/ 目录'
     ),
     "ui-beautify": (
-        '基于 UI 设计师的视觉升级规范，对前端代码进行增量美化改造。\n'
-        '1. 先用 list_files_tool 查看 frontend/ 目录结构\n'
-        '2. 用 read_code_tool 逐一读取需要修改的 HTML、CSS、JS 文件\n'
-        '3. 按照视觉规范修改样式（配色、排版、间距、圆角、阴影等）\n'
-        '4. 增强交互体验（过渡动画、悬停效果、加载状态动画等）\n'
-        '5. 优化 HTML 结构（语义化标签、无障碍属性等）\n'
-        '6. 用 write_code_tool 将修改后的完整文件写入磁盘\n'
-        '【重要】保持现有功能逻辑完全不变，仅做视觉和交互层面的增量改进。\n'
-        '每个修改的文件都必须通过 write_code_tool 写入完整内容。'
+        '按视觉规范对前端做增量美化：\n'
+        '1. 用 read_code_tool 读取现有文件\n'
+        '2. 用 patch_code_tool 修改样式（配色、排版、间距等）\n'
+        '3. 保持功能逻辑不变\n'
+        '4. 编写视觉回归测试到 tests/ 目录'
     ),
 }
 
 task_frontend = None
 if frontend_dev is not None:
-    # 前端任务的上下文：feature 模式依赖 UI 设计，其他模式依赖架构分析
     frontend_context = [task_ui_design] if task_ui_design else [task_architecture]
     task_frontend = Task(
         description=TASK_FRONTEND_DESC[MODE],
-        expected_output='已通过 write_code_tool 将所有前端代码文件写入 frontend/ 目录，每个文件都返回了 "Successfully wrote code to ..." 的确认信息。',
+        expected_output='已将前端代码和测试文件写入磁盘，每个文件返回了确认信息。',
         agent=frontend_dev,
         context=frontend_context,
     )
 
-# --- 后端任务（根据影响范围） ---
+# --- 后端任务（合并了原 QA 的测试编写职责） ---
 TASK_BACKEND_DESC = {
     "feature": (
-        '基于架构设计文档，编写完整的后端 API 逻辑、数据解析脚本或核心算法。\n'
-        '【重要】你必须对每个代码文件调用 write_code_tool 工具来写入磁盘。\n'
-        '调用示例：write_code_tool(file_path="backend/app.py", code="from flask import Flask...")\n'
-        '请为每个文件分别调用一次 write_code_tool，将代码写入 `backend/` 目录下。\n'
-        '不要只描述你将要做什么——你必须实际执行工具调用来写入文件。'
+        '基于架构设计编写后端代码和测试。\n'
+        '严格按顺序处理：数据库DDL → Entity → Repository → Service → Controller → DTO。\n'
+        '使用 write_code_tool 将代码写入 backend/ 目录，测试写入 tests/ 目录。\n'
+        '每个文件必须通过 write_code_tool 实际写入。'
     ),
     "upgrade": (
-        '基于架构师的升级方案，对后端代码执行迁移。\n'
-        '1. 先用 list_files_tool 查看 backend/ 目录结构\n'
-        '2. 用 read_code_tool 逐一读取需要修改的文件（pom.xml、Java 源码、配置文件等）\n'
-        '3. 按升级方案修改代码（更新依赖版本、替换废弃 API、调整配置格式等）\n'
-        '4. 用 write_code_tool 将修改后的完整文件写入磁盘\n'
-        '【重要】每个修改的文件都必须通过 write_code_tool 写入完整内容。'
+        '按架构师的变更规约，逐条执行后端迁移：\n'
+        '严格按顺序处理：pom.xml → 数据库DDL → Entity → Repository → Service → Controller → 配置文件。\n'
+        '1. 用 search_code_tool 定位需修改的代码\n'
+        '2. 用 read_code_tool 读取目标文件\n'
+        '3. 用 patch_code_tool 做增量修改（仅输出变更部分，节省 token）\n'
+        '4. 新文件用 write_code_tool 创建\n'
+        '5. 编写回归测试到 tests/ 目录\n'
+        '完成后检查变更规约中的每个后端条目是否都已处理。'
     ),
     "bugfix": (
-        '基于架构师的 Bug 诊断报告，修复后端代码中的缺陷。\n'
-        '1. 用 read_code_tool 读取诊断报告中指出的问题文件\n'
-        '2. 定位并修复 Bug（保持最小化变更原则）\n'
-        '3. 用 write_code_tool 将修复后的完整文件写入磁盘\n'
-        '【重要】每个修改的文件都必须通过 write_code_tool 写入完整内容。'
+        '按诊断报告修复后端 Bug：\n'
+        '1. 用 search_code_tool 定位问题代码\n'
+        '2. 用 patch_code_tool 做最小化修复\n'
+        '3. 编写回归测试到 tests/ 目录'
     ),
-    "ui-beautify": (
-        '（UI 美化模式不涉及后端变更。）'
-    ),
+    "ui-beautify": '（UI 美化模式不涉及后端变更。）',
 }
 
 task_backend = None
 if backend_dev is not None:
     task_backend = Task(
         description=TASK_BACKEND_DESC[MODE],
-        expected_output='已通过 write_code_tool 将所有后端代码文件写入 backend/ 目录，每个文件都返回了 "Successfully wrote code to ..." 的确认信息。',
+        expected_output='已将后端代码和测试文件写入磁盘，每个文件返回了确认信息。',
         agent=backend_dev,
         context=[task_architecture],
     )
 
-# --- QA 任务（始终参与，但上下文根据范围调整） ---
-TASK_QA_DESC = {
+# --- Review 任务（新增：一致性校验，替代原 QA 的代码审查 + 新增交叉验证） ---
+TASK_REVIEW_DESC = {
     "feature": (
-        '审查前端和后端生成的代码。针对后端的解析逻辑或核心 API，以及前端的关键组件，编写自动化测试用例。\n'
-        '【重要】你必须对每个测试文件调用 write_code_tool 工具来写入磁盘。\n'
-        '调用示例：write_code_tool(file_path="tests/test_api.py", code="import pytest...")\n'
-        '请为每个文件分别调用一次 write_code_tool，将测试代码写入 `tests/` 目录下。\n'
-        '不要只描述你将要做什么——你必须实际执行工具调用来写入文件。'
+        '审查所有已生成的代码，执行一致性校验：\n'
+        '1. 用 list_files_tool 扫描 frontend/、backend/、tests/ 目录\n'
+        '2. 用 read_code_tool 读取关键文件\n'
+        '3. 验证：Entity↔DTO 字段一致、前端 API 调用↔后端端点匹配、无重复/遗漏文件\n'
+        '4. 发现不一致时用 patch_code_tool 直接修复'
     ),
     "upgrade": (
-        '针对本次升级变更编写回归测试。\n'
-        '1. 先用 list_files_tool 查看 tests/ 目录结构，用 read_code_tool 读取已有测试\n'
-        '2. 分析升级变更可能影响的功能点\n'
-        '3. 编写回归测试用例，确保升级后原有功能正常\n'
-        '4. 用 write_code_tool 将测试文件写入 tests/ 目录\n'
-        '【重要】每个测试文件都必须通过 write_code_tool 写入磁盘。'
+        '审查升级变更的完整性和一致性：\n'
+        '1. 对照架构师的变更规约逐条检查\n'
+        '2. 用 search_code_tool 搜索可能遗漏的旧 API/旧依赖引用\n'
+        '3. 验证 Entity↔DTO↔DDL 一致性\n'
+        '4. 发现遗漏或不一致时用 patch_code_tool 修复'
     ),
     "bugfix": (
-        '针对本次 Bug 修复编写回归测试。\n'
-        '1. 先用 read_code_tool 读取已有测试，了解现有覆盖范围\n'
-        '2. 编写能精确复现原始 Bug 的测试用例\n'
-        '3. 确保修复后测试能通过\n'
-        '4. 用 write_code_tool 将测试文件写入 tests/ 目录\n'
-        '【重要】每个测试文件都必须通过 write_code_tool 写入磁盘。'
+        '审查 Bug 修复的完整性：\n'
+        '1. 验证修复覆盖了所有受影响代码路径\n'
+        '2. 用 search_code_tool 搜索是否有类似问题的其他位置\n'
+        '3. 检查关联文件的一致性\n'
+        '4. 发现问题时用 patch_code_tool 修复'
     ),
     "ui-beautify": (
-        '针对本次 UI 美化变更编写视觉回归测试。\n'
-        '1. 先用 read_code_tool 读取已有测试和修改后的前端文件\n'
-        '2. 验证修改后的 HTML 结构完整性（关键元素存在、id/class 一致）\n'
-        '3. 验证 CSS 文件语法正确、关键样式规则存在\n'
-        '4. 编写交互逻辑回归测试，确保美化改动不影响现有功能\n'
-        '5. 用 write_code_tool 将测试文件写入 tests/ 目录\n'
-        '【重要】每个测试文件都必须通过 write_code_tool 写入磁盘。'
+        '审查 UI 美化变更：\n'
+        '1. 验证功能逻辑代码未被修改\n'
+        '2. 检查 CSS 类名在 HTML/CSS/JS 中的引用一致性\n'
+        '3. 验证 HTML 结构完整性\n'
+        '4. 发现问题时用 patch_code_tool 修复'
     ),
 }
 
-# QA 的上下文：收集所有实际执行的开发任务
-qa_context = []
-if task_backend is not None:
-    qa_context.append(task_backend)
+# Review 的上下文：收集所有开发任务的输出
+review_context = []
 if task_frontend is not None:
-    qa_context.append(task_frontend)
-# 如果没有开发任务（理论上不会发生），至少依赖架构分析
-if not qa_context:
-    qa_context.append(task_architecture)
+    review_context.append(task_frontend)
+if task_backend is not None:
+    review_context.append(task_backend)
+if not review_context:
+    review_context.append(task_architecture)
 
-task_qa = Task(
-    description=TASK_QA_DESC[MODE],
-    expected_output='已通过 write_code_tool 将所有测试代码文件写入 tests/ 目录，每个文件都返回了 "Successfully wrote code to ..." 的确认信息。',
-    agent=qa_engineer,
-    context=qa_context,
-)
-
-# --- DevOps 任务（始终参与） ---
-task_devops = Task(
-    description='确认所有代码（frontend, backend, tests）都已写入完毕后，调用 create_pr_tool 创建一个新的 Git 分支（如 feature/ai-auto-dev）并提交 Pull Request。',
-    expected_output='成功创建 GitHub Pull Request 的 URL。',
-    agent=devops_engineer,
-    context=[task_qa],
+task_review = Task(
+    description=TASK_REVIEW_DESC[MODE],
+    expected_output='一致性校验报告：列出检查项及结果，已发现的问题已通过 patch_code_tool 修复。',
+    agent=reviewer,
+    context=review_context,
 )
 
 
 # ==========================================
-# 4. 动态组装 Crew 并执行
+# 4. 动态组装 Crew 并执行 + 直接创建 PR（去 Agent 化）
 # ==========================================
 
-# 按照执行顺序组装 agents 和 tasks
 agents = [architect]
 tasks = [task_architecture]
 
@@ -551,16 +493,13 @@ if backend_dev is not None:
     agents.append(backend_dev)
     tasks.append(task_backend)
 
-agents.append(qa_engineer)
-tasks.append(task_qa)
-
-agents.append(devops_engineer)
-tasks.append(task_devops)
+agents.append(reviewer)
+tasks.append(task_review)
 
 software_factory = Crew(
     agents=agents,
     tasks=tasks,
-    process=Process.sequential,  # 严格按照瀑布流顺序执行
+    process=Process.sequential,
 )
 
 MODE_LABELS = {"feature": "新功能", "upgrade": "依赖升级", "bugfix": "Bug修复", "ui-beautify": "UI美化"}
@@ -569,10 +508,25 @@ SCOPE_LABELS = {"frontend": "前端", "backend": "后端", "fullstack": "全栈"
 if __name__ == "__main__":
     print(f"🚀 启动 AI 研发团队 [{MODE_LABELS[MODE]}模式 | {SCOPE_LABELS[SCOPE]}范围]")
     print(f"   参与的 Agent: {', '.join(a.role for a in agents)}")
+
     try:
         result = software_factory.kickoff()
-        print("\n✅ 流水线执行完毕！最终报告：")
+        print("\n✅ Crew 执行完毕！最终报告：")
         print(result)
     except Exception as e:
-        print(f"\n❌ 执行过程中出现异常: {str(e)}")
+        print(f"\n❌ Crew 执行异常: {str(e)}")
+        raise
+
+    # --- DevOps 去 Agent 化：直接 Python 调用创建 PR（无需 LLM 推理） ---
+    issue_num = int(os.environ.get("ISSUE_NUMBER", "0"))
+    branch_name = f"{MODE}/ai-issue-{issue_num}"
+    pr_title = f"[AI-{MODE}] #{issue_num}: {ISSUE_TITLE}"
+    commit_msg = f"[AI-{MODE}] Auto-generated changes for issue #{issue_num}"
+
+    print(f"\n📦 正在创建 PR: {pr_title}")
+    try:
+        pr_url = create_pr_direct(branch_name, pr_title, commit_msg)
+        print(f"\n✅ {pr_url}")
+    except Exception as e:
+        print(f"\n❌ PR 创建失败: {str(e)}")
         raise
