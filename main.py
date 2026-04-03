@@ -23,9 +23,9 @@ print("正在连接大模型神经中枢...")
 oaipro_key = os.environ.get("OAIPRO_API_KEY", "")
 
 llm_reasoning = LLM(
-    # 架构设计与 Review：使用 o4-mini 进行深度推理（通过 OAIPro OpenAI 兼容接口）
+    # 架构设计与 Review：使用 chatgpt-4o-latest 进行深度推理（通过 OAIPro OpenAI 兼容接口）
     # 相比 gpt-3.5-turbo 大幅提升推理和结构化输出能力
-    model="openai/o4-mini",
+    model="openai/chatgpt-4o-latest",
     max_tokens=8192,
     api_key=oaipro_key,
     base_url="https://api.oaipro.com/v1",
