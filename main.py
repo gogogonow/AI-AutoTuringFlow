@@ -518,7 +518,10 @@ if __name__ == "__main__":
         raise
 
     # --- DevOps 去 Agent 化：直接 Python 调用创建 PR（无需 LLM 推理） ---
-    issue_num = int(os.environ.get("ISSUE_NUMBER", "0"))
+    issue_num_str = os.environ.get("ISSUE_NUMBER", "")
+    if not issue_num_str or issue_num_str == "0":
+        raise RuntimeError("ISSUE_NUMBER 环境变量未设置或无效，无法创建 PR")
+    issue_num = int(issue_num_str)
     branch_name = f"{MODE}/ai-issue-{issue_num}"
     pr_title = f"[AI-{MODE}] #{issue_num}: {ISSUE_TITLE}"
     commit_msg = f"[AI-{MODE}] Auto-generated changes for issue #{issue_num}"

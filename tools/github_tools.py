@@ -165,6 +165,7 @@ def create_pr_direct(branch_name: str, pr_title: str, commit_message: str) -> st
             subprocess.run(["git", "checkout", branch_name], check=True)
 
         subprocess.run(["git", "add", "."], check=True)
+        # commit 在无变更时可能失败，此处忽略该错误（与 create_pr_tool 行为一致）
         subprocess.run(["git", "commit", "-m", commit_message])
 
         push_result = subprocess.run(["git", "push", "origin", branch_name], capture_output=True, text=True)
