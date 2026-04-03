@@ -51,10 +51,10 @@ public class Module {
     @Column(name = "power_consumption")
     private Double powerConsumption;
 
-    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "DATETIME(6) NOT NULL DEFAULT NOW(6)")
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "DATETIME(6) DEFAULT NOW(6)")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false, columnDefinition = "DATETIME(6) NOT NULL DEFAULT NOW(6)")
+    @Column(name = "updated_at", nullable = false, columnDefinition = "DATETIME(6) DEFAULT NOW(6)")
     private LocalDateTime updatedAt;
 
     // Constructors
