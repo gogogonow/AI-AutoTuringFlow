@@ -117,17 +117,21 @@ python main.py
 > **注意**：首席系统架构师和代码审查工程师在所有模式和范围下均参与执行。
 > **注意**：`mode:ui-beautify` 模式会自动强制影响范围为 `scope:frontend`，无需手动设置。
 
-## Agent 流水线（5 角色）
+## Agent 流水线（6 角色）
 
-原来的 6 Agent 架构已精简优化：
+原来的 6 Agent 架构已精简优化，并新增上下文刷新 Agent：
 - **QA 测试工程师** → 职责合并到前端/后端工程师（开发和测试同步完成）
 - **DevOps 发布工程师** → 去 Agent 化，改为直接 Python 调用（无需 LLM 推理）
 - **新增 Review Agent** → 代码审查与一致性校验工程师（替代原 QA 的审查职责 + 新增交叉验证）
+- **新增 Context Refresh Agent** → 项目上下文刷新分析师（Agent 驱动的上下文增量刷新）
 
 ```
 Issue 触发
     │
-    ├─ 📐 首席系统架构师（始终参与，plan_crew 阶段）
+    ├─ 📚 系统加载固定项目上下文 → 自动注入到所有 Agent 的 backstory
+    │     context_loader.get_context_for_role() 按角色裁剪上下文
+    │
+    ├─ 📐 首席系统架构师（始终参与，plan_crew 阶段，backstory 含完整上下文）
     │     ├─ feature:      输出架构设计文档（API 契约、数据库设计、文件清单）
     │     ├─ upgrade:      读取现有代码 → 输出变更规约（迁移步骤、一致性约束）
     │     ├─ bugfix:       读取相关源码 → 输出诊断报告（根因分析、修复方案）
@@ -140,15 +144,19 @@ Issue 触发
     │     ├─ feature:      设计界面布局与交互流程
     │     └─ ui-beautify:  设计详细视觉升级规范（配色、排版、动效等）
     │
-    ├─ 💻 高级前端工程师（含前端范围时参与）
+    ├─ 💻 高级前端工程师（含前端范围时参与，backstory 含前端上下文）
     │     编写代码 + 编写测试 + 运行测试（execute_command_tool）+ 自动修复
     │
-    ├─ ⚙️ 高级后端工程师（含后端范围时参与，ui-beautify 模式不参与）
+    ├─ ⚙️ 高级后端工程师（含后端范围时参与，backstory 含后端上下文）
     │     编写代码 + 编写测试 + 运行测试（execute_command_tool）+ 自动修复
     │
-    └─ 🔍 代码审查与一致性校验工程师（始终参与）
-          验证 Entity↔DTO、前端↔后端 API、DDL↔模型 一致性
-          发现问题时用 patch_code_tool 直接修复
+    ├─ 🔍 代码审查与一致性校验工程师（始终参与，backstory 含完整上下文）
+    │     验证 Entity↔DTO、前端↔后端 API、DDL↔模型 一致性
+    │     发现问题时用 patch_code_tool 直接修复
+    │
+    └─ 📝 项目上下文刷新分析师（始终参与，execution 后运行）
+          分析代码变更中新增的业务实体、API、术语
+          使用 patch_code_tool 增量更新 docs/ 下的上下文文档
 ```
 
 > **CI 两阶段模式**：架构师运行于独立 Job（`STAGE=plan`），产出写入 `out/architecture-plan.md` 并上传为 GitHub Actions artifact；人工审批通过后，执行阶段 Job 读取 artifact（`STAGE=implement`）继续运行。
@@ -256,7 +264,27 @@ Issue 触发
 
 ## 项目上下文治理（Multi-Agent Context Governance）
 
-为确保 multi-agent 作业始终基于稳定、准确的项目背景，本仓库实施了一套**固定项目上下文 + 检索增强增量刷新**机制。
+为确保 multi-agent 作业始终基于稳定、准确的项目背景，本仓库实施了一套**固定项目上下文 + Agent 驱动增量刷新**机制。
+
+### 上下文如何关联到 Agent
+
+上下文与 Agent 的关联通过 `tools/context_loader.py` 模块实现，**不是**依赖 Agent 主动读取文件，而是在 Agent 创建时**自动注入**：
+
+```
+main.py 启动
+    │
+    ├── context_loader.get_context_for_role("architect")  → 注入到架构师 backstory
+    ├── context_loader.get_context_for_role("frontend_dev") → 注入到前端工程师 backstory
+    ├── context_loader.get_context_for_role("backend_dev")  → 注入到后端工程师 backstory
+    ├── context_loader.get_context_for_role("reviewer")    → 注入到审查工程师 backstory
+    └── context_loader.get_context_for_role("ui_designer") → 注入到 UI 设计师 backstory
+```
+
+- **架构师 / 审查工程师**：获取全部上下文（项目背景 + 领域词典 + 模块边界 + 架构约束 + 协作规则）
+- **前端工程师 / UI 设计师**：获取项目背景 + 领域词典 + 模块边界 + 架构约束
+- **后端工程师**：获取项目背景 + 领域词典 + 模块边界 + 架构约束
+
+每个 Task 的 description 中还包含上下文前置指令，提醒 Agent 必须在固定上下文范围内推理。
 
 ### 上下文文档结构
 
@@ -264,7 +292,7 @@ Issue 触发
 
 | 文档 | 路径 | 说明 |
 |------|------|------|
-| 项目上下文 | `docs/project-context.md` | 项目背景、目标、技术栈、入口文档（Agent 必读） |
+| 项目上下文 | `docs/project-context.md` | 项目背景、目标、技术栈、入口文档 |
 | 领域词典 | `docs/domain-glossary.md` | 业务术语、字段名对照、枚举定义（防止术语歧义） |
 | 模块边界 | `docs/module-boundaries.md` | frontend/backend 职责划分与禁止越界说明 |
 | 架构约束 | `docs/architecture.md` | 架构决策、编码约定、安全约束 |
@@ -275,12 +303,11 @@ Issue 触发
 
 ### Multi-Agent 使用约束
 
-**所有 Agent 在开始任务前必须先读取 `docs/project-context.md`**，并遵守以下约束：
-
-1. **上下文优先**：所有推理必须基于 `docs/` 下的固定上下文，不得凭空假设业务规则或 API 格式。
-2. **边界遵守**：Frontend Agent 只修改 `frontend/`，Backend Agent 只修改 `backend/`。
-3. **不臆测**：当上下文不足时，先通过 `search_code_tool`/`read_code_tool` 补充，仍不足则明确说明需要哪些信息，而不是自行猜测。
-4. **刷新触发**：完成重大功能后必须运行刷新脚本，保持上下文时效性。
+1. **上下文已自动注入**：Agent 的 backstory 中已包含固定项目上下文，无需每次手动读取 docs/ 文件。
+2. **上下文优先**：所有推理必须基于注入的上下文，不得凭空假设业务规则或 API 格式。
+3. **边界遵守**：Frontend Agent 只修改 `frontend/`，Backend Agent 只修改 `backend/`。
+4. **不臆测**：当上下文不足时，先通过 `search_code_tool`/`read_code_tool` 补充，仍不足则明确说明需要哪些信息。
+5. **自动刷新**：每次 Crew 执行后，Context Refresh Agent 会自动分析代码变更并更新上下文文档。
 
 详细规则见 [`docs/multi-agent-rules.md`](docs/multi-agent-rules.md)。
 
@@ -292,16 +319,17 @@ chmod +x scripts/init-context.sh
 ./scripts/init-context.sh
 ```
 
-**增量刷新**（每次代码或功能变更后）：
+**手动增量刷新**（需要手动触发时）：
 ```bash
 chmod +x scripts/refresh-context.sh
 ./scripts/refresh-context.sh --reason "新增光模块兼容性检查功能" --pr 42
 ```
 
-刷新后会自动：
-- 更新 `docs/project-context.md` 中的刷新时间戳
-- 在 `docs/snapshots/` 生成带时间戳的快照
-- 输出需要手动更新的文档列表
+**自动增量刷新**（每次 Crew 执行后自动触发）：
+- 由 `main.py` 中的**项目上下文刷新分析师 Agent** 自动执行
+- 语义分析代码变更中的新术语、新 API、新实体
+- 使用 `patch_code_tool` 增量更新 `docs/` 下的上下文文档
+- 与纯 bash 脚本不同，Agent 能提取代码中的**业务语义**信息
 
 > 也可通过 GitHub Issue 使用「🔄 上下文刷新请求」模板触发刷新流程。
 
@@ -315,6 +343,7 @@ AI-AutoTuringFlow/
 ├── tools/
 │   ├── file_tools.py            # 文件操作工具（read/write/patch/search/list/execute）
 │   ├── github_tools.py          # GitHub 交互（Issue 读取、PR 创建）
+│   ├── context_loader.py        # 🆕 项目上下文加载器（读取 docs/ → 注入 Agent backstory）
 │   ├── tool_permission.py       # 角色 × 模式 工具权限矩阵
 │   ├── hook_pipeline.py         # Pre/Post-task 质量检查 Hook
 │   └── prompt_router.py         # 智能 Prompt 路由（关键词分析）

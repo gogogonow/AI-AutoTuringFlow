@@ -175,29 +175,37 @@
 Issue 创建（用户打 run-ai 标签）
     │
     ▼
-1. Architect Agent 读取上下文 + Issue
+0. 系统加载固定项目上下文 → 注入到所有 Agent 的 backstory
+    │ context_loader.get_context_for_role() 按角色裁剪上下文
+    ▼
+1. Architect Agent（backstory 包含完整项目上下文 + 领域词典）
+    │ 读取 Issue + 在项目上下文范围内设计方案
     │ 输出：.ai_architect_plan.md
     ▼
 2. [Human-in-the-Loop 审批]
     │
     ▼
-3. [UI Designer Agent]（条件参与）
+3. [UI Designer Agent]（条件参与，backstory 包含前端相关上下文）
     │ 读取：架构方案
-    │ 输出：UI 规范（写入 .ai_architect_plan.md 或单独文件）
+    │ 输出：UI 规范
     ▼
-4. Frontend Dev Agent（条件参与）
-    │ 读取：项目上下文 + 架构方案 + UI 规范
+4. Frontend Dev Agent（条件参与，backstory 包含前端上下文 + 模块边界）
+    │ 在项目上下文约束下编写前端代码
     │ 产出：前端代码变更
     ▼
-5. Backend Dev Agent（条件参与）
-    │ 读取：项目上下文 + 架构方案
+5. Backend Dev Agent（条件参与，backstory 包含后端上下文 + 架构约束）
+    │ 在项目上下文约束下编写后端代码
     │ 产出：后端代码变更
     ▼
-6. Review Agent
-    │ 读取：所有变更文件 + 架构方案
+6. Review Agent（backstory 包含完整上下文 + 领域词典 + 协作规则）
+    │ 基于上下文校验一致性
     │ 产出：修复后的一致性代码
     ▼
-7. 创建 Pull Request
+7. Context Refresh Agent（Agent 驱动的上下文增量刷新）
+    │ 分析代码变更 → 语义提取新术语/新API/新实体
+    │ 使用 patch_code_tool 更新 docs/ 下的上下文文档
+    ▼
+8. 创建 Pull Request
 ```
 
 ### 3.2 上下文不足时的处理流程
@@ -241,7 +249,25 @@ Agent 发现上下文不足
 
 ## 5. 上下文刷新触发条件
 
-以下情况发生时，必须刷新项目上下文（运行 `scripts/refresh-context.sh`）：
+以下情况发生时，项目上下文会被自动或手动刷新：
+
+### 5.1 自动刷新（Agent 驱动）
+
+在每次 Crew 执行（代码生成 + 审查）完成后，系统会自动启动**项目上下文刷新分析师 Agent**：
+- 该 Agent 使用 `extract_code_change_summary()` 获取本次代码变更的结构化摘要
+- 语义分析变更中新增的业务实体、API、前端页面、领域术语
+- 使用 `patch_code_tool` 增量更新 `docs/domain-glossary.md`、`docs/project-context.md` 等文档
+- 与纯 bash 脚本不同，Agent 能理解业务语义，从代码变更中提取有意义的信息
+
+### 5.2 手动刷新（脚本辅助）
+
+运行 `scripts/refresh-context.sh` 可以：
+- 更新时间戳
+- 生成结构化快照
+- 检测上下文敏感的文件变更
+- 输出需要手动更新的文档清单
+
+### 5.3 触发条件
 
 1. 新增或修改了核心业务实体（`Module`、`History` 等）
 2. 新增或修改了 API 接口（路径、参数、响应格式）
@@ -251,4 +277,4 @@ Agent 发现上下文不足
 6. 架构约束发生变更
 7. 完成一个较大的 feature 后，更新整体状态
 
-详见 [`scripts/refresh-context.sh`](../scripts/refresh-context.sh)。
+详见 [`scripts/refresh-context.sh`](../scripts/refresh-context.sh) 和 [`tools/context_loader.py`](../tools/context_loader.py)。
