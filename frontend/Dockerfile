@@ -1,6 +1,7 @@
 FROM nginx:1.25-alpine
 
 # Remove the default site shipped with the base image
+RUN rm -f /docker-entrypoint.d/30-tune-worker-processes.sh
 RUN rm /etc/nginx/conf.d/default.conf
 
 # Install nginx config template.  The base image entrypoint automatically
