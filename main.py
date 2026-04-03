@@ -54,7 +54,7 @@ llm_light = LLM(
 # ==========================================
 
 config = parse_issue_config()
-MODE = config["mode"]      # "upgrade" | "feature" | "bugfix"
+MODE = config["mode"]      # "upgrade" | "feature" | "bugfix" | "ui-beautify"
 SCOPE = config["scope"]    # "frontend" | "backend" | "fullstack"
 
 print(f"📋 任务模式: {MODE} | 影响范围: {SCOPE}")
@@ -94,13 +94,22 @@ ARCHITECT_CONFIG = {
             "分析调用链路和数据流向，找出根因并制定最小影响的修复方案。"
         ),
     },
+    "ui-beautify": {
+        "goal": "分析 UI 美化需求，读取现有前端代码和样式文件，评估当前界面的视觉与交互问题，输出包含设计改进方向、色彩/排版/动效规范和组件优化清单的 UI 优化方案。",
+        "backstory": (
+            "你是一位兼具技术深度和审美品位的前端架构师，精通现代 Web UI 设计体系。"
+            "你擅长审视现有界面，从视觉层次、色彩搭配、间距节奏、动效体验等维度分析问题，"
+            "并使用 read_code_tool 和 list_files_tool 深入了解现有 CSS/HTML/JS 结构，"
+            "制定渐进式的 UI 优化方案，确保美化改动不破坏现有功能。"
+        ),
+    },
 }
 
 # --- 架构师（始终参与） ---
 architect_cfg = ARCHITECT_CONFIG[MODE]
 # 升级和 bugfix 模式下，架构师需要读取现有代码
 architect_tools = [fetch_requirement_tool]
-if MODE in ("upgrade", "bugfix"):
+if MODE in ("upgrade", "bugfix", "ui-beautify"):
     architect_tools.extend([read_code_tool, list_files_tool])
 
 architect = Agent(
@@ -113,17 +122,35 @@ architect = Agent(
     llm=llm_reasoning,
 )
 
-# --- UI/UX 设计师（仅在 feature 模式 + 前端范围时参与） ---
-ui_designer = None
-if MODE == "feature" and needs_frontend:
-    ui_designer = Agent(
-        role='UI/UX 交互设计师',
-        goal='基于架构师的需求，设计全局 UI 规范、界面布局结构以及交互流程（输出 Markdown 描述）。',
-        backstory=(
+# --- UI/UX 设计师的差异化配置 ---
+UI_DESIGNER_CONFIG = {
+    "feature": {
+        "goal": "基于架构师的需求，设计全局 UI 规范、界面布局结构以及交互流程（输出 Markdown 描述）。",
+        "backstory": (
             '你精通 B 端复杂工程系统和工具链界面的设计。'
             '你深谙用户体验，擅长规划包含复杂参数配置面板等视图容器交互逻辑，'
             '能为前端开发提供清晰的组件划分建议。'
         ),
+    },
+    "ui-beautify": {
+        "goal": "基于架构师的 UI 优化方案和现有界面分析，设计详细的视觉升级规范，包括配色方案、字体排版、间距系统、圆角阴影、动效曲线和组件样式改造细节。",
+        "backstory": (
+            '你是一位拥有极致审美追求的 UI 视觉设计师，精通现代设计趋势和 CSS 实现技巧。'
+            '你擅长将粗糙的界面改造为精致、专业的产品级 UI，'
+            '深谙色彩心理学、视觉层次理论和微交互设计，'
+            '能输出前端工程师可直接落地的详细视觉规范（包含具体的颜色值、尺寸、动画参数等）。'
+        ),
+    },
+}
+
+# --- UI/UX 设计师（在 feature 模式 + 前端范围时参与，或在 ui-beautify 模式时始终参与） ---
+ui_designer = None
+if (MODE == "feature" and needs_frontend) or MODE == "ui-beautify":
+    designer_cfg = UI_DESIGNER_CONFIG.get(MODE, UI_DESIGNER_CONFIG["feature"])
+    ui_designer = Agent(
+        role='UI/UX 交互设计师',
+        goal=designer_cfg["goal"],
+        backstory=designer_cfg["backstory"],
         verbose=True,
         allow_delegation=False,
         llm=llm_reasoning,
@@ -173,13 +200,30 @@ DEV_CONFIG = {
             "然后编写最小化修复代码，最后用 write_code_tool 写入修复后的完整文件。"
         ),
     },
+    "ui-beautify": {
+        "frontend_goal": (
+            "基于 UI 设计师的视觉升级规范，使用 read_code_tool 读取现有前端代码（HTML/CSS/JS），"
+            "对界面进行增量美化改造。你必须使用 write_code_tool 将修改后的完整文件写入磁盘。\n"
+            "重点关注：CSS 样式优化（配色、排版、间距、阴影、圆角）、HTML 结构微调（语义化标签、无障碍属性）、"
+            "JS 交互增强（过渡动画、微交互效果、加载状态优化）。\n"
+            "【重要】保持现有功能逻辑不变，仅做视觉和交互层面的增量改进。"
+        ),
+        "frontend_backstory": (
+            "你是一位对像素级细节有极致追求的前端视觉工程师，精通 CSS3 动画、现代布局技术和响应式设计。"
+            "你擅长将设计稿精准还原为代码，对色彩、间距、字体有敏锐的感知力。"
+            "你的工作方式是：先用 read_code_tool 读取现有样式和页面文件，理解当前视觉状态，"
+            "然后按照设计师的视觉规范进行增量修改，最后用 write_code_tool 写入修改后的完整文件。"
+        ),
+        "backend_goal": "",
+        "backend_backstory": "",
+    },
 }
 
 dev_cfg = DEV_CONFIG[MODE]
 
-# 升级和 bugfix 模式下，开发人员需要读取现有代码
+# 升级、bugfix 和 ui-beautify 模式下，开发人员需要读取现有代码
 dev_tools = [write_code_tool]
-if MODE in ("upgrade", "bugfix"):
+if MODE in ("upgrade", "bugfix", "ui-beautify"):
     dev_tools = [read_code_tool, list_files_tool, write_code_tool]
 
 # --- 前端工程师（根据影响范围决定是否参与） ---
@@ -235,11 +279,24 @@ QA_CONFIG = {
             '然后编写针对 Bug 的回归测试，最后用 write_code_tool 写入测试文件。'
         ),
     },
+    "ui-beautify": {
+        "goal": (
+            "针对 UI 美化变更编写视觉回归和交互测试，确保样式改动不破坏现有功能和布局。"
+            "使用 read_code_tool 读取已有测试和修改后的前端文件，验证 HTML 结构完整性和 CSS 类名一致性。"
+            "你必须使用 write_code_tool 将测试文件写入磁盘。"
+        ),
+        "backstory": (
+            '你是一位专注于前端视觉质量保证的测试专家。你擅长编写针对 UI 变更的回归测试，'
+            '验证样式修改不会导致布局错乱、元素溢出或交互失效。'
+            '你的工作方式是：先用 read_code_tool 读取已有测试和修改后的前端文件，'
+            '然后编写针对 UI 变更的视觉和交互测试，最后用 write_code_tool 写入测试文件。'
+        ),
+    },
 }
 
 qa_cfg = QA_CONFIG[MODE]
 qa_tools = [write_code_tool]
-if MODE in ("upgrade", "bugfix"):
+if MODE in ("upgrade", "bugfix", "ui-beautify"):
     qa_tools = [read_code_tool, list_files_tool, write_code_tool]
 
 qa_engineer = Agent(
@@ -292,6 +349,16 @@ TASK_ARCH_DESC = {
         '3. 推荐的修复方案\n'
         '4. 需要关注的回归风险'
     ),
+    "ui-beautify": (
+        '调用 fetch_requirement_tool 获取 UI 美化需求描述。\n'
+        '然后使用 list_files_tool 查看 frontend/ 目录结构，使用 read_code_tool 读取现有 HTML、CSS、JS 文件。\n'
+        '基于现有界面代码和美化需求，输出 UI 优化方案，包括：\n'
+        '1. 当前界面视觉问题诊断（配色、排版、间距、一致性等）\n'
+        '2. 需要修改的文件清单及优化方向\n'
+        '3. 设计改进规范（色彩体系、字体层级、间距系统、圆角/阴影规范）\n'
+        '4. 交互增强建议（过渡动画、悬停效果、加载状态等）\n'
+        '5. 分步实施计划（确保增量改动不破坏现有功能）'
+    ),
 }
 
 task_architecture = Task(
@@ -300,6 +367,7 @@ task_architecture = Task(
         "feature": "一份结构清晰的系统架构设计文档。",
         "upgrade": "一份包含版本差异分析、受影响文件清单和分步迁移计划的升级方案文档。",
         "bugfix": "一份包含根因分析、修复方案和回归风险评估的 Bug 诊断报告。",
+        "ui-beautify": "一份包含视觉问题诊断、改进规范、文件变更清单和分步实施计划的 UI 优化方案文档。",
     }[MODE],
     agent=architect,
     tools=architect_tools,
@@ -339,6 +407,17 @@ TASK_FRONTEND_DESC = {
         '3. 用 write_code_tool 将修复后的完整文件写入磁盘\n'
         '【重要】每个修改的文件都必须通过 write_code_tool 写入完整内容。'
     ),
+    "ui-beautify": (
+        '基于 UI 设计师的视觉升级规范，对前端代码进行增量美化改造。\n'
+        '1. 先用 list_files_tool 查看 frontend/ 目录结构\n'
+        '2. 用 read_code_tool 逐一读取需要修改的 HTML、CSS、JS 文件\n'
+        '3. 按照视觉规范修改样式（配色、排版、间距、圆角、阴影等）\n'
+        '4. 增强交互体验（过渡动画、悬停效果、加载状态动画等）\n'
+        '5. 优化 HTML 结构（语义化标签、无障碍属性等）\n'
+        '6. 用 write_code_tool 将修改后的完整文件写入磁盘\n'
+        '【重要】保持现有功能逻辑完全不变，仅做视觉和交互层面的增量改进。\n'
+        '每个修改的文件都必须通过 write_code_tool 写入完整内容。'
+    ),
 }
 
 task_frontend = None
@@ -376,6 +455,9 @@ TASK_BACKEND_DESC = {
         '3. 用 write_code_tool 将修复后的完整文件写入磁盘\n'
         '【重要】每个修改的文件都必须通过 write_code_tool 写入完整内容。'
     ),
+    "ui-beautify": (
+        '（UI 美化模式不涉及后端变更。）'
+    ),
 }
 
 task_backend = None
@@ -410,6 +492,15 @@ TASK_QA_DESC = {
         '2. 编写能精确复现原始 Bug 的测试用例\n'
         '3. 确保修复后测试能通过\n'
         '4. 用 write_code_tool 将测试文件写入 tests/ 目录\n'
+        '【重要】每个测试文件都必须通过 write_code_tool 写入磁盘。'
+    ),
+    "ui-beautify": (
+        '针对本次 UI 美化变更编写视觉回归测试。\n'
+        '1. 先用 read_code_tool 读取已有测试和修改后的前端文件\n'
+        '2. 验证修改后的 HTML 结构完整性（关键元素存在、id/class 一致）\n'
+        '3. 验证 CSS 文件语法正确、关键样式规则存在\n'
+        '4. 编写交互逻辑回归测试，确保美化改动不影响现有功能\n'
+        '5. 用 write_code_tool 将测试文件写入 tests/ 目录\n'
         '【重要】每个测试文件都必须通过 write_code_tool 写入磁盘。'
     ),
 }
@@ -472,7 +563,7 @@ software_factory = Crew(
     process=Process.sequential,  # 严格按照瀑布流顺序执行
 )
 
-MODE_LABELS = {"feature": "新功能", "upgrade": "依赖升级", "bugfix": "Bug修复"}
+MODE_LABELS = {"feature": "新功能", "upgrade": "依赖升级", "bugfix": "Bug修复", "ui-beautify": "UI美化"}
 SCOPE_LABELS = {"frontend": "前端", "backend": "后端", "fullstack": "全栈"}
 
 if __name__ == "__main__":
