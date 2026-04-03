@@ -20,4 +20,6 @@ ENV BACKEND_URL=http://backend:8080
 # Railway injects PORT at runtime; default to 80 for local docker-compose.
 ENV PORT=80
 
+# EXPOSE is a build-time hint only; the actual listen port is ${PORT} at
+# runtime.  Railway reads this as a default when no PORT variable is set.
 EXPOSE 80
