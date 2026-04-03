@@ -1,16 +1,16 @@
 package com.example.backend.service;
 
+import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.model.History;
 import com.example.backend.model.Module;
 import com.example.backend.repository.HistoryRepository;
 import com.example.backend.repository.ModuleRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class ModuleService {
@@ -21,222 +21,213 @@ public class ModuleService {
     @Autowired
     private HistoryRepository historyRepository;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
     /**
      * 获取所有模块
      * @return List<Module>
      */
     public List<Module> getAllModules() {
-        try {
-            return moduleRepository.findAll();
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to fetch modules: " + e.getMessage(), e);
-        }
+        return moduleRepository.findAll();
     }
 
     /**
      * 根据ID获取模块
      * @param id 模块ID
-     * @return Optional<Module>
+     * @return Module
+     * @throws ResourceNotFoundException 如果模块不存在
      */
-    public Optional<Module> getModuleById(Integer id) {
-        try {
-            if (id == null || id <= 0) {
-                throw new IllegalArgumentException("Invalid module ID");
-            }
-            return moduleRepository.findById(id);
-        } catch (IllegalArgumentException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to fetch module by ID: " + e.getMessage(), e);
+    public Module getModuleById(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("Module ID cannot be null");
         }
+        return moduleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Module not found with id: " + id));
     }
 
     /**
      * 创建新模块
      * @param module 模块对象
      * @return Module
+     * @throws IllegalArgumentException 如果模块为null或必填字段为空
      */
     @Transactional
     public Module createModule(Module module) {
-        try {
-            // 验证必填字段
-            if (module.getCode() == null || module.getCode().trim().isEmpty()) {
-                throw new IllegalArgumentException("Module code is required");
-            }
-            if (module.getStatus() == null || module.getStatus().trim().isEmpty()) {
-                throw new IllegalArgumentException("Module status is required");
-            }
-
-            // 检查代码是否已存在
-            if (moduleRepository.existsByCode(module.getCode())) {
-                throw new IllegalArgumentException("Module code already exists: " + module.getCode());
-            }
-
-            // 保存模块
-            Module savedModule = moduleRepository.save(module);
-
-            // 记录创建历史
-            String newValue = convertModuleToJson(savedModule);
-            History history = new History(
-                savedModule.getId(),
-                "CREATE",
-                null,
-                newValue
-            );
-            historyRepository.save(history);
-
-            return savedModule;
-        } catch (IllegalArgumentException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create module: " + e.getMessage(), e);
+        if (module == null) {
+            throw new IllegalArgumentException("Module cannot be null");
         }
+
+        // 设置时间戳
+        LocalDateTime now = LocalDateTime.now();
+        module.setCreatedAt(now);
+        module.setUpdatedAt(now);
+
+        // 保存模块
+        Module savedModule = moduleRepository.save(module);
+
+        // 记录创建历史 - 为每个非空字段创建历史记录
+        recordFieldHistory(savedModule.getId(), "CREATE", "serialNumber", null, savedModule.getSerialNumber());
+        if (savedModule.getManufacturer() != null) {
+            recordFieldHistory(savedModule.getId(), "CREATE", "manufacturer", null, savedModule.getManufacturer());
+        }
+        if (savedModule.getModelNumber() != null) {
+            recordFieldHistory(savedModule.getId(), "CREATE", "modelNumber", null, savedModule.getModelNumber());
+        }
+        if (savedModule.getWavelength() != null) {
+            recordFieldHistory(savedModule.getId(), "CREATE", "wavelength", null, savedModule.getWavelength().toString());
+        }
+        if (savedModule.getTransmitPower() != null) {
+            recordFieldHistory(savedModule.getId(), "CREATE", "transmitPower", null, savedModule.getTransmitPower().toString());
+        }
+
+        return savedModule;
     }
 
     /**
      * 更新模块
      * @param id 模块ID
-     * @param updatedModule 更新后的模块对象
+     * @param moduleDetails 更新后的模块对象
      * @return Module
+     * @throws ResourceNotFoundException 如果模块不存在
      */
     @Transactional
-    public Module updateModule(Integer id, Module updatedModule) {
-        try {
-            if (id == null || id <= 0) {
-                throw new IllegalArgumentException("Invalid module ID");
-            }
-
-            Module existingModule = moduleRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Module not found with ID: " + id));
-
-            // 记录旧值
-            String oldValue = convertModuleToJson(existingModule);
-
-            // 更新字段
-            if (updatedModule.getCode() != null) {
-                // 检查新代码是否与其他模块冲突
-                if (!existingModule.getCode().equals(updatedModule.getCode()) && 
-                    moduleRepository.existsByCode(updatedModule.getCode())) {
-                    throw new IllegalArgumentException("Module code already exists: " + updatedModule.getCode());
-                }
-                existingModule.setCode(updatedModule.getCode());
-            }
-            if (updatedModule.getStatus() != null) {
-                existingModule.setStatus(updatedModule.getStatus());
-            }
-            if (updatedModule.getVendor() != null) {
-                existingModule.setVendor(updatedModule.getVendor());
-            }
-            if (updatedModule.getProcessStatus() != null) {
-                existingModule.setProcessStatus(updatedModule.getProcessStatus());
-            }
-            if (updatedModule.getEnterTime() != null) {
-                existingModule.setEnterTime(updatedModule.getEnterTime());
-            }
-            if (updatedModule.getExitTime() != null) {
-                existingModule.setExitTime(updatedModule.getExitTime());
-            }
-            if (updatedModule.getLD() != null) {
-                existingModule.setLD(updatedModule.getLD());
-            }
-            if (updatedModule.getPD() != null) {
-                existingModule.setPD(updatedModule.getPD());
-            }
-            if (updatedModule.getRemarks() != null) {
-                existingModule.setRemarks(updatedModule.getRemarks());
-            }
-
-            // 保存更新
-            Module savedModule = moduleRepository.save(existingModule);
-
-            // 记录更新历史
-            String newValue = convertModuleToJson(savedModule);
-            History history = new History(
-                savedModule.getId(),
-                "UPDATE",
-                oldValue,
-                newValue
-            );
-            historyRepository.save(history);
-
-            return savedModule;
-        } catch (IllegalArgumentException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to update module: " + e.getMessage(), e);
+    public Module updateModule(Long id, Module moduleDetails) {
+        if (id == null) {
+            throw new IllegalArgumentException("Module ID cannot be null");
         }
+        if (moduleDetails == null) {
+            throw new IllegalArgumentException("Module details cannot be null");
+        }
+
+        Module module = moduleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Module not found with id: " + id));
+
+        // 更新字段并记录变更历史
+        if (moduleDetails.getSerialNumber() != null && !moduleDetails.getSerialNumber().equals(module.getSerialNumber())) {
+            String oldValue = module.getSerialNumber();
+            module.setSerialNumber(moduleDetails.getSerialNumber());
+            recordFieldHistory(id, "UPDATE", "serialNumber", oldValue, moduleDetails.getSerialNumber());
+        }
+
+        if (moduleDetails.getManufacturer() != null && !moduleDetails.getManufacturer().equals(module.getManufacturer())) {
+            String oldValue = module.getManufacturer();
+            module.setManufacturer(moduleDetails.getManufacturer());
+            recordFieldHistory(id, "UPDATE", "manufacturer", oldValue, moduleDetails.getManufacturer());
+        }
+
+        if (moduleDetails.getModelNumber() != null && !moduleDetails.getModelNumber().equals(module.getModelNumber())) {
+            String oldValue = module.getModelNumber();
+            module.setModelNumber(moduleDetails.getModelNumber());
+            recordFieldHistory(id, "UPDATE", "modelNumber", oldValue, moduleDetails.getModelNumber());
+        }
+
+        if (moduleDetails.getWavelength() != null && !moduleDetails.getWavelength().equals(module.getWavelength())) {
+            String oldValue = module.getWavelength() != null ? module.getWavelength().toString() : null;
+            module.setWavelength(moduleDetails.getWavelength());
+            recordFieldHistory(id, "UPDATE", "wavelength", oldValue, moduleDetails.getWavelength().toString());
+        }
+
+        if (moduleDetails.getTransmitPower() != null && !moduleDetails.getTransmitPower().equals(module.getTransmitPower())) {
+            String oldValue = module.getTransmitPower() != null ? module.getTransmitPower().toString() : null;
+            module.setTransmitPower(moduleDetails.getTransmitPower());
+            recordFieldHistory(id, "UPDATE", "transmitPower", oldValue, moduleDetails.getTransmitPower().toString());
+        }
+
+        if (moduleDetails.getReceiveSensitivity() != null && !moduleDetails.getReceiveSensitivity().equals(module.getReceiveSensitivity())) {
+            String oldValue = module.getReceiveSensitivity() != null ? module.getReceiveSensitivity().toString() : null;
+            module.setReceiveSensitivity(moduleDetails.getReceiveSensitivity());
+            recordFieldHistory(id, "UPDATE", "receiveSensitivity", oldValue, moduleDetails.getReceiveSensitivity().toString());
+        }
+
+        if (moduleDetails.getTransmissionDistance() != null && !moduleDetails.getTransmissionDistance().equals(module.getTransmissionDistance())) {
+            String oldValue = module.getTransmissionDistance() != null ? module.getTransmissionDistance().toString() : null;
+            module.setTransmissionDistance(moduleDetails.getTransmissionDistance());
+            recordFieldHistory(id, "UPDATE", "transmissionDistance", oldValue, moduleDetails.getTransmissionDistance().toString());
+        }
+
+        if (moduleDetails.getFiberType() != null && !moduleDetails.getFiberType().equals(module.getFiberType())) {
+            String oldValue = module.getFiberType();
+            module.setFiberType(moduleDetails.getFiberType());
+            recordFieldHistory(id, "UPDATE", "fiberType", oldValue, moduleDetails.getFiberType());
+        }
+
+        if (moduleDetails.getConnectorType() != null && !moduleDetails.getConnectorType().equals(module.getConnectorType())) {
+            String oldValue = module.getConnectorType();
+            module.setConnectorType(moduleDetails.getConnectorType());
+            recordFieldHistory(id, "UPDATE", "connectorType", oldValue, moduleDetails.getConnectorType());
+        }
+
+        if (moduleDetails.getTemperatureRange() != null && !moduleDetails.getTemperatureRange().equals(module.getTemperatureRange())) {
+            String oldValue = module.getTemperatureRange();
+            module.setTemperatureRange(moduleDetails.getTemperatureRange());
+            recordFieldHistory(id, "UPDATE", "temperatureRange", oldValue, moduleDetails.getTemperatureRange());
+        }
+
+        if (moduleDetails.getVoltage() != null && !moduleDetails.getVoltage().equals(module.getVoltage())) {
+            String oldValue = module.getVoltage() != null ? module.getVoltage().toString() : null;
+            module.setVoltage(moduleDetails.getVoltage());
+            recordFieldHistory(id, "UPDATE", "voltage", oldValue, moduleDetails.getVoltage().toString());
+        }
+
+        if (moduleDetails.getPowerConsumption() != null && !moduleDetails.getPowerConsumption().equals(module.getPowerConsumption())) {
+            String oldValue = module.getPowerConsumption() != null ? module.getPowerConsumption().toString() : null;
+            module.setPowerConsumption(moduleDetails.getPowerConsumption());
+            recordFieldHistory(id, "UPDATE", "powerConsumption", oldValue, moduleDetails.getPowerConsumption().toString());
+        }
+
+        // 更新时间戳
+        module.setUpdatedAt(LocalDateTime.now());
+
+        return moduleRepository.save(module);
     }
 
     /**
      * 删除模块
      * @param id 模块ID
+     * @throws ResourceNotFoundException 如果模块不存在
      */
     @Transactional
-    public void deleteModule(Integer id) {
-        try {
-            if (id == null || id <= 0) {
-                throw new IllegalArgumentException("Invalid module ID");
-            }
-
-            Module module = moduleRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Module not found with ID: " + id));
-
-            // 记录删除历史
-            String oldValue = convertModuleToJson(module);
-            History history = new History(
-                id,
-                "DELETE",
-                oldValue,
-                null
-            );
-            historyRepository.save(history);
-
-            // 删除模块
-            moduleRepository.deleteById(id);
-        } catch (IllegalArgumentException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to delete module: " + e.getMessage(), e);
+    public void deleteModule(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("Module ID cannot be null");
         }
+
+        Module module = moduleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Module not found with id: " + id));
+
+        // 记录删除历史
+        recordFieldHistory(id, "DELETE", "serialNumber", module.getSerialNumber(), null);
+
+        moduleRepository.deleteById(id);
     }
 
     /**
      * 获取模块的历史记录
      * @param id 模块ID
      * @return List<History>
+     * @throws ResourceNotFoundException 如果模块不存在
      */
-    public List<History> getModuleHistory(Integer id) {
-        try {
-            if (id == null || id <= 0) {
-                throw new IllegalArgumentException("Invalid module ID");
-            }
-
-            // 验证模块是否存在
-            if (!moduleRepository.existsById(id)) {
-                throw new IllegalArgumentException("Module not found with ID: " + id);
-            }
-
-            return historyRepository.findByModuleIdOrderByTimestampDesc(id);
-        } catch (IllegalArgumentException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to fetch module history: " + e.getMessage(), e);
+    public List<History> getModuleHistory(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("Module ID cannot be null");
         }
+
+        // 验证模块是否存在
+        if (!moduleRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Module not found with id: " + id);
+        }
+
+        return historyRepository.findByModuleIdOrderByCreatedAtDesc(id);
     }
 
     /**
-     * 将模块对象转换为JSON字符串
-     * @param module 模块对象
-     * @return JSON字符串
+     * 记录字段变更历史
+     * @param moduleId 模块ID
+     * @param operation 操作类型
+     * @param fieldName 字段名
+     * @param oldValue 旧值
+     * @param newValue 新值
      */
-    private String convertModuleToJson(Module module) {
-        try {
-            return objectMapper.writeValueAsString(module);
-        } catch (Exception e) {
-            return module.toString();
-        }
+    private void recordFieldHistory(Long moduleId, String operation, String fieldName, String oldValue, String newValue) {
+        History history = new History(moduleId, operation, fieldName, oldValue, newValue);
+        historyRepository.save(history);
     }
 }

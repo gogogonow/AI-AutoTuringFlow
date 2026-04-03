@@ -7,12 +7,12 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface HistoryRepository extends JpaRepository<History, Integer> {
+public interface HistoryRepository extends JpaRepository<History, Long> {
     
     /**
-     * 根据模块ID查找所有历史记录
+     * 根据模块ID查找所有历史记录，按创建时间降序排序
      * @param moduleId 模块ID
      * @return List<History>
      */
-    List<History> findByModuleIdOrderByTimestampDesc(Integer moduleId);
+    List<History> findByModuleIdOrderByCreatedAtDesc(Long moduleId);
 }
