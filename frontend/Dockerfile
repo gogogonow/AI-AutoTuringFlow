@@ -9,6 +9,7 @@ RUN rm /etc/nginx/conf.d/default.conf
 # writes results to /etc/nginx/conf.d/.  Only environment variables that
 # actually exist are substituted, so nginx's own lowercase variables
 # ($host, $uri, $scheme …) are never touched.
+COPY nginx-main.conf /etc/nginx/nginx.conf
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 # Copy static frontend files
