@@ -15,6 +15,10 @@ from tools.hook_pipeline import (
     pre_task_hook, post_task_hook, run_hooks_report, HookResult,
 )
 from tools.prompt_router import analyze_issue, enhance_task_description
+from tools.context_loader import (
+    get_context_for_role, get_context_summary,
+    extract_code_change_summary, build_refresh_prompt,
+)
 
 # 加载本地 .env 文件（如果是本地调试的话）
 load_dotenv()
@@ -85,6 +89,26 @@ needs_backend = SCOPE in ("backend", "fullstack")
 
 
 # ==========================================
+# 1c. 加载固定项目上下文（Agent 感知项目背景）
+# ==========================================
+# 按角色加载裁剪后的上下文，直接注入到 Agent 的 backstory 和 Task 的 description 中。
+# 这样 Agent 不再需要每次手动 read_code_tool 读取上下文文档——上下文已内置于其认知中。
+print("\n📚 加载固定项目上下文...")
+
+_ctx_architect = get_context_for_role("architect")
+_ctx_frontend = get_context_for_role("frontend_dev")
+_ctx_backend = get_context_for_role("backend_dev")
+_ctx_reviewer = get_context_for_role("reviewer")
+_ctx_ui = get_context_for_role("ui_designer")
+_ctx_summary = get_context_summary()
+
+if _ctx_summary and not _ctx_summary.startswith("("):
+    print(f"   ✅ 项目上下文已加载，摘要长度: {len(_ctx_summary)} chars")
+else:
+    print(f"   ⚠️  项目上下文未初始化或为空，Agent 将在无固定背景下运行")
+
+
+# ==========================================
 # 2. 精简的 Agent 定义（优化：去除 QA 和 DevOps Agent）
 # ==========================================
 # Agent 精简为：架构师 + [UI设计师] + [前端] + [后端] + Review
@@ -129,7 +153,7 @@ architect_tools = get_tools_for_role("architect", MODE)
 architect = Agent(
     role='首席系统架构师',
     goal=architect_cfg["goal"],
-    backstory=architect_cfg["backstory"],
+    backstory=architect_cfg["backstory"] + "\n\n" + _ctx_architect,
     verbose=True,
     allow_delegation=False,
     tools=architect_tools,
@@ -154,7 +178,7 @@ if (MODE == "feature" and needs_frontend) or MODE == "ui-beautify":
     ui_designer = Agent(
         role='UI/UX 交互设计师',
         goal=designer_cfg["goal"],
-        backstory=designer_cfg["backstory"],
+        backstory=designer_cfg["backstory"] + "\n\n" + _ctx_ui,
         verbose=True,
         allow_delegation=False,
         llm=llm_reasoning,
@@ -225,7 +249,7 @@ if needs_frontend:
     frontend_dev = Agent(
         role='高级前端工程师',
         goal=dev_cfg["frontend_goal"],
-        backstory=dev_cfg["frontend_backstory"],
+        backstory=dev_cfg["frontend_backstory"] + "\n\n" + _ctx_frontend,
         verbose=True,
         tools=get_tools_for_role("frontend_dev", MODE),
         allow_delegation=False,
@@ -237,7 +261,7 @@ if needs_backend:
     backend_dev = Agent(
         role='高级后端工程师',
         goal=dev_cfg["backend_goal"],
-        backstory=dev_cfg["backend_backstory"],
+        backstory=dev_cfg["backend_backstory"] + "\n\n" + _ctx_backend,
         verbose=True,
         tools=get_tools_for_role("backend_dev", MODE),
         allow_delegation=False,
@@ -291,7 +315,7 @@ review_tools = get_tools_for_role("reviewer", MODE)
 reviewer = Agent(
     role='代码审查与一致性校验工程师',
     goal=REVIEW_CONFIG[MODE]["goal"],
-    backstory="资深代码审查专家，擅长发现文件间的不一致、遗漏和潜在缺陷，并直接修复。",
+    backstory="资深代码审查专家，擅长发现文件间的不一致、遗漏和潜在缺陷，并直接修复。\n\n" + _ctx_reviewer,
     verbose=True,
     tools=review_tools,
     allow_delegation=False,
@@ -303,18 +327,27 @@ reviewer = Agent(
 # 3. 模式感知的 Task 定义（优化：结构化输出 + 合并测试）
 # ==========================================
 
+# 上下文前置指令：提醒 Agent 其 backstory 中已包含固定项目上下文
+_CONTEXT_PREAMBLE = (
+    "[重要] 你的 backstory 中已注入了固定项目上下文（项目背景、领域词典、模块边界、架构约束）。\n"
+    "所有推理必须在该上下文范围内进行，使用项目中已定义的术语和命名规范。\n"
+    "如果信息不足，使用 search_code_tool 和 read_code_tool 从现有代码中补充，不得自行臆测。\n\n"
+)
+
 # --- 架构任务（强化结构化输出要求） ---
 TASK_ARCH_DESC = {
     "feature": (
-        '调用 fetch_requirement_tool 获取 Issue 需求。\n'
-        '输出结构化架构设计，必须包含以下章节：\n'
-        '## API 契约\n列出每个接口的 HTTP 方法、路径、请求参数、响应格式\n'
-        '## 数据库设计\n列出表名、字段名、类型、约束\n'
-        '## 文件清单\n列出需要创建/修改的每个文件路径及其职责\n'
+        _CONTEXT_PREAMBLE
+        + '调用 fetch_requirement_tool 获取 Issue 需求。\n'
+        '基于固定项目上下文中的领域词典和架构约束，输出结构化架构设计，必须包含以下章节：\n'
+        '## API 契约\n列出每个接口的 HTTP 方法、路径、请求参数、响应格式（字段命名必须符合领域词典中的 camelCase 约定）\n'
+        '## 数据库设计\n列出表名、字段名、类型、约束（实体字段名必须与领域词典一致）\n'
+        '## 文件清单\n列出需要创建/修改的每个文件路径及其职责（遵循模块边界中定义的目录结构）\n'
         '## 一致性约束\n列出文件间必须保持一致的规则（如 Entity 字段必须与 DTO 一一对应）'
     ),
     "upgrade": (
-        '调用 fetch_requirement_tool 获取升级需求。\n'
+        _CONTEXT_PREAMBLE
+        + '调用 fetch_requirement_tool 获取升级需求。\n'
         '使用 list_files_tool 和 read_code_tool 分析现有代码。\n'
         '输出结构化变更规约，必须包含以下章节：\n'
         '## 版本差异分析\n当前版本 vs 目标版本的 breaking changes\n'
@@ -323,7 +356,8 @@ TASK_ARCH_DESC = {
         '## 迁移步骤\n按依赖顺序排列的执行步骤'
     ),
     "bugfix": (
-        '调用 fetch_requirement_tool 获取 Bug 描述。\n'
+        _CONTEXT_PREAMBLE
+        + '调用 fetch_requirement_tool 获取 Bug 描述。\n'
         '使用 list_files_tool、search_code_tool 和 read_code_tool 定位问题。\n'
         '输出结构化诊断报告，必须包含以下章节：\n'
         '## 根因分析\n问题的根本原因\n'
@@ -332,7 +366,8 @@ TASK_ARCH_DESC = {
         '## 回归风险\n需要关注的副作用'
     ),
     "ui-beautify": (
-        '调用 fetch_requirement_tool 获取 UI 美化需求。\n'
+        _CONTEXT_PREAMBLE
+        + '调用 fetch_requirement_tool 获取 UI 美化需求。\n'
         '使用 list_files_tool 查看 frontend/ 结构，用 read_code_tool 读取现有文件。\n'
         '输出 UI 优化方案：\n'
         '## 视觉问题诊断\n当前界面的具体问题\n'
@@ -362,8 +397,10 @@ task_ui_design = None
 if ui_designer is not None:
     task_ui_design = Task(
         description=(
-            '使用 read_code_tool 读取 .ai_architect_plan.md 获取架构设计方案，'
-            '然后基于该方案输出 UI 布局规范和交互流程，详细描述组件划分和视觉参数。'
+            _CONTEXT_PREAMBLE
+            + '使用 read_code_tool 读取 .ai_architect_plan.md 获取架构设计方案，'
+            '然后基于该方案和你 backstory 中的项目上下文（前端无框架约束、原生 HTML/CSS/JS），'
+            '输出 UI 布局规范和交互流程，详细描述组件划分和视觉参数。'
         ),
         expected_output='前端 UI 布局与交互规范文档。',
         agent=ui_designer,
@@ -372,15 +409,18 @@ if ui_designer is not None:
 # --- 前端任务（合并了原 QA 的测试编写职责） ---
 TASK_FRONTEND_DESC = {
     "feature": (
-        '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取架构设计方案（包含 UI 规范和 API 契约）。\n'
+        _CONTEXT_PREAMBLE
+        + '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取架构设计方案（包含 UI 规范和 API 契约）。\n'
         '基于该方案编写前端代码，同时编写对应的测试用例。\n'
         '使用 write_code_tool 将代码写入 frontend/ 目录，测试写入 tests/ 目录。\n'
+        '遵循你 backstory 中的模块边界约束：只修改 frontend/ 目录，API 路径以 /api/ 开头。\n'
         '每个文件必须通过 write_code_tool 实际写入。\n'
         '代码写入后，使用 execute_command_tool 运行测试（如 npm test 或 pytest）验证代码正确性。\n'
         '如果测试失败，读取 stderr 错误信息并用 patch_code_tool 修复，直到测试通过。'
     ),
     "upgrade": (
-        '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取变更规约。\n'
+        _CONTEXT_PREAMBLE
+        + '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取变更规约。\n'
         '按变更规约逐条执行前端迁移：\n'
         '1. 用 search_code_tool 定位需修改的代码\n'
         '2. 用 read_code_tool 读取目标文件\n'
@@ -391,7 +431,8 @@ TASK_FRONTEND_DESC = {
         '完成后检查变更规约中的每个前端条目是否都已处理。'
     ),
     "bugfix": (
-        '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取诊断报告。\n'
+        _CONTEXT_PREAMBLE
+        + '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取诊断报告。\n'
         '按诊断报告修复前端 Bug：\n'
         '1. 用 search_code_tool 定位问题代码\n'
         '2. 用 patch_code_tool 做最小化修复\n'
@@ -399,7 +440,8 @@ TASK_FRONTEND_DESC = {
         '4. 使用 execute_command_tool 运行测试验证修复。如果测试失败，用 patch_code_tool 继续修复。'
     ),
     "ui-beautify": (
-        '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取 UI 优化方案和视觉规范。\n'
+        _CONTEXT_PREAMBLE
+        + '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取 UI 优化方案和视觉规范。\n'
         '按视觉规范对前端做增量美化：\n'
         '1. 用 read_code_tool 读取现有文件\n'
         '2. 用 patch_code_tool 修改样式（配色、排版、间距等）\n'
@@ -422,16 +464,19 @@ if frontend_dev is not None:
 # --- 后端任务（合并了原 QA 的测试编写职责） ---
 TASK_BACKEND_DESC = {
     "feature": (
-        '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取架构设计方案（包含 API 契约和数据库设计）。\n'
+        _CONTEXT_PREAMBLE
+        + '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取架构设计方案（包含 API 契约和数据库设计）。\n'
         '基于架构设计编写后端代码和测试。\n'
         '严格按顺序处理：数据库DDL → Entity → Repository → Service → Controller → DTO。\n'
+        '遵循你 backstory 中的架构约束：实体使用 jakarta.persistence.*、API 路径以 /api/ 开头、包名 com.example.backend.*。\n'
         '使用 write_code_tool 将代码写入 backend/ 目录，测试写入 tests/ 目录。\n'
         '每个文件必须通过 write_code_tool 实际写入。\n'
         '代码写入后，使用 execute_command_tool 运行测试（如 mvn test）验证代码正确性。\n'
         '如果测试失败，读取 stderr 错误信息并用 patch_code_tool 修复，直到测试通过。'
     ),
     "upgrade": (
-        '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取变更规约。\n'
+        _CONTEXT_PREAMBLE
+        + '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取变更规约。\n'
         '按变更规约逐条执行后端迁移：\n'
         '严格按顺序处理：pom.xml → 数据库DDL → Entity → Repository → Service → Controller → 配置文件。\n'
         '1. 用 search_code_tool 定位需修改的代码\n'
@@ -443,7 +488,8 @@ TASK_BACKEND_DESC = {
         '完成后检查变更规约中的每个后端条目是否都已处理。'
     ),
     "bugfix": (
-        '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取诊断报告。\n'
+        _CONTEXT_PREAMBLE
+        + '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取诊断报告。\n'
         '按诊断报告修复后端 Bug：\n'
         '1. 用 search_code_tool 定位问题代码\n'
         '2. 用 patch_code_tool 做最小化修复\n'
@@ -464,28 +510,34 @@ if backend_dev is not None:
 # --- Review 任务（新增：一致性校验，替代原 QA 的代码审查 + 新增交叉验证） ---
 TASK_REVIEW_DESC = {
     "feature": (
-        '审查所有已生成的代码，执行一致性校验：\n'
+        _CONTEXT_PREAMBLE
+        + '审查所有已生成的代码，基于你 backstory 中的领域词典和架构约束执行一致性校验：\n'
         '1. 用 list_files_tool 扫描 frontend/、backend/、tests/ 目录\n'
         '2. 用 read_code_tool 读取关键文件\n'
         '3. 验证：Entity↔DTO 字段一致、前端 API 调用↔后端端点匹配、无重复/遗漏文件\n'
-        '4. 发现不一致时用 patch_code_tool 直接修复'
+        '4. 验证字段命名是否与领域词典中的标准名称一致\n'
+        '5. 验证 JPA 实体使用 jakarta.persistence.* 而非 javax.persistence.*\n'
+        '6. 发现不一致时用 patch_code_tool 直接修复'
     ),
     "upgrade": (
-        '审查升级变更的完整性和一致性：\n'
+        _CONTEXT_PREAMBLE
+        + '审查升级变更的完整性和一致性：\n'
         '1. 对照架构师的变更规约逐条检查\n'
         '2. 用 search_code_tool 搜索可能遗漏的旧 API/旧依赖引用\n'
         '3. 验证 Entity↔DTO↔DDL 一致性\n'
         '4. 发现遗漏或不一致时用 patch_code_tool 修复'
     ),
     "bugfix": (
-        '审查 Bug 修复的完整性：\n'
+        _CONTEXT_PREAMBLE
+        + '审查 Bug 修复的完整性：\n'
         '1. 验证修复覆盖了所有受影响代码路径\n'
         '2. 用 search_code_tool 搜索是否有类似问题的其他位置\n'
         '3. 检查关联文件的一致性\n'
         '4. 发现问题时用 patch_code_tool 修复'
     ),
     "ui-beautify": (
-        '审查 UI 美化变更：\n'
+        _CONTEXT_PREAMBLE
+        + '审查 UI 美化变更：\n'
         '1. 验证功能逻辑代码未被修改\n'
         '2. 检查 CSS 类名在 HTML/CSS/JS 中的引用一致性\n'
         '3. 验证 HTML 结构完整性\n'
@@ -543,6 +595,58 @@ exec_tasks.append(task_review)
 execution_crew = Crew(
     agents=exec_agents,
     tasks=exec_tasks,
+    process=Process.sequential,
+)
+
+# --- context_refresh_crew：Agent 驱动的上下文增量刷新（执行阶段后运行） ---
+# 与纯 bash 脚本不同，此 Agent 能够：
+# 1. 语义理解代码变更（而非仅 grep 文件名）
+# 2. 提取新增的业务术语、API 路径、实体字段
+# 3. 更新 docs/ 下的上下文文档，使其与代码保持同步
+context_refresh_agent = Agent(
+    role='项目上下文刷新分析师',
+    goal=(
+        "分析本次代码变更对项目上下文的影响，更新 docs/ 下的上下文文档。\n"
+        "具体职责：\n"
+        "1. 分析代码变更中新增/修改的业务实体、API、前端页面\n"
+        "2. 如发现新术语，使用 patch_code_tool 更新 docs/domain-glossary.md\n"
+        "3. 如发现新 API，使用 patch_code_tool 更新 docs/project-context.md 的已知限制或相关章节\n"
+        "4. 如发现目录结构变化，使用 patch_code_tool 更新 docs/module-boundaries.md\n"
+        "5. 不得删除已有的上下文内容，只做增量添加或更新"
+    ),
+    backstory=(
+        "你是项目知识管理专家，负责在每次代码变更后保持项目文档与代码的同步。\n"
+        "你理解光模块管理系统的业务领域，能从代码变更中提取有意义的业务信息。\n\n"
+        + _ctx_architect
+    ),
+    verbose=True,
+    tools=[read_code_tool, search_code_tool, list_files_tool, patch_code_tool, write_code_tool],
+    allow_delegation=False,
+    llm=llm_reasoning,
+)
+
+# 上下文刷新任务的描述在运行时动态构建（需要先获取代码变更摘要）
+def _build_context_refresh_task() -> Task:
+    """在执行阶段完成后，动态构建上下文刷新任务。"""
+    change_summary = extract_code_change_summary(since_ref="HEAD~1")
+    refresh_prompt = build_refresh_prompt(change_summary)
+    return Task(
+        description=(
+            f"{refresh_prompt}\n\n"
+            "执行步骤：\n"
+            "1. 使用 list_files_tool 查看 docs/ 目录当前状态\n"
+            "2. 使用 read_code_tool 读取 docs/domain-glossary.md 和 docs/project-context.md\n"
+            "3. 根据上面的变更分析，使用 patch_code_tool 增量更新需要更新的文档\n"
+            "4. 如果变更较小，不需要更新文档，直接说明原因即可\n"
+            "5. 不得删除已有内容，只做增量添加或修正"
+        ),
+        expected_output="上下文刷新报告：列出已更新的文档及更新内容，或说明本次无需更新的原因。",
+        agent=context_refresh_agent,
+    )
+
+context_refresh_crew = Crew(
+    agents=[context_refresh_agent],
+    tasks=[],  # 任务在运行时动态添加
     process=Process.sequential,
 )
 
@@ -640,6 +744,23 @@ if __name__ == "__main__":
 
     # 打印 hook 汇总报告
     print("\n" + run_hooks_report(hook_results))
+
+    # --- 阶段三：Agent 驱动的项目上下文增量刷新 ---
+    # 在代码生成完成后，由上下文刷新 Agent 分析变更并更新 docs/ 文档。
+    # 这比纯 bash 脚本能提取更多业务语义信息（如新术语、新业务规则）。
+    # 可通过环境变量 SKIP_CONTEXT_REFRESH=1 跳过（如本地调试时）。
+    if os.environ.get("SKIP_CONTEXT_REFRESH", "").strip() == "1":
+        print("\n📚 跳过上下文刷新（SKIP_CONTEXT_REFRESH=1）")
+    else:
+        try:
+            print("\n📚 启动项目上下文增量刷新（Agent 驱动）...")
+            refresh_task = _build_context_refresh_task()
+            context_refresh_crew.tasks = [refresh_task]
+            refresh_result = context_refresh_crew.kickoff()
+            print(f"\n📝 上下文刷新报告:\n{refresh_result}")
+        except Exception as e:
+            # 上下文刷新失败不应阻塞 PR 创建
+            print(f"\n⚠️  上下文刷新执行异常（不影响 PR 创建）: {str(e)}")
 
     # --- DevOps 去 Agent 化：直接 Python 调用创建 PR（无需 LLM 推理） ---
     issue_num_str = os.environ.get("ISSUE_NUMBER", "")
