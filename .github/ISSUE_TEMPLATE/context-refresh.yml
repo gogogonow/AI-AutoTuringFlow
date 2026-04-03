@@ -1,0 +1,71 @@
+name: 🔄 上下文刷新请求
+description: 在代码或功能发生变更后，请求刷新项目上下文文档，使 multi-agent 作业保持准确
+labels: ["context-refresh"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 项目上下文刷新请求
+        当代码或功能发生重大变化后，使用本模板触发上下文刷新，确保 multi-agent 后续作业基于最新的项目状态。
+        
+        填写完成后，运行 `scripts/refresh-context.sh --reason "变更原因" --pr <PR编号>` 完成刷新。
+
+  - type: dropdown
+    id: change_type
+    attributes:
+      label: 变更类型
+      description: 本次触发刷新的变更类型
+      multiple: true
+      options:
+        - 新增业务功能（feature）
+        - 修改了 API 接口
+        - 新增/修改了数据库实体
+        - 修改了目录结构
+        - 依赖版本升级
+        - 架构或约束调整
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: change_summary
+    attributes:
+      label: 变更摘要
+      description: 简要描述本次发生了哪些变化
+      placeholder: |
+        例如：
+        - 新增了光模块兼容性检查 API：GET /api/modules/{id}/compatibility
+        - Module 实体新增了 compatibleDevices 字段
+        - 前端新增了兼容性检查结果展示页面
+    validations:
+      required: true
+
+  - type: textarea
+    id: docs_to_update
+    attributes:
+      label: 需要更新的上下文文档
+      description: 勾选需要更新的文档（可手动编辑）
+      value: |
+        - [ ] `docs/project-context.md`
+        - [ ] `docs/domain-glossary.md`（新增术语/实体字段）
+        - [ ] `docs/module-boundaries.md`（职责边界变化）
+        - [ ] `docs/architecture.md`（架构或约束变化）
+        - [ ] `docs/multi-agent-rules.md`（规则调整）
+        - [ ] `README.md`（面向用户的功能说明）
+
+  - type: input
+    id: related_pr
+    attributes:
+      label: 关联 PR
+      description: 触发本次刷新的 PR 编号
+      placeholder: "#123"
+
+  - type: textarea
+    id: new_glossary_terms
+    attributes:
+      label: 新增领域术语（如有）
+      description: 本次变更引入了哪些新的业务术语？请按格式填写，后续会更新到 domain-glossary.md
+      placeholder: |
+        | 中文名 | 英文/代码名 | 说明 |
+        |--------|-----------|------|
+        | 兼容设备 | compatibleDevice | 与光模块兼容的网络设备型号 |

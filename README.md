@@ -254,6 +254,59 @@ Issue 触发
 > 标签：`run-ai` + `mode:ui-beautify`
 > → 架构师 + UI 设计师 + 前端工程师 + 审查工程师，共 4 个 Agent 参与（自动强制 scope:frontend）
 
+## 项目上下文治理（Multi-Agent Context Governance）
+
+为确保 multi-agent 作业始终基于稳定、准确的项目背景，本仓库实施了一套**固定项目上下文 + 检索增强增量刷新**机制。
+
+### 上下文文档结构
+
+所有上下文文档存放在 `docs/` 目录下：
+
+| 文档 | 路径 | 说明 |
+|------|------|------|
+| 项目上下文 | `docs/project-context.md` | 项目背景、目标、技术栈、入口文档（Agent 必读） |
+| 领域词典 | `docs/domain-glossary.md` | 业务术语、字段名对照、枚举定义（防止术语歧义） |
+| 模块边界 | `docs/module-boundaries.md` | frontend/backend 职责划分与禁止越界说明 |
+| 架构约束 | `docs/architecture.md` | 架构决策、编码约定、安全约束 |
+| Multi-Agent 规则 | `docs/multi-agent-rules.md` | Agent 分工、执行流程、禁止行为清单 |
+| 任务卡模板 | `docs/templates/agent-task-template.md` | 结构化任务卡格式（减少需求歧义） |
+| 上下文快照模板 | `docs/templates/context-snapshot-template.md` | 上下文快照格式参考 |
+| 历史快照 | `docs/snapshots/` | 每次刷新时自动归档的上下文快照 |
+
+### Multi-Agent 使用约束
+
+**所有 Agent 在开始任务前必须先读取 `docs/project-context.md`**，并遵守以下约束：
+
+1. **上下文优先**：所有推理必须基于 `docs/` 下的固定上下文，不得凭空假设业务规则或 API 格式。
+2. **边界遵守**：Frontend Agent 只修改 `frontend/`，Backend Agent 只修改 `backend/`。
+3. **不臆测**：当上下文不足时，先通过 `search_code_tool`/`read_code_tool` 补充，仍不足则明确说明需要哪些信息，而不是自行猜测。
+4. **刷新触发**：完成重大功能后必须运行刷新脚本，保持上下文时效性。
+
+详细规则见 [`docs/multi-agent-rules.md`](docs/multi-agent-rules.md)。
+
+### 上下文初始化与刷新
+
+**首次初始化**（新项目或首次部署上下文机制时）：
+```bash
+chmod +x scripts/init-context.sh
+./scripts/init-context.sh
+```
+
+**增量刷新**（每次代码或功能变更后）：
+```bash
+chmod +x scripts/refresh-context.sh
+./scripts/refresh-context.sh --reason "新增光模块兼容性检查功能" --pr 42
+```
+
+刷新后会自动：
+- 更新 `docs/project-context.md` 中的刷新时间戳
+- 在 `docs/snapshots/` 生成带时间戳的快照
+- 输出需要手动更新的文档列表
+
+> 也可通过 GitHub Issue 使用「🔄 上下文刷新请求」模板触发刷新流程。
+
+---
+
 ## 项目结构
 
 ```
@@ -265,12 +318,31 @@ AI-AutoTuringFlow/
 │   ├── tool_permission.py       # 角色 × 模式 工具权限矩阵
 │   ├── hook_pipeline.py         # Pre/Post-task 质量检查 Hook
 │   └── prompt_router.py         # 智能 Prompt 路由（关键词分析）
+├── docs/                        # 🆕 项目上下文治理文档
+│   ├── project-context.md       #     项目背景与技术栈（Agent 必读入口）
+│   ├── domain-glossary.md       #     领域词典与业务术语
+│   ├── module-boundaries.md     #     前后端职责边界
+│   ├── architecture.md          #     架构约束与决策记录
+│   ├── multi-agent-rules.md     #     Multi-Agent 协作规则
+│   ├── templates/               #     可复用模板
+│   │   ├── agent-task-template.md       # 任务卡模板
+│   │   └── context-snapshot-template.md # 上下文快照模板
+│   └── snapshots/               #     历史上下文快照（自动归档）
+├── scripts/                     # 🆕 上下文管理脚本
+│   ├── init-context.sh          #     首次初始化上下文文档
+│   └── refresh-context.sh       #     增量刷新上下文与快照
 ├── frontend/                    # 前端代码（Nginx + 静态资源）
 ├── backend/                     # 后端代码（Spring Boot / Java 21）
 ├── tests/                       # 自动化测试
-├── .github/workflows/
-│   ├── ai-dev-loop.yml          # AI 研发循环工作流（3 Job：architecture → human-approval → implementation）
-│   └── deploy.yml               # Railway 部署工作流
+├── .github/
+│   ├── workflows/
+│   │   ├── ai-dev-loop.yml      # AI 研发循环工作流（3 Job：architecture → human-approval → implementation）
+│   │   └── deploy.yml           # Railway 部署工作流
+│   └── ISSUE_TEMPLATE/
+│       ├── feature.yml          # 新功能需求模板
+│       ├── bugfix.yml           # Bug 修复模板
+│       ├── upgrade.yml          # 依赖升级模板
+│       └── context-refresh.yml  # 🆕 上下文刷新请求模板
 ├── requirements.txt             # Python 依赖
 └── README.md                    # 本文档
 ```
