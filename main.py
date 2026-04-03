@@ -7,7 +7,7 @@ from tools.github_tools import (
 )
 from tools.file_tools import (
     write_code_tool, read_code_tool, list_files_tool,
-    patch_code_tool, search_code_tool,
+    patch_code_tool, search_code_tool, execute_command_tool,
 )
 from tools.tool_permission import get_tools_for_role
 from tools.hook_pipeline import (
@@ -354,52 +354,64 @@ task_architecture = Task(
     expected_output=TASK_ARCH_OUTPUT[MODE],
     agent=architect,
     tools=architect_tools,
+    output_file='.ai_architect_plan.md',
 )
 
 # --- UI 设计任务 ---
 task_ui_design = None
 if ui_designer is not None:
     task_ui_design = Task(
-        description='基于架构设计，输出 UI 布局规范和交互流程，详细描述组件划分和视觉参数。',
+        description=(
+            '使用 read_code_tool 读取 .ai_architect_plan.md 获取架构设计方案，'
+            '然后基于该方案输出 UI 布局规范和交互流程，详细描述组件划分和视觉参数。'
+        ),
         expected_output='前端 UI 布局与交互规范文档。',
         agent=ui_designer,
-        context=[task_architecture],
     )
 
 # --- 前端任务（合并了原 QA 的测试编写职责） ---
 TASK_FRONTEND_DESC = {
     "feature": (
-        '基于 UI 规范和 API 契约编写前端代码，同时编写对应的测试用例。\n'
+        '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取架构设计方案（包含 UI 规范和 API 契约）。\n'
+        '基于该方案编写前端代码，同时编写对应的测试用例。\n'
         '使用 write_code_tool 将代码写入 frontend/ 目录，测试写入 tests/ 目录。\n'
-        '每个文件必须通过 write_code_tool 实际写入。'
+        '每个文件必须通过 write_code_tool 实际写入。\n'
+        '代码写入后，使用 execute_command_tool 运行测试（如 npm test 或 pytest）验证代码正确性。\n'
+        '如果测试失败，读取 stderr 错误信息并用 patch_code_tool 修复，直到测试通过。'
     ),
     "upgrade": (
-        '按架构师的变更规约，逐条执行前端迁移：\n'
+        '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取变更规约。\n'
+        '按变更规约逐条执行前端迁移：\n'
         '1. 用 search_code_tool 定位需修改的代码\n'
         '2. 用 read_code_tool 读取目标文件\n'
         '3. 用 patch_code_tool 做增量修改（仅输出变更部分，节省 token）\n'
         '4. 新文件用 write_code_tool 创建\n'
         '5. 编写回归测试到 tests/ 目录\n'
+        '6. 使用 execute_command_tool 运行测试验证变更。如果测试失败，用 patch_code_tool 修复直到通过。\n'
         '完成后检查变更规约中的每个前端条目是否都已处理。'
     ),
     "bugfix": (
+        '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取诊断报告。\n'
         '按诊断报告修复前端 Bug：\n'
         '1. 用 search_code_tool 定位问题代码\n'
         '2. 用 patch_code_tool 做最小化修复\n'
-        '3. 编写回归测试到 tests/ 目录'
+        '3. 编写回归测试到 tests/ 目录\n'
+        '4. 使用 execute_command_tool 运行测试验证修复。如果测试失败，用 patch_code_tool 继续修复。'
     ),
     "ui-beautify": (
+        '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取 UI 优化方案和视觉规范。\n'
         '按视觉规范对前端做增量美化：\n'
         '1. 用 read_code_tool 读取现有文件\n'
         '2. 用 patch_code_tool 修改样式（配色、排版、间距等）\n'
         '3. 保持功能逻辑不变\n'
-        '4. 编写视觉回归测试到 tests/ 目录'
+        '4. 编写视觉回归测试到 tests/ 目录\n'
+        '5. 使用 execute_command_tool 运行测试验证美化不破坏功能。如果测试失败，用 patch_code_tool 修复。'
     ),
 }
 
 task_frontend = None
 if frontend_dev is not None:
-    frontend_context = [task_ui_design] if task_ui_design else [task_architecture]
+    frontend_context = [task_ui_design] if task_ui_design else []
     task_frontend = Task(
         description=TASK_FRONTEND_DESC[MODE],
         expected_output='已将前端代码和测试文件写入磁盘，每个文件返回了确认信息。',
@@ -410,26 +422,33 @@ if frontend_dev is not None:
 # --- 后端任务（合并了原 QA 的测试编写职责） ---
 TASK_BACKEND_DESC = {
     "feature": (
+        '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取架构设计方案（包含 API 契约和数据库设计）。\n'
         '基于架构设计编写后端代码和测试。\n'
         '严格按顺序处理：数据库DDL → Entity → Repository → Service → Controller → DTO。\n'
         '使用 write_code_tool 将代码写入 backend/ 目录，测试写入 tests/ 目录。\n'
-        '每个文件必须通过 write_code_tool 实际写入。'
+        '每个文件必须通过 write_code_tool 实际写入。\n'
+        '代码写入后，使用 execute_command_tool 运行测试（如 mvn test）验证代码正确性。\n'
+        '如果测试失败，读取 stderr 错误信息并用 patch_code_tool 修复，直到测试通过。'
     ),
     "upgrade": (
-        '按架构师的变更规约，逐条执行后端迁移：\n'
+        '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取变更规约。\n'
+        '按变更规约逐条执行后端迁移：\n'
         '严格按顺序处理：pom.xml → 数据库DDL → Entity → Repository → Service → Controller → 配置文件。\n'
         '1. 用 search_code_tool 定位需修改的代码\n'
         '2. 用 read_code_tool 读取目标文件\n'
         '3. 用 patch_code_tool 做增量修改（仅输出变更部分，节省 token）\n'
         '4. 新文件用 write_code_tool 创建\n'
         '5. 编写回归测试到 tests/ 目录\n'
+        '6. 使用 execute_command_tool 运行测试（如 mvn test）验证变更。如果测试失败，用 patch_code_tool 修复直到通过。\n'
         '完成后检查变更规约中的每个后端条目是否都已处理。'
     ),
     "bugfix": (
+        '首先使用 read_code_tool 读取 .ai_architect_plan.md 获取诊断报告。\n'
         '按诊断报告修复后端 Bug：\n'
         '1. 用 search_code_tool 定位问题代码\n'
         '2. 用 patch_code_tool 做最小化修复\n'
-        '3. 编写回归测试到 tests/ 目录'
+        '3. 编写回归测试到 tests/ 目录\n'
+        '4. 使用 execute_command_tool 运行测试（如 mvn test）验证修复。如果测试失败，用 patch_code_tool 继续修复。'
     ),
     "ui-beautify": '（UI 美化模式不涉及后端变更。）',
 }
@@ -440,7 +459,6 @@ if backend_dev is not None:
         description=TASK_BACKEND_DESC[MODE],
         expected_output='已将后端代码和测试文件写入磁盘，每个文件返回了确认信息。',
         agent=backend_dev,
-        context=[task_architecture],
     )
 
 # --- Review 任务（新增：一致性校验，替代原 QA 的代码审查 + 新增交叉验证） ---
@@ -496,27 +514,35 @@ task_review = Task(
 # 4. 动态组装 Crew 并执行 + 直接创建 PR（去 Agent 化）
 # ==========================================
 
-agents = [architect]
-tasks = [task_architecture]
+# --- plan_crew：仅包含架构师，负责规划阶段 ---
+plan_crew = Crew(
+    agents=[architect],
+    tasks=[task_architecture],
+    process=Process.sequential,
+)
+
+# --- execution_crew：UI设计师 + 前端 + 后端 + 审查，负责执行阶段 ---
+exec_agents = []
+exec_tasks = []
 
 if ui_designer is not None:
-    agents.append(ui_designer)
-    tasks.append(task_ui_design)
+    exec_agents.append(ui_designer)
+    exec_tasks.append(task_ui_design)
 
 if frontend_dev is not None:
-    agents.append(frontend_dev)
-    tasks.append(task_frontend)
+    exec_agents.append(frontend_dev)
+    exec_tasks.append(task_frontend)
 
 if backend_dev is not None:
-    agents.append(backend_dev)
-    tasks.append(task_backend)
+    exec_agents.append(backend_dev)
+    exec_tasks.append(task_backend)
 
-agents.append(reviewer)
-tasks.append(task_review)
+exec_agents.append(reviewer)
+exec_tasks.append(task_review)
 
-software_factory = Crew(
-    agents=agents,
-    tasks=tasks,
+execution_crew = Crew(
+    agents=exec_agents,
+    tasks=exec_tasks,
     process=Process.sequential,
 )
 
@@ -524,8 +550,9 @@ MODE_LABELS = {"feature": "新功能", "upgrade": "依赖升级", "bugfix": "Bug
 SCOPE_LABELS = {"frontend": "前端", "backend": "后端", "fullstack": "全栈"}
 
 if __name__ == "__main__":
+    all_agents = [architect] + exec_agents
     print(f"🚀 启动 AI 研发团队 [{MODE_LABELS[MODE]}模式 | {SCOPE_LABELS[SCOPE]}范围]")
-    print(f"   参与的 Agent: {', '.join(a.role for a in agents)}")
+    print(f"   参与的 Agent: {', '.join(a.role for a in all_agents)}")
 
     # --- Pre-flight 检查：验证 Crew 配置合法性 ---
     hook_results: list[HookResult] = []
@@ -541,8 +568,38 @@ if __name__ == "__main__":
     else:
         print(f"\n✅ Pre-flight 检查通过")
 
+    # --- 阶段一：规划阶段（架构师） ---
     try:
-        result = software_factory.kickoff()
+        print("\n🧠 架构师正在思考系统设计...")
+        architect_plan = plan_crew.kickoff()
+        print(f"\n📄 架构设计产出:\n{architect_plan}")
+    except Exception as e:
+        print(f"\n❌ 规划阶段执行异常: {str(e)}")
+        raise
+
+    # --- Human-in-the-loop：人类审批拦截点 ---
+    user_input = input(
+        "\n👨‍💻 架构设计已就绪。是否批准进入代码生成阶段？\n"
+        "  [Y/Enter] 继续  [N] 中止  [其他] 输入修改意见后继续\n"
+        "> "
+    ).strip()
+
+    if user_input.lower() in ('n', 'no'):
+        print("🛑 任务已中止。")
+        raise SystemExit(0)
+    elif user_input and user_input.lower() not in ('y', 'yes'):
+        # 将人类意见追加到所有执行阶段任务的描述中
+        feedback_note = f"\n\n[人类审批意见] {user_input}"
+        print(f"📝 收到人类修改意见，已追加到下游任务上下文: {user_input}")
+        for t in exec_tasks:
+            t.description = t.description + feedback_note
+    else:
+        print("✅ 已批准，开始执行代码编写与审查...")
+
+    # --- 阶段二：执行阶段（UI设计师 + 前后端 + 审查） ---
+    try:
+        print("\n🚀 开始执行代码编写与审查...")
+        result = execution_crew.kickoff()
         print("\n✅ Crew 执行完毕！最终报告：")
         print(result)
     except Exception as e:

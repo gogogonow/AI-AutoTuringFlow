@@ -9,6 +9,7 @@ from tools.file_tools import (
     read_code_tool,
     search_code_tool,
     list_files_tool,
+    execute_command_tool,
 )
 from tools.github_tools import fetch_requirement_tool
 
@@ -22,6 +23,7 @@ _TOOL_MAP = {
     "read_code": read_code_tool,
     "search_code": search_code_tool,
     "list_files": list_files_tool,
+    "execute_command": execute_command_tool,
 }
 
 # ---------------------------------------------------------------------------
@@ -49,15 +51,15 @@ _PERMISSION_MATRIX: dict[str, dict[str, list[str]]] = {
         "ui-beautify": [],
     },
     "frontend_dev": {
-        "feature":     ["write_code"],
-        "upgrade":     ["read_code", "list_files", "search_code", "patch_code", "write_code"],
-        "bugfix":      ["read_code", "list_files", "search_code", "patch_code", "write_code"],
-        "ui-beautify": ["read_code", "list_files", "search_code", "patch_code", "write_code"],
+        "feature":     ["write_code", "execute_command"],
+        "upgrade":     ["read_code", "list_files", "search_code", "patch_code", "write_code", "execute_command"],
+        "bugfix":      ["read_code", "list_files", "search_code", "patch_code", "write_code", "execute_command"],
+        "ui-beautify": ["read_code", "list_files", "search_code", "patch_code", "write_code", "execute_command"],
     },
     "backend_dev": {
-        "feature":     ["write_code"],
-        "upgrade":     ["read_code", "list_files", "search_code", "patch_code", "write_code"],
-        "bugfix":      ["read_code", "list_files", "search_code", "patch_code", "write_code"],
+        "feature":     ["write_code", "execute_command"],
+        "upgrade":     ["read_code", "list_files", "search_code", "patch_code", "write_code", "execute_command"],
+        "bugfix":      ["read_code", "list_files", "search_code", "patch_code", "write_code", "execute_command"],
         "ui-beautify": [],  # 后端不参与 ui-beautify
     },
     "reviewer": {
