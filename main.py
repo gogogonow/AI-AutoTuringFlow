@@ -1,4 +1,5 @@
 import os
+import pathlib
 from dotenv import load_dotenv
 from crewai import Agent, Task, Crew, Process, LLM
 
@@ -550,6 +551,12 @@ MODE_LABELS = {"feature": "新功能", "upgrade": "依赖升级", "bugfix": "Bug
 SCOPE_LABELS = {"frontend": "前端", "backend": "后端", "fullstack": "全栈"}
 
 if __name__ == "__main__":
+    # STAGE 控制 GitHub Actions 两阶段执行模式：
+    #   STAGE=plan       → 仅执行架构规划阶段，将产出保存为 artifact，然后退出（等待 GitHub Actions environment 人工审批）
+    #   STAGE=implement  → 跳过规划阶段，直接执行实现阶段（已通过 GitHub Actions environment 审批）
+    #   （空）           → 本地开发模式，保留 input() 交互式审批
+    STAGE = os.environ.get("STAGE", "")
+
     all_agents = [architect] + exec_agents
     print(f"🚀 启动 AI 研发团队 [{MODE_LABELS[MODE]}模式 | {SCOPE_LABELS[SCOPE]}范围]")
     print(f"   参与的 Agent: {', '.join(a.role for a in all_agents)}")
@@ -568,33 +575,49 @@ if __name__ == "__main__":
     else:
         print(f"\n✅ Pre-flight 检查通过")
 
-    # --- 阶段一：规划阶段（架构师） ---
-    try:
-        print("\n🧠 架构师正在思考系统设计...")
-        architect_plan = plan_crew.kickoff()
-        print(f"\n📄 架构设计产出:\n{architect_plan}")
-    except Exception as e:
-        print(f"\n❌ 规划阶段执行异常: {str(e)}")
-        raise
+    if STAGE != "implement":
+        # --- 阶段一：规划阶段（架构师） ---
+        try:
+            print("\n🧠 架构师正在思考系统设计...")
+            architect_plan = plan_crew.kickoff()
+            print(f"\n📄 架构设计产出:\n{architect_plan}")
+        except Exception as e:
+            print(f"\n❌ 规划阶段执行异常: {str(e)}")
+            raise
 
-    # --- Human-in-the-loop：人类审批拦截点 ---
-    user_input = input(
-        "\n👨‍💻 架构设计已就绪。是否批准进入代码生成阶段？\n"
-        "  [Y/Enter] 继续  [N] 中止  [其他] 输入修改意见后继续\n"
-        "> "
-    ).strip()
+        # 保存架构方案到文件（供 artifact 上传及后续实现阶段使用）
+        pathlib.Path("out").mkdir(exist_ok=True)
+        plan_path = pathlib.Path("out/architecture-plan.md")
+        plan_path.write_text(str(architect_plan), encoding="utf-8")
+        print(f"\n💾 架构方案已保存至 {plan_path}")
 
-    if user_input.lower() in ('n', 'no'):
-        print("🛑 任务已中止。")
-        raise SystemExit(0)
-    elif user_input and user_input.lower() not in ('y', 'yes'):
-        # 将人类意见追加到所有执行阶段任务的描述中
-        feedback_note = f"\n\n[人类审批意见] {user_input}"
-        print(f"📝 收到人类修改意见，已追加到下游任务上下文: {user_input}")
-        for t in exec_tasks:
-            t.description = t.description + feedback_note
+        if STAGE == "plan":
+            # CI 两阶段模式：规划完成后退出，等待 GitHub Actions environment 审批后再执行实现阶段
+            print("\n✅ 规划阶段完成。请在 GitHub Actions 中完成 architecture-review 审批后继续实现阶段。")
+            raise SystemExit(0)
+
+        # --- Human-in-the-loop（本地模式）：人类审批拦截点 ---
+        user_input = input(
+            "\n👨‍💻 架构设计已就绪。是否批准进入代码生成阶段？\n"
+            "  [Y/Enter] 继续  [N] 中止  [其他] 输入修改意见后继续\n"
+            "> "
+        ).strip()
+
+        if user_input.lower() in ('n', 'no'):
+            print("🛑 任务已中止。")
+            raise SystemExit(0)
+        elif user_input and user_input.lower() not in ('y', 'yes'):
+            # 将人类意见追加到所有执行阶段任务的描述中
+            feedback_note = f"\n\n[人类审批意见] {user_input}"
+            print(f"📝 收到人类修改意见，已追加到下游任务上下文: {user_input}")
+            for t in exec_tasks:
+                t.description = t.description + feedback_note
+        else:
+            print("✅ 已批准，开始执行代码编写与审查...")
+
     else:
-        print("✅ 已批准，开始执行代码编写与审查...")
+        # STAGE=implement：已通过 GitHub Actions environment 人工审批，直接进入实现阶段
+        print("\n✅ [CI 两阶段模式] 架构方案已由 GitHub Actions environment 审批通过，开始实现阶段...")
 
     # --- 阶段二：执行阶段（UI设计师 + 前后端 + 审查） ---
     try:

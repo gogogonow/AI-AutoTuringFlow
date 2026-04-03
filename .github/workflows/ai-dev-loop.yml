@@ -3,19 +3,30 @@ on:
   issues:
     types: [labeled]
 
+# Two-stage multi-agent flow with human approval gate:
+#
+#   Stage 1 (architecture) → Human Approval (human-approval) → Stage 2 (implementation)
+#
+# The 'human-approval' job targets the 'architecture-review' GitHub Actions environment.
+# To enable the approval gate, configure that environment in repository
+#   Settings > Environments > architecture-review
+# with one or more Required Reviewers. The workflow will pause at the approval job until
+# a reviewer approves (or rejects) the run in the GitHub Actions UI.
+#
+# Issue label reference (applied alongside 'run-ai' to configure the task):
+#   Mode labels (mutually exclusive, default: feature):
+#     - mode:upgrade      → dependency upgrades
+#     - mode:feature      → new feature development
+#     - mode:bugfix       → bug fix
+#     - mode:ui-beautify  → UI beautification (forces scope:frontend)
+#   Scope labels (mutually exclusive, default: fullstack):
+#     - scope:frontend  → frontend only
+#     - scope:backend   → backend only
+#     - scope:fullstack → full-stack
+
 jobs:
-  run-ai-agents:
-    # 当 Issue 被打上 run-ai 标签时触发
-    # 可同时通过 mode:* 和 scope:* 标签配置任务模式和影响范围：
-    #   模式 labels（互斥，默认 feature）：
-    #     - mode:upgrade      → 依赖升级或替换
-    #     - mode:feature      → 新功能需求
-    #     - mode:bugfix       → Bug 修复
-    #     - mode:ui-beautify  → UI 美化（界面设计优化 + 前端增量开发）
-    #   影响范围 labels（互斥，默认 fullstack；ui-beautify 模式强制为 frontend）：
-    #     - scope:frontend  → 仅前端
-    #     - scope:backend   → 仅后端
-    #     - scope:fullstack → 全栈
+  architecture:
+    name: Stage 1 - Architecture Plan
     if: github.event.label.name == 'run-ai'
     runs-on: ubuntu-latest
     permissions:
@@ -34,11 +45,70 @@ jobs:
       - name: Install Dependencies
         run: pip install -r requirements.txt
 
-      - name: Execute Multi-Agent Workflow
+      - name: Generate Architecture Plan
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           OAIPRO_API_KEY: ${{ secrets.OAIPRO_API_KEY }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           REPO_NAME: ${{ github.repository }}
           CREWAI_TRACING_ENABLED: "false"
+          STAGE: "plan"
+        run: python main.py
+
+      - name: Upload Architecture Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-plan
+          path: out/architecture-plan.md
+
+  human-approval:
+    name: Stage 1.5 - Human Approval
+    needs: architecture
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # This job targets the 'architecture-review' protected environment.
+    # The workflow pauses here until a Required Reviewer approves in the GitHub UI:
+    #   Actions run page > Review deployments > Approve and deploy
+    # To configure reviewers: Settings > Environments > architecture-review > Required reviewers.
+    environment:
+      name: architecture-review
+    steps:
+      - name: Architecture plan approved
+        run: echo "Architecture plan approved by reviewer. Proceeding to implementation."
+
+  implementation:
+    name: Stage 2 - Implementation
+    needs: human-approval
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download Approved Architecture Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: architecture-plan
+          path: out
+
+      - name: Execute Implementation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          OAIPRO_API_KEY: ${{ secrets.OAIPRO_API_KEY }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO_NAME: ${{ github.repository }}
+          CREWAI_TRACING_ENABLED: "false"
+          STAGE: "implement"
         run: python main.py
