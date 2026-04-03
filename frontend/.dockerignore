@@ -3,5 +3,4 @@ Dockerfile
 .git
 .gitignore
 docker-entrypoint.sh
-nginx.conf
 railway.json
