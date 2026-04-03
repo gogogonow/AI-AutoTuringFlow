@@ -6,144 +6,200 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "modules", indexes = {
-    @Index(name = "idx_code", columnList = "code"),
-    @Index(name = "idx_status", columnList = "status"),
-    @Index(name = "idx_vendor", columnList = "vendor")
+    @Index(name = "idx_serial_number", columnList = "serial_number"),
+    @Index(name = "idx_manufacturer", columnList = "manufacturer")
 })
 public class Module {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
-    @Column(nullable = false, unique = true, length = 100)
-    private String code;
+    @Column(name = "serial_number", nullable = false, unique = true, length = 100)
+    private String serialNumber;
 
-    @Column(name = "create_time", nullable = false)
-    private LocalDateTime createTime;
+    @Column(nullable = false, length = 100)
+    private String manufacturer;
 
-    @Column(nullable = false, length = 50)
-    private String status;
+    @Column(name = "model_number", length = 100)
+    private String modelNumber;
 
-    @Column(length = 100)
-    private String vendor;
+    @Column
+    private Double wavelength;
 
-    @Column(name = "process_status", length = 50)
-    private String processStatus;
+    @Column(name = "transmit_power")
+    private Double transmitPower;
 
-    @Column(name = "enter_time")
-    private LocalDateTime enterTime;
+    @Column(name = "receive_sensitivity")
+    private Double receiveSensitivity;
 
-    @Column(name = "exit_time")
-    private LocalDateTime exitTime;
+    @Column(name = "transmission_distance")
+    private Double transmissionDistance;
 
-    @Column(name = "ld", length = 100)
-    private String LD;
+    @Column(name = "fiber_type", length = 50)
+    private String fiberType;
 
-    @Column(name = "pd", length = 100)
-    private String PD;
+    @Column(name = "connector_type", length = 50)
+    private String connectorType;
 
-    @Column(columnDefinition = "TEXT")
-    private String remarks;
+    @Column(name = "temperature_range", length = 50)
+    private String temperatureRange;
+
+    @Column
+    private Double voltage;
+
+    @Column(name = "power_consumption")
+    private Double powerConsumption;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
     // Constructors
     public Module() {
-        this.createTime = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
-    public Module(String code, String status) {
-        this.code = code;
-        this.status = status;
-        this.createTime = LocalDateTime.now();
+    public Module(String serialNumber, String manufacturer) {
+        this.serialNumber = serialNumber;
+        this.manufacturer = manufacturer;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 
     // Getters and Setters
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public String getCode() {
-        return code;
+    public String getSerialNumber() {
+        return serialNumber;
     }
 
-    public void setCode(String code) {
-        this.code = code;
+    public void setSerialNumber(String serialNumber) {
+        this.serialNumber = serialNumber;
     }
 
-    public LocalDateTime getCreateTime() {
-        return createTime;
+    public String getManufacturer() {
+        return manufacturer;
     }
 
-    public void setCreateTime(LocalDateTime createTime) {
-        this.createTime = createTime;
+    public void setManufacturer(String manufacturer) {
+        this.manufacturer = manufacturer;
     }
 
-    public String getStatus() {
-        return status;
+    public String getModelNumber() {
+        return modelNumber;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setModelNumber(String modelNumber) {
+        this.modelNumber = modelNumber;
     }
 
-    public String getVendor() {
-        return vendor;
+    public Double getWavelength() {
+        return wavelength;
     }
 
-    public void setVendor(String vendor) {
-        this.vendor = vendor;
+    public void setWavelength(Double wavelength) {
+        this.wavelength = wavelength;
     }
 
-    public String getProcessStatus() {
-        return processStatus;
+    public Double getTransmitPower() {
+        return transmitPower;
     }
 
-    public void setProcessStatus(String processStatus) {
-        this.processStatus = processStatus;
+    public void setTransmitPower(Double transmitPower) {
+        this.transmitPower = transmitPower;
     }
 
-    public LocalDateTime getEnterTime() {
-        return enterTime;
+    public Double getReceiveSensitivity() {
+        return receiveSensitivity;
     }
 
-    public void setEnterTime(LocalDateTime enterTime) {
-        this.enterTime = enterTime;
+    public void setReceiveSensitivity(Double receiveSensitivity) {
+        this.receiveSensitivity = receiveSensitivity;
     }
 
-    public LocalDateTime getExitTime() {
-        return exitTime;
+    public Double getTransmissionDistance() {
+        return transmissionDistance;
     }
 
-    public void setExitTime(LocalDateTime exitTime) {
-        this.exitTime = exitTime;
+    public void setTransmissionDistance(Double transmissionDistance) {
+        this.transmissionDistance = transmissionDistance;
     }
 
-    public String getLD() {
-        return LD;
+    public String getFiberType() {
+        return fiberType;
     }
 
-    public void setLD(String LD) {
-        this.LD = LD;
+    public void setFiberType(String fiberType) {
+        this.fiberType = fiberType;
     }
 
-    public String getPD() {
-        return PD;
+    public String getConnectorType() {
+        return connectorType;
     }
 
-    public void setPD(String PD) {
-        this.PD = PD;
+    public void setConnectorType(String connectorType) {
+        this.connectorType = connectorType;
     }
 
-    public String getRemarks() {
-        return remarks;
+    public String getTemperatureRange() {
+        return temperatureRange;
     }
 
-    public void setRemarks(String remarks) {
-        this.remarks = remarks;
+    public void setTemperatureRange(String temperatureRange) {
+        this.temperatureRange = temperatureRange;
+    }
+
+    public Double getVoltage() {
+        return voltage;
+    }
+
+    public void setVoltage(Double voltage) {
+        this.voltage = voltage;
+    }
+
+    public Double getPowerConsumption() {
+        return powerConsumption;
+    }
+
+    public void setPowerConsumption(Double powerConsumption) {
+        this.powerConsumption = powerConsumption;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     @Override
@@ -151,21 +207,21 @@ public class Module {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Module module = (Module) o;
-        return Objects.equals(id, module.id) && Objects.equals(code, module.code);
+        return Objects.equals(id, module.id) && Objects.equals(serialNumber, module.serialNumber);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, code);
+        return Objects.hash(id, serialNumber);
     }
 
     @Override
     public String toString() {
         return "Module{" +
                 "id=" + id +
-                ", code='" + code + '\'' +
-                ", status='" + status + '\'' +
-                ", vendor='" + vendor + '\'' +
+                ", serialNumber='" + serialNumber + '\'' +
+                ", manufacturer='" + manufacturer + '\'' +
+                ", modelNumber='" + modelNumber + '\'' +
                 '}';
     }
 }

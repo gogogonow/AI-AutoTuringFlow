@@ -1,5 +1,6 @@
 package com.example.backend.controller;
 
+import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.model.History;
 import com.example.backend.model.Module;
 import com.example.backend.service.ModuleService;
@@ -8,9 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/modules")
@@ -25,13 +24,9 @@ public class ModuleController {
      * GET /api/modules
      */
     @GetMapping
-    public ResponseEntity<?> getAllModules() {
-        try {
-            List<Module> modules = moduleService.getAllModules();
-            return ResponseEntity.ok(modules);
-        } catch (Exception e) {
-            return handleException(e, "Failed to retrieve modules");
-        }
+    public ResponseEntity<List<Module>> getAllModules() {
+        List<Module> modules = moduleService.getAllModules();
+        return ResponseEntity.ok(modules);
     }
 
     /**
@@ -39,18 +34,9 @@ public class ModuleController {
      * GET /api/modules/{id}
      */
     @GetMapping("/{id}")
-    public ResponseEntity<?> getModuleById(@PathVariable Integer id) {
-        try {
-            return moduleService.getModuleById(id)
-                .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(createErrorResponse("Module not found with ID: " + id)));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(createErrorResponse(e.getMessage()));
-        } catch (Exception e) {
-            return handleException(e, "Failed to retrieve module");
-        }
+    public ResponseEntity<Module> getModuleById(@PathVariable Long id) {
+        Module module = moduleService.getModuleById(id);
+        return ResponseEntity.ok(module);
     }
 
     /**
@@ -58,16 +44,9 @@ public class ModuleController {
      * POST /api/modules
      */
     @PostMapping
-    public ResponseEntity<?> createModule(@RequestBody Module module) {
-        try {
-            Module createdModule = moduleService.createModule(module);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdModule);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(createErrorResponse(e.getMessage()));
-        } catch (Exception e) {
-            return handleException(e, "Failed to create module");
-        }
+    public ResponseEntity<Module> createModule(@RequestBody Module module) {
+        Module createdModule = moduleService.createModule(module);
+        return ResponseEntity.ok(createdModule);
     }
 
     /**
@@ -75,20 +54,9 @@ public class ModuleController {
      * PUT /api/modules/{id}
      */
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateModule(@PathVariable Integer id, @RequestBody Module module) {
-        try {
-            Module updatedModule = moduleService.updateModule(id, module);
-            return ResponseEntity.ok(updatedModule);
-        } catch (IllegalArgumentException e) {
-            if (e.getMessage().contains("not found")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(createErrorResponse(e.getMessage()));
-            }
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(createErrorResponse(e.getMessage()));
-        } catch (Exception e) {
-            return handleException(e, "Failed to update module");
-        }
+    public ResponseEntity<Module> updateModule(@PathVariable Long id, @RequestBody Module module) {
+        Module updatedModule = moduleService.updateModule(id, module);
+        return ResponseEntity.ok(updatedModule);
     }
 
     /**
@@ -96,22 +64,9 @@ public class ModuleController {
      * DELETE /api/modules/{id}
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteModule(@PathVariable Integer id) {
-        try {
-            moduleService.deleteModule(id);
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Module deleted successfully");
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            if (e.getMessage().contains("not found")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(createErrorResponse(e.getMessage()));
-            }
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(createErrorResponse(e.getMessage()));
-        } catch (Exception e) {
-            return handleException(e, "Failed to delete module");
-        }
+    public ResponseEntity<Void> deleteModule(@PathVariable Long id) {
+        moduleService.deleteModule(id);
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -119,38 +74,8 @@ public class ModuleController {
      * GET /api/modules/{id}/history
      */
     @GetMapping("/{id}/history")
-    public ResponseEntity<?> getModuleHistory(@PathVariable Integer id) {
-        try {
-            List<History> history = moduleService.getModuleHistory(id);
-            return ResponseEntity.ok(history);
-        } catch (IllegalArgumentException e) {
-            if (e.getMessage().contains("not found")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(createErrorResponse(e.getMessage()));
-            }
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(createErrorResponse(e.getMessage()));
-        } catch (Exception e) {
-            return handleException(e, "Failed to retrieve module history");
-        }
-    }
-
-    /**
-     * 统一异常处理
-     */
-    private ResponseEntity<?> handleException(Exception e, String message) {
-        Map<String, String> errorResponse = new HashMap<>();
-        errorResponse.put("error", message);
-        errorResponse.put("details", e.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-    }
-
-    /**
-     * 创建错误响应
-     */
-    private Map<String, String> createErrorResponse(String message) {
-        Map<String, String> response = new HashMap<>();
-        response.put("error", message);
-        return response;
+    public ResponseEntity<List<History>> getModuleHistory(@PathVariable Long id) {
+        List<History> history = moduleService.getModuleHistory(id);
+        return ResponseEntity.ok(history);
     }
 }

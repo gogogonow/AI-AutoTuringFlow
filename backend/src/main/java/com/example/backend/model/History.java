@@ -7,19 +7,22 @@ import java.util.Objects;
 @Entity
 @Table(name = "history", indexes = {
     @Index(name = "idx_module_id", columnList = "module_id"),
-    @Index(name = "idx_timestamp", columnList = "timestamp")
+    @Index(name = "idx_created_at", columnList = "created_at")
 })
 public class History {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     @Column(name = "module_id", nullable = false)
-    private Integer moduleId;
+    private Long moduleId;
 
     @Column(nullable = false, length = 20)
     private String operation;
+
+    @Column(name = "field_name", length = 100)
+    private String fieldName;
 
     @Column(name = "old_value", columnDefinition = "TEXT")
     private String oldValue;
@@ -27,36 +30,52 @@ public class History {
     @Column(name = "new_value", columnDefinition = "TEXT")
     private String newValue;
 
-    @Column(nullable = false)
-    private LocalDateTime timestamp;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
     // Constructors
     public History() {
-        this.timestamp = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now();
     }
 
-    public History(Integer moduleId, String operation, String oldValue, String newValue) {
+    public History(Long moduleId, String operation, String oldValue, String newValue) {
         this.moduleId = moduleId;
         this.operation = operation;
         this.oldValue = oldValue;
         this.newValue = newValue;
-        this.timestamp = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now();
+    }
+
+    public History(Long moduleId, String operation, String fieldName, String oldValue, String newValue) {
+        this.moduleId = moduleId;
+        this.operation = operation;
+        this.fieldName = fieldName;
+        this.oldValue = oldValue;
+        this.newValue = newValue;
+        this.createdAt = LocalDateTime.now();
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
     }
 
     // Getters and Setters
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public Integer getModuleId() {
+    public Long getModuleId() {
         return moduleId;
     }
 
-    public void setModuleId(Integer moduleId) {
+    public void setModuleId(Long moduleId) {
         this.moduleId = moduleId;
     }
 
@@ -66,6 +85,14 @@ public class History {
 
     public void setOperation(String operation) {
         this.operation = operation;
+    }
+
+    public String getFieldName() {
+        return fieldName;
+    }
+
+    public void setFieldName(String fieldName) {
+        this.fieldName = fieldName;
     }
 
     public String getOldValue() {
@@ -84,12 +111,12 @@ public class History {
         this.newValue = newValue;
     }
 
-    public LocalDateTime getTimestamp() {
-        return timestamp;
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 
-    public void setTimestamp(LocalDateTime timestamp) {
-        this.timestamp = timestamp;
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 
     @Override
@@ -111,7 +138,8 @@ public class History {
                 "id=" + id +
                 ", moduleId=" + moduleId +
                 ", operation='" + operation + '\'' +
-                ", timestamp=" + timestamp +
+                ", fieldName='" + fieldName + '\'' +
+                ", createdAt=" + createdAt +
                 '}';
     }
 }
