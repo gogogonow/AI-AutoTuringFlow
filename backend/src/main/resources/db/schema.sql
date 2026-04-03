@@ -17,11 +17,17 @@ CREATE TABLE IF NOT EXISTS modules (
     temperature_range VARCHAR(50),
     voltage DOUBLE,
     power_consumption DOUBLE,
-    created_at DATETIME(6) NOT NULL,
-    updated_at DATETIME(6) NOT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT NOW(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT NOW(6),
     INDEX idx_serial_number (serial_number),
     INDEX idx_manufacturer (manufacturer)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Migrate existing tables: add columns missing from older schema versions.
+-- These statements are safe to re-run; errors on already-existing columns are
+-- suppressed by spring.sql.init.continue-on-error=true.
+ALTER TABLE modules ADD COLUMN IF NOT EXISTS created_at DATETIME(6) NOT NULL DEFAULT NOW(6);
+ALTER TABLE modules ADD COLUMN IF NOT EXISTS updated_at DATETIME(6) NOT NULL DEFAULT NOW(6);
 
 -- Create history table
 CREATE TABLE IF NOT EXISTS history (
