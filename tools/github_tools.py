@@ -31,7 +31,7 @@ def parse_issue_config() -> dict:
       - scope:fullstack → 全栈
 
     Returns:
-        dict: {"mode": str, "scope": str, "labels": list[str]}
+        dict: {"mode": str, "scope": str, "labels": list[str], "title": str}
     """
     if repo is None:
         raise RuntimeError(
@@ -63,7 +63,7 @@ def parse_issue_config() -> dict:
     if mode == "ui-beautify":
         scope = "frontend"
 
-    return {"mode": mode, "scope": scope, "labels": label_names}
+    return {"mode": mode, "scope": scope, "labels": label_names, "title": issue.title}
 
 
 @tool("Fetch Requirement from Issue")
@@ -132,6 +132,56 @@ def create_pr_tool(branch_name: str, pr_title: str, commit_message: str) -> str:
         subprocess.run(["git", "remote", "set-url", "origin", clean_url], check=True)
 
     # 使用 GitHub API 创建 PR
+    if repo is None:
+        raise RuntimeError(
+            "GitHub client is not initialised. "
+            "Ensure GITHUB_TOKEN and REPO_NAME environment variables are set."
+        )
+    pr = repo.create_pull(title=pr_title, body=f"Closes #{issue_number}", head=branch_name, base="main")
+    return f"Pull Request created successfully: {pr.html_url}"
+
+
+def create_pr_direct(branch_name: str, pr_title: str, commit_message: str) -> str:
+    """直接调用（非 LLM Tool）：将代码推送到新分支并创建 PR。
+    用于 DevOps 去 Agent 化后，在 Crew 执行完毕后由 Python 代码直接调用。
+    """
+    github_token = os.environ.get("GITHUB_TOKEN")
+    repo_name_env = os.environ.get("REPO_NAME")
+    if not github_token:
+        raise ValueError("环境变量 GITHUB_TOKEN 未设置")
+    if not repo_name_env:
+        raise ValueError("环境变量 REPO_NAME 未设置")
+
+    subprocess.run(["git", "config", "--local", "user.name", "AI-AutoTuringFlow-Bot"], check=True)
+    subprocess.run(["git", "config", "--local", "user.email", "ai-factory@noreply.example.com"], check=True)
+
+    authenticated_url = f"https://x-access-token:{github_token}@github.com/{repo_name_env}.git"
+    clean_url = f"https://github.com/{repo_name_env}.git"
+    subprocess.run(["git", "remote", "set-url", "origin", authenticated_url], check=True)
+
+    try:
+        result = subprocess.run(["git", "checkout", "-b", branch_name], capture_output=True, text=True)
+        if result.returncode != 0:
+            subprocess.run(["git", "checkout", branch_name], check=True)
+
+        subprocess.run(["git", "add", "."], check=True)
+        # commit 在无变更时可能失败，此处忽略该错误（与 create_pr_tool 行为一致）
+        subprocess.run(["git", "commit", "-m", commit_message])
+
+        push_result = subprocess.run(["git", "push", "origin", branch_name], capture_output=True, text=True)
+        if push_result.returncode != 0:
+            rebase_result = subprocess.run(
+                ["git", "pull", "--rebase", "origin", branch_name],
+                capture_output=True, text=True
+            )
+            if rebase_result.returncode == 0:
+                subprocess.run(["git", "push", "origin", branch_name], check=True)
+            else:
+                subprocess.run(["git", "rebase", "--abort"], capture_output=True)
+                subprocess.run(["git", "push", "--force-with-lease", "origin", branch_name], check=True)
+    finally:
+        subprocess.run(["git", "remote", "set-url", "origin", clean_url], check=True)
+
     if repo is None:
         raise RuntimeError(
             "GitHub client is not initialised. "
