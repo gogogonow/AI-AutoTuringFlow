@@ -1,0 +1,73 @@
+/* Responsive Design */
+
+@media (max-width: 768px) {
+  .header-container {
+    padding: 0 var(--spacing-md);
+  }
+  
+  .app-title {
+    font-size: var(--font-md);
+  }
+  
+  .nav-text {
+    display: none;
+  }
+  
+  .nav-link {
+    padding: var(--spacing-sm);
+  }
+  
+  .main-content {
+    padding: var(--spacing-md);
+  }
+  
+  .filter-bar {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+  
+  .filter-group {
+    width: 100%;
+  }
+  
+  .filter-select {
+    width: 100%;
+  }
+  
+  .action-bar {
+    flex-wrap: wrap;
+  }
+  
+  .table-container {
+    overflow-x: auto;
+  }
+  
+  .data-table {
+    min-width: 800px;
+  }
+  
+  .modal-dialog {
+    min-width: 90vw;
+  }
+  
+  .form-row {
+    flex-direction: column;
+  }
+  
+  .pagination-bar {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .header-logo .app-title {
+    display: none;
+  }
+  
+  .btn-primary .btn-icon,
+  .btn-secondary {
+    font-size: var(--font-xs);
+    padding: 6px 12px;
+  }
+}

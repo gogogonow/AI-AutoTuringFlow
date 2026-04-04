@@ -1,0 +1,9 @@
+/* History List Specific Styles */
+
+/* History table column widths */
+.col-time { width: 180px; }
+.col-type { width: 120px; }
+.col-prev-status { width: 100px; }
+.col-next-status { width: 100px; }
+.col-operator { width: 120px; }
+.col-remark { min-width: 200px; }
