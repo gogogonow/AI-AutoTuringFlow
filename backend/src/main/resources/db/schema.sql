@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS module_vendor_info (
 CREATE TABLE IF NOT EXISTS history (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     module_id BIGINT NOT NULL,
-    operation_type VARCHAR(30) NOT NULL,
+    operation_type VARCHAR(50) NOT NULL,
     operation_time DATETIME(6) NOT NULL,
     operator VARCHAR(100),
     previous_status VARCHAR(20),
@@ -69,3 +69,19 @@ CREATE TABLE IF NOT EXISTS history (
 -- making it nullable + adding a DEFAULT NULL allows existing rows to remain intact.
 -- continue-on-error=true handles the case where the column does not exist.
 ALTER TABLE history MODIFY COLUMN operation VARCHAR(100) NULL DEFAULT NULL;
+
+-- Fix legacy 'timestamp' column that may exist from a previous schema version.
+-- This column has no default value in the old schema, causing INSERT failures
+-- when JPA inserts a new history row without including this column.
+ALTER TABLE history MODIFY COLUMN `timestamp` TIMESTAMP NULL DEFAULT NULL;
+
+-- Expand operation_type column to accommodate new vendor operation types:
+-- VENDOR_ADD (10 chars), VENDOR_UPDATE (13 chars), VENDOR_DELETE (13 chars).
+-- The original column may have been created with a smaller size.
+ALTER TABLE history MODIFY COLUMN operation_type VARCHAR(50) NOT NULL;
+
+-- Drop old check constraint on operation_type that only allowed the original
+-- 9 operation types and blocks the new VENDOR_ADD/VENDOR_UPDATE/VENDOR_DELETE values.
+-- If the constraint does not exist (fresh installation or already removed),
+-- this statement will fail and be silently skipped via continue-on-error=true.
+ALTER TABLE history DROP CONSTRAINT chk_operation_type;
