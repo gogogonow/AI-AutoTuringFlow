@@ -22,10 +22,12 @@ class ModuleDetails {
     try {
       Utils.showLoading();
       this.moduleData = await API.getModule(this.moduleId);
-      const history = await API.getModuleHistory(this.moduleId);
+      const historyData = await API.getModuleHistory(this.moduleId);
       this.vendorInfos = await API.getVendorInfos(this.moduleId);
       Utils.hideLoading();
-      this.render(history.content || []);
+      // getModuleHistory returns a plain array, not a paged response
+      const historyList = Array.isArray(historyData) ? historyData : (historyData.content || []);
+      this.render(historyList);
     } catch (error) {
       Utils.hideLoading();
       this.renderError('加载失败: ' + error.message);

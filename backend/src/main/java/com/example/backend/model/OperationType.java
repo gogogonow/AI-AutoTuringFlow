@@ -47,5 +47,20 @@ public enum OperationType {
     /**
      * 更新信息
      */
-    UPDATE_INFO
+    UPDATE_INFO,
+
+    /**
+     * 新增厂家信息
+     */
+    VENDOR_ADD,
+
+    /**
+     * 更新厂家信息
+     */
+    VENDOR_UPDATE,
+
+    /**
+     * 删除厂家信息
+     */
+    VENDOR_DELETE
 }

@@ -3,6 +3,7 @@ package com.example.backend.service;
 import com.example.backend.dto.ModuleVendorInfoDto;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.model.ModuleVendorInfo;
+import com.example.backend.model.OperationType;
 import com.example.backend.repository.ModuleRepository;
 import com.example.backend.repository.ModuleVendorInfoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,9 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
 
     @Autowired
     private ModuleRepository moduleRepository;
+
+    @Autowired
+    private HistoryService historyService;
 
     @Override
     @Transactional(readOnly = true)
@@ -50,23 +54,33 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
         }
         ModuleVendorInfo info = toEntity(dto);
         info.setModuleId(moduleId);
-        return toDto(vendorInfoRepository.save(info));
+        ModuleVendorInfoDto saved = toDto(vendorInfoRepository.save(info));
+        historyService.createHistory(moduleId, OperationType.VENDOR_ADD, "system",
+                null, null, "新增厂家信息: " + (dto.getVendor() != null ? dto.getVendor() : ""));
+        return saved;
     }
 
     @Override
     public ModuleVendorInfoDto updateVendorInfo(Long id, ModuleVendorInfoDto dto) {
         ModuleVendorInfo existing = vendorInfoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("厂家信息不存在: ID=" + id));
+        Long moduleId = existing.getModuleId();
         updateEntity(existing, dto);
-        return toDto(vendorInfoRepository.save(existing));
+        ModuleVendorInfoDto saved = toDto(vendorInfoRepository.save(existing));
+        historyService.createHistory(moduleId, OperationType.VENDOR_UPDATE, "system",
+                null, null, "更新厂家信息: " + (dto.getVendor() != null ? dto.getVendor() : ""));
+        return saved;
     }
 
     @Override
     public void deleteVendorInfo(Long id) {
-        if (!vendorInfoRepository.existsById(id)) {
-            throw new ResourceNotFoundException("厂家信息不存在: ID=" + id);
-        }
+        ModuleVendorInfo existing = vendorInfoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("厂家信息不存在: ID=" + id));
+        Long moduleId = existing.getModuleId();
+        String vendor = existing.getVendor();
         vendorInfoRepository.deleteById(id);
+        historyService.createHistory(moduleId, OperationType.VENDOR_DELETE, "system",
+                null, null, "删除厂家信息: " + (vendor != null ? vendor : ""));
     }
 
     private ModuleVendorInfoDto toDto(ModuleVendorInfo info) {

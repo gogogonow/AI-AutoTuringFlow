@@ -63,3 +63,9 @@ CREATE TABLE IF NOT EXISTS history (
     INDEX idx_operation_time (operation_time),
     INDEX idx_operation_type (operation_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Fix legacy 'operation' column that may exist from a previous schema version.
+-- If the column exists without a default value it causes INSERT errors;
+-- making it nullable + adding a DEFAULT NULL allows existing rows to remain intact.
+-- continue-on-error=true handles the case where the column does not exist.
+ALTER TABLE history MODIFY COLUMN operation VARCHAR(100) NULL DEFAULT NULL;
