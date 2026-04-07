@@ -1,0 +1,7 @@
+setup:
+  runs-on:
+    - self-hosted
+    - tanweideMacBook-Air
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
