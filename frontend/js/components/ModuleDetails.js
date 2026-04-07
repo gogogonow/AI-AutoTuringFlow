@@ -89,6 +89,70 @@ class ModuleDetails {
             <div class="detail-label">入库时间</div>
             <div class="detail-value" id="detail-inboundTime">${Utils.formatDateTime(module.inboundTime)}</div>
           </div>
+          <div class="detail-item">
+            <div class="detail-label">生命周期状态</div>
+            <div class="detail-value" id="detail-lifecycleStatus">${Utils.escapeHtml(module.lifecycleStatus || '-')}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">封装形式</div>
+            <div class="detail-value" id="detail-packageForm">${Utils.escapeHtml(module.packageForm || '-')}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">光纤数目</div>
+            <div class="detail-value" id="detail-fiberCount">${module.fiberCount || '-'}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">光类型</div>
+            <div class="detail-value" id="detail-lightType">${Utils.escapeHtml(module.lightType || '-')}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">速率集</div>
+            <div class="detail-value" id="detail-speedSet">${Utils.escapeHtml(module.speedSet || '-')}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">光纤类型</div>
+            <div class="detail-value" id="detail-fiberType">${Utils.escapeHtml(module.fiberType || '-')}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">最大功耗</div>
+            <div class="detail-value" id="detail-maxPowerConsumption">${module.maxPowerConsumption ? module.maxPowerConsumption + ' W' : '-'}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">最低工作壳温</div>
+            <div class="detail-value" id="detail-minCaseTemp">${module.minCaseTemp !== null && module.minCaseTemp !== undefined ? module.minCaseTemp + ' °C' : '-'}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">最高工作壳温</div>
+            <div class="detail-value" id="detail-maxCaseTemp">${module.maxCaseTemp !== null && module.maxCaseTemp !== undefined ? module.maxCaseTemp + ' °C' : '-'}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">最后发货时间</div>
+            <div class="detail-value" id="detail-lastShipmentTime">${Utils.formatDateTime(module.lastShipmentTime) || '-'}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">历史总发货量</div>
+            <div class="detail-value" id="detail-totalShipmentVolume">${module.totalShipmentVolume || '0'}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">近五年发货量</div>
+            <div class="detail-value" id="detail-recent5yearShipmentVolume">${module.recent5yearShipmentVolume || '0'}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">发货地区</div>
+            <div class="detail-value" id="detail-shipmentRegions">${Utils.escapeHtml(module.shipmentRegions || '-')}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">主流发货</div>
+            <div class="detail-value" id="detail-isMainstreamShipment">${module.isMainstreamShipment ? '是' : '否'}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">规格书模板版本</div>
+            <div class="detail-value" id="detail-specTemplateVersion">${Utils.escapeHtml(module.specTemplateVersion || '-')}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">当前发货厂家</div>
+            <div class="detail-value" id="detail-currentShippingVendors">${Utils.escapeHtml(module.currentShippingVendors || '-')}</div>
+          </div>
           <div class="detail-item" style="grid-column: 1 / -1;">
             <div class="detail-label">备注</div>
             <div class="detail-value" id="detail-remark">${Utils.escapeHtml(module.remark || '-')}</div>

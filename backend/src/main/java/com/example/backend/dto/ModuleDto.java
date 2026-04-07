@@ -1,6 +1,9 @@
 package com.example.backend.dto;
 
 import com.example.backend.model.ModuleStatus;
+import com.example.backend.model.LifecycleStatus;
+import com.example.backend.model.LightType;
+import com.example.backend.model.FiberType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -43,6 +46,40 @@ public class ModuleDto {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
+    // New comprehensive fields for optical module specifications
+
+    private LifecycleStatus lifecycleStatus;
+
+    private String packageForm;
+
+    private Integer fiberCount;
+
+    private LightType lightType;
+
+    private String speedSet;
+
+    private FiberType fiberType;
+
+    private Double maxPowerConsumption;
+
+    private Integer minCaseTemp;
+
+    private Integer maxCaseTemp;
+
+    private LocalDateTime lastShipmentTime;
+
+    private Long totalShipmentVolume;
+
+    private Long recent5yearShipmentVolume;
+
+    private String shipmentRegions;
+
+    private Boolean isMainstreamShipment;
+
+    private String specTemplateVersion;
+
+    private String currentShippingVendors;
 
     // Constructors
     public ModuleDto() {}
@@ -150,5 +187,133 @@ public class ModuleDto {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public LifecycleStatus getLifecycleStatus() {
+        return lifecycleStatus;
+    }
+
+    public void setLifecycleStatus(LifecycleStatus lifecycleStatus) {
+        this.lifecycleStatus = lifecycleStatus;
+    }
+
+    public String getPackageForm() {
+        return packageForm;
+    }
+
+    public void setPackageForm(String packageForm) {
+        this.packageForm = packageForm;
+    }
+
+    public Integer getFiberCount() {
+        return fiberCount;
+    }
+
+    public void setFiberCount(Integer fiberCount) {
+        this.fiberCount = fiberCount;
+    }
+
+    public LightType getLightType() {
+        return lightType;
+    }
+
+    public void setLightType(LightType lightType) {
+        this.lightType = lightType;
+    }
+
+    public String getSpeedSet() {
+        return speedSet;
+    }
+
+    public void setSpeedSet(String speedSet) {
+        this.speedSet = speedSet;
+    }
+
+    public FiberType getFiberType() {
+        return fiberType;
+    }
+
+    public void setFiberType(FiberType fiberType) {
+        this.fiberType = fiberType;
+    }
+
+    public Double getMaxPowerConsumption() {
+        return maxPowerConsumption;
+    }
+
+    public void setMaxPowerConsumption(Double maxPowerConsumption) {
+        this.maxPowerConsumption = maxPowerConsumption;
+    }
+
+    public Integer getMinCaseTemp() {
+        return minCaseTemp;
+    }
+
+    public void setMinCaseTemp(Integer minCaseTemp) {
+        this.minCaseTemp = minCaseTemp;
+    }
+
+    public Integer getMaxCaseTemp() {
+        return maxCaseTemp;
+    }
+
+    public void setMaxCaseTemp(Integer maxCaseTemp) {
+        this.maxCaseTemp = maxCaseTemp;
+    }
+
+    public LocalDateTime getLastShipmentTime() {
+        return lastShipmentTime;
+    }
+
+    public void setLastShipmentTime(LocalDateTime lastShipmentTime) {
+        this.lastShipmentTime = lastShipmentTime;
+    }
+
+    public Long getTotalShipmentVolume() {
+        return totalShipmentVolume;
+    }
+
+    public void setTotalShipmentVolume(Long totalShipmentVolume) {
+        this.totalShipmentVolume = totalShipmentVolume;
+    }
+
+    public Long getRecent5yearShipmentVolume() {
+        return recent5yearShipmentVolume;
+    }
+
+    public void setRecent5yearShipmentVolume(Long recent5yearShipmentVolume) {
+        this.recent5yearShipmentVolume = recent5yearShipmentVolume;
+    }
+
+    public String getShipmentRegions() {
+        return shipmentRegions;
+    }
+
+    public void setShipmentRegions(String shipmentRegions) {
+        this.shipmentRegions = shipmentRegions;
+    }
+
+    public Boolean getIsMainstreamShipment() {
+        return isMainstreamShipment;
+    }
+
+    public void setIsMainstreamShipment(Boolean isMainstreamShipment) {
+        this.isMainstreamShipment = isMainstreamShipment;
+    }
+
+    public String getSpecTemplateVersion() {
+        return specTemplateVersion;
+    }
+
+    public void setSpecTemplateVersion(String specTemplateVersion) {
+        this.specTemplateVersion = specTemplateVersion;
+    }
+
+    public String getCurrentShippingVendors() {
+        return currentShippingVendors;
+    }
+
+    public void setCurrentShippingVendors(String currentShippingVendors) {
+        this.currentShippingVendors = currentShippingVendors;
     }
 }
