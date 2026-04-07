@@ -99,6 +99,7 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
         dto.setModuleId(info.getModuleId());
         dto.setVendor(info.getVendor());
         dto.setProcessStatus(info.getProcessStatus());
+        dto.setVersionBatch(info.getVersionBatch());
         dto.setEntryTime(info.getEntryTime());
         dto.setExitTime(info.getExitTime());
         dto.setLd(info.getLd());
@@ -127,6 +128,7 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
     private void updateEntity(ModuleVendorInfo info, ModuleVendorInfoDto dto) {
         info.setVendor(dto.getVendor());
         info.setProcessStatus(dto.getProcessStatus());
+        info.setVersionBatch(dto.getVersionBatch());
         info.setEntryTime(dto.getEntryTime());
         info.setExitTime(dto.getExitTime());
         info.setLd(dto.getLd());
@@ -147,6 +149,7 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
         StringBuilder sb = new StringBuilder("新增厂家字段：");
         sb.append("厂家=").append(nullSafe(dto.getVendor()));
         appendIfNotNull(sb, "流程状态", dto.getProcessStatus());
+        appendIfNotNull(sb, "版本/批次", dto.getVersionBatch());
         appendIfNotNull(sb, "LD", dto.getLd());
         appendIfNotNull(sb, "PD", dto.getPd());
         appendIfNotNull(sb, "LA+LDO", dto.getLaLdo());
@@ -163,6 +166,7 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
         boolean hasChange = false;
         hasChange |= appendChange(sb, "厂家", existing.getVendor(), dto.getVendor());
         hasChange |= appendChange(sb, "流程状态", existing.getProcessStatus(), dto.getProcessStatus());
+        hasChange |= appendChange(sb, "版本/批次", existing.getVersionBatch(), dto.getVersionBatch());
         hasChange |= appendChange(sb, "LD", existing.getLd(), dto.getLd());
         hasChange |= appendChange(sb, "PD", existing.getPd(), dto.getPd());
         hasChange |= appendChange(sb, "LA+LDO", existing.getLaLdo(), dto.getLaLdo());
@@ -182,6 +186,7 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
         StringBuilder sb = new StringBuilder("删除前厂家字段：");
         sb.append("厂家=").append(nullSafe(info.getVendor()));
         appendIfNotNull(sb, "流程状态", info.getProcessStatus());
+        appendIfNotNull(sb, "版本/批次", info.getVersionBatch());
         appendIfNotNull(sb, "LD", info.getLd());
         appendIfNotNull(sb, "PD", info.getPd());
         appendIfNotNull(sb, "LA+LDO", info.getLaLdo());

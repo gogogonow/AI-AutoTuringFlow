@@ -136,7 +136,10 @@ class ModuleVendorInfoServiceTest {
 
         vendorInfoService.deleteVendorInfo(1L);
 
-        verify(vendorInfoRepository).deleteById(1L);
+        // Verify soft delete (save is called, not deleteById)
+        verify(vendorInfoRepository).save(argThat(info ->
+            info.getDeleted() == true && info.getDeletedAt() != null
+        ));
 
         // Verify VENDOR_DELETE history is recorded
         verify(historyService).createHistory(

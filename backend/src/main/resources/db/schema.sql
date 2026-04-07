@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS module_vendor_info (
     module_id BIGINT NOT NULL,
     vendor VARCHAR(100) NOT NULL,
     process_status VARCHAR(50),
+    version_batch VARCHAR(100),
     entry_time DATETIME(6),
     exit_time DATETIME(6),
     ld VARCHAR(200),
@@ -70,9 +71,12 @@ CREATE TABLE IF NOT EXISTS module_vendor_info (
     covered_boards TEXT,
     test_report_link VARCHAR(500),
     remark TEXT,
+    deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME(6),
     created_at DATETIME(6) NOT NULL,
     updated_at DATETIME(6) NOT NULL,
-    INDEX idx_mvi_module_id (module_id)
+    INDEX idx_mvi_module_id (module_id),
+    INDEX idx_vendor_info_deleted (deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create history table (matches History.java entity: @Table(name = "history"))
