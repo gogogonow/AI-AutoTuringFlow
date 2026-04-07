@@ -42,13 +42,6 @@ class ModuleForm {
             <div class="form-row">
               <div class="form-col">
                 <div class="form-group">
-                  <label class="form-label" data-required>供应商</label>
-                  <input class="form-control" type="text" name="vendor" required>
-                  <div class="form-error" id="error-vendor"></div>
-                </div>
-              </div>
-              <div class="form-col">
-                <div class="form-group">
                   <label class="form-label">端口速率</label>
                   <select class="form-control" name="speed">
                     <option value="">请选择</option>
@@ -92,15 +85,6 @@ class ModuleForm {
                     <option value="SC">SC</option>
                     <option value="MPO">MPO</option>
                     <option value="RJ45">RJ45</option>
-                  </select>
-                </div>
-              </div>
-              <div class="form-col">
-                <div class="form-group">
-                  <label class="form-label">初始状态</label>
-                  <select class="form-control" name="status">
-                    <option value="IN_STOCK" selected>在库</option>
-                    <option value="DEPLOYED">已部署</option>
                   </select>
                 </div>
               </div>
@@ -312,7 +296,6 @@ class ModuleForm {
     // Required fields
     const serialNumber = formData.get('serialNumber')?.trim();
     const model = formData.get('model')?.trim();
-    const vendor = formData.get('vendor')?.trim();
 
     if (!serialNumber) {
       errors.serialNumber = '序列号为必填项';
@@ -324,10 +307,6 @@ class ModuleForm {
 
     if (!model) {
       errors.model = '型号为必填项';
-    }
-
-    if (!vendor) {
-      errors.vendor = '供应商为必填项';
     }
 
     // Transmission distance validation
