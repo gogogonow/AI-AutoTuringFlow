@@ -3,7 +3,6 @@ package com.example.backend.service;
 import com.example.backend.dto.HistoryDto;
 import com.example.backend.model.History;
 import com.example.backend.model.Module;
-import com.example.backend.model.ModuleStatus;
 import com.example.backend.model.OperationType;
 import com.example.backend.repository.HistoryRepository;
 import com.example.backend.repository.ModuleRepository;
@@ -63,7 +62,7 @@ class HistoryServiceTest {
         when(moduleRepository.findById(5L)).thenReturn(Optional.empty());
 
         HistoryDto result = historyService.createHistory(
-            5L, OperationType.UPDATE_INFO, "system", null, null, "更新光模块信息"
+            5L, OperationType.UPDATE_INFO, "system", "更新光模块信息"
         );
 
         assertNotNull(result);
@@ -78,7 +77,7 @@ class HistoryServiceTest {
         when(moduleRepository.findById(5L)).thenReturn(Optional.empty());
 
         HistoryDto result = historyService.createHistory(
-            5L, OperationType.VENDOR_ADD, "system", null, null, "新增厂家信息: Cisco"
+            5L, OperationType.VENDOR_ADD, "system", "新增厂家信息: Cisco"
         );
 
         assertNotNull(result);
@@ -100,7 +99,7 @@ class HistoryServiceTest {
         when(moduleRepository.findById(5L)).thenReturn(Optional.empty());
 
         HistoryDto result = historyService.createHistory(
-            5L, OperationType.VENDOR_UPDATE, "system", null, null, "更新厂家信息: Huawei"
+            5L, OperationType.VENDOR_UPDATE, "system", "更新厂家信息: Huawei"
         );
 
         assertNotNull(result);
@@ -118,7 +117,7 @@ class HistoryServiceTest {
         when(moduleRepository.findById(5L)).thenReturn(Optional.empty());
 
         HistoryDto result = historyService.createHistory(
-            5L, OperationType.VENDOR_DELETE, "system", null, null, "删除厂家信息: Cisco"
+            5L, OperationType.VENDOR_DELETE, "system", "删除厂家信息: Cisco"
         );
 
         assertNotNull(result);
@@ -136,7 +135,7 @@ class HistoryServiceTest {
         when(historyRepository.save(any(History.class))).thenReturn(savedHistory);
         when(moduleRepository.findById(5L)).thenReturn(Optional.empty());
 
-        historyService.createHistory(5L, OperationType.UPDATE_INFO, "admin", null, null, null);
+        historyService.createHistory(5L, OperationType.UPDATE_INFO, "admin", null);
 
         ArgumentCaptor<History> captor = ArgumentCaptor.forClass(History.class);
         verify(historyRepository).save(captor.capture());
@@ -145,21 +144,18 @@ class HistoryServiceTest {
     }
 
     @Test
-    void testCreateHistory_WithStatusChange() {
+    void testCreateHistory_Deploy() {
         savedHistory.setOperationType(OperationType.DEPLOY);
-        savedHistory.setPreviousStatus(ModuleStatus.IN_STOCK);
-        savedHistory.setNextStatus(ModuleStatus.DEPLOYED);
         when(historyRepository.save(any(History.class))).thenReturn(savedHistory);
         when(moduleRepository.findById(5L)).thenReturn(Optional.empty());
 
         HistoryDto result = historyService.createHistory(
-            5L, OperationType.DEPLOY, "admin",
-            ModuleStatus.IN_STOCK, ModuleStatus.DEPLOYED, "部署到设备"
+            5L, OperationType.DEPLOY, "admin", "部署到设备"
         );
 
         assertNotNull(result);
-        assertEquals(ModuleStatus.IN_STOCK, result.getPreviousStatus());
-        assertEquals(ModuleStatus.DEPLOYED, result.getNextStatus());
+        assertEquals(OperationType.DEPLOY, result.getOperationType());
+        verify(historyRepository).save(any(History.class));
     }
 
     /**
@@ -182,10 +178,9 @@ class HistoryServiceTest {
         savedHistory.setSerialNumber("SN12345");
         savedHistory.setModel("SFP-10G-SR");
         when(historyRepository.save(any(History.class))).thenReturn(savedHistory);
-        when(moduleRepository.findById(5L)).thenReturn(Optional.of(mockModule));
 
         HistoryDto result = historyService.createHistory(
-            5L, OperationType.DELETE_MODULE, "system", null, null,
+            5L, OperationType.DELETE_MODULE, "system",
             "删除光模块", "删除前字段：序列号=SN12345, 型号=SFP-10G-SR",
             "SN12345", "SFP-10G-SR"
         );
@@ -208,10 +203,9 @@ class HistoryServiceTest {
         savedHistory.setSerialNumber("SN98765");
         savedHistory.setModel("QSFP-100G-LR4");
         when(historyRepository.save(any(History.class))).thenReturn(savedHistory);
-        when(moduleRepository.findById(5L)).thenReturn(Optional.empty());
 
         HistoryDto result = historyService.createHistory(
-            5L, OperationType.INBOUND, "system", null, null,
+            5L, OperationType.INBOUND, "system",
             "首次入库", "新增字段：序列号=SN98765, 型号=QSFP-100G-LR4",
             "SN98765", "QSFP-100G-LR4"
         );
