@@ -1,421 +1,378 @@
-# 架构设计方案：前端界面美化优化
+# UI 优化方案
 
-## 任务概述
+## 一、视觉问题诊断
 
-**需求来源**: GitHub Issue - 前端界面美化优化  
-**任务模式**: feature (UI美化)  
-**影响范围**: frontend（仅前端）  
-**核心目标**: 优化当前前端界面视觉效果，从"全是框框"的朴素样式改为清爽自然的现代化UI，同时保持所有现有功能和API契约不变
+### 1.1 配色问题
+**当前状态：**
+- Header 采用深色背景 `#2c3e50`（深灰蓝色），视觉过于传统、沉重
+- Sidebar 采用 `#34495e`（深灰色），与 Header 视觉风格不统一
+- 整体配色虽有蓝色系 `#1890ff`，但未在全局导航上体现，缺乏现代感
 
-**关键约束**:
-1. 不改变前后端交互接口（所有API调用保持不变）
-2. 修改后代码功能正常（保持所有业务逻辑）
-3. 遵循原生HTML+CSS+JS架构（无框架约束）
-4. 遵循项目上下文中定义的前端架构约束
+**问题影响：**
+- 整体界面给人感觉偏向传统企业风格，不够清新
+- 缺少现代极简设计的轻盈感
 
-## 影响分析
-
-### 影响范围
-- **frontend/** 目录下的所有文件
-  - `index.html` - 主入口页面结构优化
-  - `styles/*.css` - 全面重构样式系统
-  - `js/*.js` - 保持业务逻辑不变，可能微调DOM操作以适配新样式结构
-
-### 不影响范围
-- ✅ 后端代码（`backend/`）完全不涉及
-- ✅ API契约保持不变
-- ✅ 数据模型保持不变
-- ✅ 业务逻辑保持不变
-
-### 技术债务清理机会
-- 移除行内样式（如有）
-- 统一CSS命名规范为kebab-case
-- 改善可访问性（ARIA标签、语义化HTML）
-- 优化响应式布局
-
-## API 契约
-
-**本次任务不涉及API变更**，所有现有API调用保持不变：
-
-### 现有API（仅作参考，不修改）
-
-#### 1. 光模块列表查询
-```
-GET /api/modules
-Query Parameters:
-  - page: number (默认0)
-  - size: number (默认20)
-  - status: string (可选，状态筛选)
-  - model: string (可选，型号筛选)
-  - vendor: string (可选，供应商筛选)
-
-Response:
-{
-  "content": [
-    {
-      "id": number,
-      "serialNumber": string,
-      "model": string,
-      "vendor": string,
-      "speed": string,
-      "wavelength": number,
-      "transmissionDistance": number,
-      "connectorType": string,
-      "status": "IN_STOCK" | "DEPLOYED" | "FAULTY" | "UNDER_REPAIR" | "SCRAPPED",
-      "inboundTime": string (ISO 8601),
-      "remark": string
-    }
-  ],
-  "totalElements": number,
-  "totalPages": number,
-  "number": number,
-  "size": number
+### 1.2 表格视觉问题
+**当前状态（module-list.css）：**
+```css
+.data-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
 }
 ```
 
-#### 2. 其他现有API
-- POST /api/modules - 创建光模块
-- PUT /api/modules/{id} - 更新光模块
-- DELETE /api/modules/{id} - 删除光模块
-- GET /api/histories - 查询操作历史
-- POST /api/modules/{id}/actions/* - 各类状态操作
+**问题分析：**
+- 行间距 `padding: 12px 16px` 偏高，信息密度低
+- 缺少斑马纹（alternating row color），长列表难以追踪行数据
+- 悬停状态 `.table-row:hover { background: #fafafa; }` 对比度不足，交互反馈不明显
 
-**所有API调用在JS代码中保持不变，仅更新DOM操作以适配新样式结构。**
+**问题影响：**
+- 用户浏览长表格时容易串行，降低阅读效率
+- 悬停反馈弱，交互感不强
 
-## 数据库设计
-
-**本次任务不涉及数据库变更**，无需修改任何实体、表结构或迁移脚本。
-
-## UI设计方案
-
-### 设计原则
-1. **清爽自然** - 使用柔和配色、合理留白、轻量化边框
-2. **现代化** - 采用卡片式布局、阴影效果、圆角设计
-3. **响应式** - 适配桌面/平板/移动端
-4. **可访问性** - 符合WCAG 2.1 AA标准
-
-### 视觉规范
-
-#### 配色方案
+### 1.3 按钮圆角问题
+**当前状态（variables.css）：**
 ```css
-/* 主色调 - 清新蓝绿系 */
---primary-color: #3b82f6;        /* 主色 - 蓝色 */
---primary-light: #60a5fa;        /* 主色浅 */
---primary-dark: #2563eb;         /* 主色深 */
-
-/* 辅助色 */
---secondary-color: #10b981;      /* 成功/在库 - 绿色 */
---warning-color: #f59e0b;        /* 警告/维修 - 橙色 */
---danger-color: #ef4444;         /* 危险/故障 - 红色 */
---info-color: #06b6d4;          /* 信息 - 青色 */
-
-/* 中性色 */
---gray-50: #f9fafb;
---gray-100: #f3f4f6;
---gray-200: #e5e7eb;
---gray-300: #d1d5db;
---gray-500: #6b7280;
---gray-700: #374151;
---gray-900: #111827;
-
-/* 背景色 */
---bg-primary: #ffffff;
---bg-secondary: #f9fafb;
---bg-hover: #f3f4f6;
-
-/* 文字色 */
---text-primary: #111827;
---text-secondary: #6b7280;
---text-disabled: #9ca3af;
+--radius-md: 4px;
 ```
 
-#### 字体规范
-```css
---font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
---font-family-mono: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, monospace;
+**问题分析：**
+- 所有按钮使用 `border-radius: 4px`（var(--radius-md)）
+- 需求要求统一使用 `6px` 圆角，更符合现代 UI 设计趋势（参考 Ant Design）
 
---font-size-xs: 0.75rem;    /* 12px */
---font-size-sm: 0.875rem;   /* 14px */
---font-size-base: 1rem;     /* 16px */
---font-size-lg: 1.125rem;   /* 18px */
---font-size-xl: 1.25rem;    /* 20px */
---font-size-2xl: 1.5rem;    /* 24px */
---font-size-3xl: 1.875rem;  /* 30px */
+### 1.4 CSS 变量未充分使用
+**当前状态：**
+- `main.css` 中存在大量硬编码颜色值（如 `#2c3e50`、`#34495e`、`#3498db`）
+- 未使用 `variables.css` 中定义的 CSS 变量
 
---font-weight-normal: 400;
---font-weight-medium: 500;
---font-weight-semibold: 600;
---font-weight-bold: 700;
-```
-
-#### 间距规范
-```css
---spacing-xs: 0.25rem;   /* 4px */
---spacing-sm: 0.5rem;    /* 8px */
---spacing-md: 1rem;      /* 16px */
---spacing-lg: 1.5rem;    /* 24px */
---spacing-xl: 2rem;      /* 32px */
---spacing-2xl: 3rem;     /* 48px */
-```
-
-#### 圆角规范
-```css
---radius-sm: 0.25rem;    /* 4px */
---radius-md: 0.5rem;     /* 8px */
---radius-lg: 0.75rem;    /* 12px */
---radius-xl: 1rem;       /* 16px */
---radius-full: 9999px;   /* 完全圆角 */
-```
-
-#### 阴影规范
-```css
---shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
---shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
---shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
---shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-```
-
-### 布局改进方案
-
-#### 1. 整体布局
-```
-┌─────────────────────────────────────────────────────────┐
-│  [导航栏]  光模块管理系统                                  │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  ┌───────────────────────────────────────────────┐     │
-│  │  [搜索和筛选区域 - 卡片式]                      │     │
-│  │  🔍 搜索框  |  筛选器  |  操作按钮               │     │
-│  └───────────────────────────────────────────────┘     │
-│                                                         │
-│  ┌───────────────────────────────────────────────┐     │
-│  │  [统计卡片区域]                                 │     │
-│  │  [总数] [在库] [部署中] [故障]                   │     │
-│  └───────────────────────────────────────────────┘     │
-│                                                         │
-│  ┌───────────────────────────────────────────────┐     │
-│  │  [数据表格 - 卡片式]                            │     │
-│  │  清爽的表格样式，带悬停效果和状态徽章             │     │
-│  └───────────────────────────────────────────────┘     │
-│                                                         │
-│  [分页器 - 现代化样式]                                   │
-└─────────────────────────────────────────────────────────┘
-```
-
-#### 2. 卡片式组件
-- 使用白色背景 + 轻微阴影替代硬边框
-- 圆角设计增加柔和感
-- 悬停时阴影加深，提供交互反馈
-
-#### 3. 表格优化
-- 去除重边框，使用细线或仅用背景色区分行
-- 表头固定，背景色略深
-- 行悬停效果
-- 状态用彩色徽章（badge）而非纯文字
-
-#### 4. 表单和按钮
-- 按钮采用圆角、阴影、渐变效果
-- 主操作按钮明显（primary色）
-- 次要操作按钮轻量化（outline或ghost风格）
-- 输入框统一样式，聚焦时带蓝色边框
-
-### 组件清单
-
-#### 1. 通用组件样式类
-- `.card` - 卡片容器
-- `.card-header` - 卡片头部
-- `.card-body` - 卡片主体
-- `.badge` - 状态徽章
-- `.btn-primary`, `.btn-secondary`, `.btn-outline` - 按钮样式
-- `.table-modern` - 现代化表格
-- `.form-control` - 表单控件
-- `.stats-card` - 统计卡片
-
-#### 2. 状态徽章
-```css
-.badge-in-stock { background: var(--secondary-color); }
-.badge-deployed { background: var(--info-color); }
-.badge-faulty { background: var(--danger-color); }
-.badge-under-repair { background: var(--warning-color); }
-.badge-scrapped { background: var(--gray-500); }
-```
-
-#### 3. 响应式断点
-```css
-@media (max-width: 768px) { /* 移动端 */ }
-@media (min-width: 769px) and (max-width: 1024px) { /* 平板 */ }
-@media (min-width: 1025px) { /* 桌面 */ }
-```
-
-## 文件清单
-
-### 需要创建的文件
-
-#### 1. `frontend/styles/variables.css` (新建)
-- 作用：CSS变量定义（配色、字体、间距、阴影等）
-- 职责：全局设计令牌管理
-
-#### 2. `frontend/styles/reset.css` (新建)
-- 作用：CSS重置，统一浏览器默认样式
-- 职责：消除浏览器差异
-
-#### 3. `frontend/styles/components.css` (新建)
-- 作用：可复用组件样式（按钮、卡片、徽章、表格等）
-- 职责：通用UI组件库
-
-#### 4. `frontend/styles/layout.css` (新建)
-- 作用：布局相关样式（导航栏、容器、网格等）
-- 职责：页面结构样式
-
-#### 5. `frontend/styles/utilities.css` (新建)
-- 作用：工具类（间距、文本、颜色等）
-- 职责：快速样式应用
-
-### 需要修改的文件
-
-#### 1. `frontend/index.html`
-**修改内容**:
-- 引入新的CSS文件（按顺序：reset → variables → layout → components → utilities）
-- 更新HTML结构以支持卡片布局
-- 添加统计卡片区域
-- 优化表格结构（添加样式类）
-- 改进表单和按钮的class命名
-- 添加必要的ARIA标签
-
-**保持不变**:
-- 所有`id`属性（JS依赖）
-- 所有数据绑定点（JS操作的DOM节点）
-- 表单`name`属性
-- 所有事件绑定点
-
-#### 2. `frontend/styles/main.css` (如果存在)
-**修改内容**:
-- 重构为模块化CSS结构
-- 移除旧的硬边框样式
-- 移除行内样式相关代码（如有）
-
-**或**:
-- 废弃该文件，所有样式迁移到新的模块化CSS文件中
-
-#### 3. `frontend/js/*.js`
-**可能微调内容**:
-- DOM操作中的class名称（适配新样式类）
-- 动态创建元素的HTML结构（添加新的class）
-- 状态徽章的class映射逻辑
-
-**保持不变**:
-- 所有API调用代码
-- 所有业务逻辑
-- 事件处理函数的核心逻辑
-- 数据处理和验证逻辑
-
-### 文件依赖关系
-```
-index.html
-  ├─> styles/reset.css (第1优先级)
-  ├─> styles/variables.css (第2优先级)
-  ├─> styles/layout.css (第3优先级)
-  ├─> styles/components.css (第4优先级)
-  ├─> styles/utilities.css (第5优先级)
-  └─> js/*.js (保持现有加载顺序)
-```
-
-## 一致性约束
-
-### 1. 命名规范一致性
-- **CSS类名**: 必须使用kebab-case（如`.module-status-badge`）
-- **CSS变量**: 必须使用kebab-case（如`--primary-color`）
-- **HTML ID**: 必须使用kebab-case（如`#module-list-table`）
-- **JS变量**: 必须使用camelCase（如`moduleList`）
-
-### 2. 状态枚举一致性
-CSS中的状态徽章类名必须与后端状态枚举对应：
-```
-IN_STOCK       → .badge-in-stock
-DEPLOYED       → .badge-deployed
-FAULTY         → .badge-faulty
-UNDER_REPAIR   → .badge-under-repair
-SCRAPPED       → .badge-scrapped
-```
-
-### 3. DOM结构与JS操作一致性
-- 所有JS中通过`id`或`class`查询的元素，其命名在HTML中不得变更
-- 动态创建的DOM结构，class必须符合新的组件样式规范
-- 示例：
-```javascript
-// JS中查询元素
-const table = document.getElementById('module-list-table'); // ID不变
-
-// 动态创建行时应用新样式
-row.className = 'table-row'; // 使用新的组件类
-```
-
-### 4. 响应式一致性
-- 所有组件在移动端、平板、桌面端必须正常显示
-- 表格在小屏幕下可滚动或采用卡片式布局
-- 导航栏在移动端可折叠
-
-### 5. 可访问性一致性
-- 所有交互元素必须有合适的`aria-label`
-- 颜色对比度符合WCAG 2.1 AA标准（4.5:1）
-- 表单必须有`<label>`关联
-- 状态徽章除了颜色还需有文字说明
-
-### 6. 浏览器兼容性一致性
-- 支持现代浏览器（Chrome、Firefox、Safari、Edge最新两个版本）
-- CSS变量在不支持的浏览器中提供降级方案
-- 避免使用实验性CSS特性
-
-### 7. 性能一致性
-- CSS文件总大小控制在100KB以内（未压缩）
-- 避免过度使用阴影和动画（影响渲染性能）
-- 图片（如有）使用WebP格式，提供降级方案
-
-## 实现指导
-
-### 阶段一：样式系统搭建
-1. 创建`variables.css`，定义所有设计令牌
-2. 创建`reset.css`，统一浏览器样式
-3. 创建`components.css`，实现核心组件样式（按钮、卡片、徽章、表格）
-4. 创建`layout.css`，实现页面布局
-5. 创建`utilities.css`，实现工具类
-
-### 阶段二：HTML结构优化
-1. 在`index.html`中按顺序引入所有新CSS文件
-2. 重构HTML结构，应用卡片布局
-3. 添加统计卡片区域（通过JS动态填充数据）
-4. 更新表格结构，应用新的class
-5. 优化表单和按钮，应用新的组件类
-
-### 阶段三：JS适配
-1. 检查所有DOM查询，确保ID/Class未被破坏性修改
-2. 更新动态创建元素的代码，应用新的class
-3. 更新状态徽章的class映射逻辑
-4. 测试所有交互功能（搜索、筛选、分页、CRUD操作）
-
-### 阶段四：测试与优化
-1. 在不同浏览器中测试（Chrome、Firefox、Safari、Edge）
-2. 测试响应式布局（移动端、平板、桌面）
-3. 检查可访问性（键盘导航、屏幕阅读器）
-4. 性能优化（减少重绘、合并CSS规则）
-
-### 关键注意事项
-- ⚠️ **不修改任何API调用代码**
-- ⚠️ **不修改业务逻辑**
-- ⚠️ **保持所有现有功能正常**
-- ⚠️ **遵循原生HTML+CSS+JS约束（无构建工具）**
-- ⚠️ **所有样式通过外部CSS文件引入，不使用行内样式**
-- ⚠️ **CSS文件加载顺序严格遵循依赖关系**
-
-### 验收标准对照
-✅ **不改变前后端交互接口**: 所有API调用保持不变，仅修改UI层  
-✅ **修改后代码功能正常**: 保持所有业务逻辑和交互功能，仅改进视觉表现  
-✅ **清爽自然**: 采用现代化卡片布局、柔和配色、合理留白  
-✅ **无框框**: 用阴影和圆角替代硬边框，视觉更轻盈
+**问题影响：**
+- 后续主题调整需要修改多个文件，维护成本高
+- 与组件化设计理念不符
 
 ---
 
-**架构方案版本**: v1.0  
-**预计文件变更量**: 新建5个CSS文件，修改1个HTML文件，微调若干JS文件  
-**风险评估**: 低风险（仅UI层修改，不涉及业务逻辑和API）  
-**预计工作量**: 中等（需要细致的样式重构和兼容性测试）
+## 二、变更清单
+
+### 2.1 全局 CSS 变量（`frontend/styles/variables.css`）
+**修改内容：**
+```css
+/* 1. 更新 border-radius 变量 */
+--radius-md: 6px;  /* 从 4px 改为 6px */
+--radius-lg: 10px; /* 从 8px 改为 10px，保持层级关系 */
+
+/* 2. 新增 Header/Sidebar 配色变量 */
+--header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);  /* 渐变紫蓝色 */
+--sidebar-bg: #ffffff;           /* 改为白色 */
+--sidebar-text: #333333;         /* 文字深灰色 */
+--sidebar-active-bg: #e6f7ff;    /* 激活项浅蓝背景 */
+--sidebar-active-text: #1890ff;  /* 激活项蓝色文字 */
+--sidebar-hover-bg: #f5f5f5;     /* 悬停浅灰背景 */
+
+/* 3. 新增表格斑马纹变量 */
+--table-row-even-bg: #fafafa;    /* 偶数行背景 */
+--table-row-hover-bg: #e6f7ff;   /* 悬停行背景（浅蓝色，对比度更高） */
+```
+
+**变更原因：**
+- 统一按钮圆角为 6px，符合现代 UI 规范
+- 新增 Header/Sidebar 配色变量，便于统一管理
+- 新增表格斑马纹变量，提升可维护性
+
+---
+
+### 2.2 全局布局样式（`frontend/styles/main.css`）
+**修改内容：**
+
+#### （1）Header 样式重构
+```css
+/* Header styles */
+#header {
+    background: var(--header-bg);  /* 使用渐变背景变量 */
+    color: white;
+    padding: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);  /* 增强阴影，提升层次感 */
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 2rem;  /* 从 1rem 减少到 0.75rem，降低高度 */
+    max-width: 100%;
+}
+
+.system-title {
+    font-size: 1.5rem;
+    font-weight: 700;  /* 从 600 提升到 700，更醒目 */
+    letter-spacing: 0.5px;  /* 新增字间距 */
+}
+```
+
+#### （2）Sidebar 样式重构
+```css
+/* Sidebar styles */
+#sidebar {
+    width: 250px;
+    background-color: var(--sidebar-bg);  /* 白色背景 */
+    color: var(--sidebar-text);           /* 深灰色文字 */
+    position: fixed;
+    left: 0;
+    top: 60px;
+    bottom: 0;
+    overflow-y: auto;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.06);  /* 更柔和的阴影 */
+    border-right: 1px solid var(--border-color);  /* 新增右边框 */
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.875rem 1.5rem;  /* 从 1rem 减少到 0.875rem */
+    color: var(--sidebar-text);
+    text-decoration: none;
+    transition: all 0.2s ease;  /* 新增过渡动画 */
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;  /* 右侧圆角 */
+    margin: 0.25rem 0;
+}
+
+.nav-link:hover {
+    background-color: var(--sidebar-hover-bg);
+    color: var(--text-primary);
+}
+
+.nav-item.active .nav-link {
+    background-color: var(--sidebar-active-bg);
+    color: var(--sidebar-active-text);
+    border-left: 4px solid var(--primary-color);
+    font-weight: 600;
+}
+```
+
+#### （3）Button 样式调整（使用新的 --radius-md）
+```css
+/* 无需额外修改，所有 .btn 已使用 var(--radius-md) */
+/* variables.css 中更新后自动生效 */
+```
+
+---
+
+### 2.3 共享组件样式（`frontend/styles/components.css`）
+**修改内容：**
+
+#### （1）Table 新增斑马纹和优化悬停效果
+```css
+/* 在 .table td 样式后新增 */
+.table tbody tr:nth-child(even) {
+    background-color: var(--table-row-even-bg);
+}
+
+.table tbody tr:hover {
+    background-color: var(--table-row-hover-bg);
+    transition: background-color 0.15s ease;
+}
+
+/* 优化行内单元格间距 */
+.table td {
+    padding: 10px 16px;  /* 从 12px 减少到 10px */
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color-light);
+}
+```
+
+---
+
+### 2.4 光模块列表样式（`frontend/styles/module-list.css`）
+**修改内容：**
+
+```css
+/* Data Table - 同步应用斑马纹 */
+.data-table tbody tr:nth-child(even) {
+    background-color: var(--table-row-even-bg);
+}
+
+.data-table tbody tr:hover {
+    background-color: var(--table-row-hover-bg);
+    transition: background-color 0.15s ease;
+}
+
+.data-table td {
+    padding: 10px 16px;  /* 从 12px 减少到 10px */
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+    border-bottom: 1px solid #f0f0f0;
+}
+
+/* 优化 Filter Bar 视觉 */
+.filter-bar {
+    display: flex;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: white;  /* 从 #fafafa 改为白色 */
+    border: 1px solid var(--border-color);  /* 新增边框 */
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
+    flex-wrap: wrap;
+    box-shadow: var(--shadow-sm);  /* 新增阴影 */
+}
+```
+
+---
+
+### 2.5 操作历史样式（`frontend/styles/history-list.css`）
+**修改内容：**
+```css
+/* 新增斑马纹支持（如果 HistoryList 使用 table） */
+.history-table tbody tr:nth-child(even) {
+    background-color: var(--table-row-even-bg);
+}
+
+.history-table tbody tr:hover {
+    background-color: var(--table-row-hover-bg);
+    transition: background-color 0.15s ease;
+}
+
+.history-table td {
+    padding: 10px 16px;  /* 从 12px 减少到 10px */
+}
+```
+
+**说明：**
+- 如果 HistoryList 组件使用 Timeline 而非 Table，则无需新增此段
+- Frontend Dev 需根据组件实际渲染结构决定是否应用
+
+---
+
+## 三、设计规范
+
+### 3.1 色彩规范
+| 用途 | 变量名 | 色值/渐变 | 说明 |
+|------|--------|----------|------|
+| Header 背景 | `--header-bg` | `linear-gradient(135deg, #667eea 0%, #764ba2 100%)` | 渐变紫蓝色，现代感 |
+| Sidebar 背景 | `--sidebar-bg` | `#ffffff` | 白色，清新简洁 |
+| Sidebar 文字 | `--sidebar-text` | `#333333` | 深灰色 |
+| Sidebar 激活项背景 | `--sidebar-active-bg` | `#e6f7ff` | 浅蓝色 |
+| Sidebar 激活项文字 | `--sidebar-active-text` | `#1890ff` | 主色蓝 |
+| Sidebar 悬停背景 | `--sidebar-hover-bg` | `#f5f5f5` | 浅灰色 |
+| 表格偶数行 | `--table-row-even-bg` | `#fafafa` | 浅灰色（斑马纹） |
+| 表格悬停行 | `--table-row-hover-bg` | `#e6f7ff` | 浅蓝色（高对比度） |
+| 主色 | `--primary-color` | `#1890ff` | 保持不变 |
+
+### 3.2 排版规范
+| 元素 | 字号 | 字重 | 行高 |
+|------|------|------|------|
+| Header 标题 | 1.5rem (24px) | 700 | - |
+| Sidebar 菜单项 | 0.95rem (15.2px) | 400（默认），600（激活） | - |
+| 表格表头 | var(--font-sm) (14px) | 600 | - |
+| 表格单元格 | var(--font-sm) (14px) | 400 | - |
+
+### 3.3 间距规范
+| 元素 | 内边距 | 外边距 |
+|------|--------|--------|
+| Header | `0.75rem 2rem` | - |
+| Sidebar 菜单项 | `0.875rem 1.5rem` | `0.25rem 0` |
+| 表格单元格 | `10px 16px` | - |
+| Filter Bar | `var(--spacing-md)` (16px) | - |
+
+### 3.4 圆角规范
+| 元素 | 圆角值 |
+|------|--------|
+| 按钮（所有） | `6px` (--radius-md) |
+| Card | `10px` (--radius-lg) |
+| Modal | `10px` (--radius-lg) |
+| Input/Select | `6px` (--radius-md) |
+| Sidebar 菜单项 | `0 6px 6px 0` (右侧圆角) |
+
+### 3.5 动效规范
+| 交互 | 属性 | 时长 | 缓动函数 |
+|------|------|------|---------|
+| 按钮悬停 | background | 0.2s | ease |
+| 表格行悬停 | background-color | 0.15s | ease |
+| Sidebar 菜单悬停 | all | 0.2s | ease |
+| Modal 弹出 | opacity, transform | 0.3s | ease-out |
+
+---
+
+## 四、一致性约束
+
+### 4.1 禁止破坏的功能逻辑
+| 约束 | 说明 |
+|------|------|
+| **禁止修改 HTML 结构** | 所有 JS 组件（ModuleList.js、Header.js 等）依赖现有 DOM 结构挂载事件，修改 class 名或结构会导致脚本失效 |
+| **禁止内联样式** | 所有样式必须写入 CSS 文件，不得在 HTML 中使用 `style=` 属性（除非是动态计算的布局值） |
+| **禁止修改 CSS 变量命名** | `variables.css` 中的变量名已被多个 CSS 文件引用，重命名会导致样式失效 |
+| **禁止删除现有 CSS 类** | 即使某些类未在当前文件中使用，也可能被 JS 动态添加或其他组件引用 |
+
+### 4.2 必须遵守的规范
+| 规范 | 说明 |
+|------|------|
+| **使用 CSS 变量** | 所有颜色、间距、圆角必须使用 `variables.css` 中定义的变量，不得硬编码 |
+| **BEM 命名约定** | 新增 CSS 类应遵循 BEM 命名（如 `.filter-bar__input`），保持代码可读性 |
+| **响应式兼容** | 修改后样式必须在 `responsive.css` 定义的断点下正常显示（768px、576px） |
+| **浏览器兼容** | 测试需覆盖 Chrome（主流）、Firefox、Edge，确保渐变、阴影、过渡动画正常 |
+
+### 4.3 测试验收标准
+| 项目 | 验收标准 |
+|------|---------|
+| **Header 渐变** | 在 Chrome DevTools 中确认 background 为 `linear-gradient(135deg, #667eea 0%, #764ba2 100%)` |
+| **Sidebar 白色背景** | 确认 `#sidebar` 的 `background-color` 为 `#ffffff` |
+| **按钮圆角** | 所有按钮的 `border-radius` 为 `6px` |
+| **表格斑马纹** | 偶数行背景为 `#fafafa`，悬停行背景为 `#e6f7ff` |
+| **表格行间距** | 单元格 `padding` 为 `10px 16px` |
+| **JS 功能不受影响** | 点击菜单切换页面、表格排序、分页等功能正常 |
+
+### 4.4 回滚方案
+如果美化导致严重视觉问题或功能异常：
+1. **立即回滚 CSS 文件**：使用 Git 恢复修改前的 `variables.css`、`main.css`、`components.css`
+2. **保留可行部分**：如表格斑马纹正常但 Header 渐变有问题，可单独回滚 `main.css` 中的 Header 部分
+3. **分步发布**：建议先发布 `variables.css` + `components.css`（表格优化），验收通过后再发布 `main.css`（Header/Sidebar 优化）
+
+---
+
+## 五、实施建议
+
+### 5.1 优先级排序
+| 优先级 | 变更项 | 影响范围 | 工作量 |
+|--------|--------|---------|--------|
+| P0（必须） | 按钮圆角 6px | 全局 | 低（仅修改 variables.css） |
+| P0（必须） | 表格斑马纹 + 悬停优化 | ModuleList、HistoryList | 中（components.css + module-list.css） |
+| P1（重要） | Header/Sidebar 配色优化 | 全局导航 | 中（main.css + variables.css） |
+| P2（可选） | Filter Bar 样式优化 | ModuleList 页面 | 低（module-list.css） |
+
+### 5.2 分步发布计划
+**Phase 1（核心优化）**：
+- 修改 `variables.css`：更新 `--radius-md` 为 6px，新增表格相关变量
+- 修改 `components.css`：新增表格斑马纹和悬停效果
+- 修改 `module-list.css`：同步应用表格优化
+
+**Phase 2（导航优化）**：
+- 修改 `variables.css`：新增 Header/Sidebar 配色变量
+- 修改 `main.css`：应用新配色到 Header 和 Sidebar
+
+**Phase 3（细节优化）**：
+- 修改 `module-list.css`：优化 Filter Bar 样式
+- 修改 `history-list.css`：应用表格优化（如适用）
+
+---
+
+## 六、文件变更汇总
+
+| 文件路径 | 变更类型 | 变更行数（估算） |
+|---------|---------|---------------|
+| `frontend/styles/variables.css` | 修改 + 新增 | ~20 行 |
+| `frontend/styles/main.css` | 修改 | ~50 行 |
+| `frontend/styles/components.css` | 新增 | ~15 行 |
+| `frontend/styles/module-list.css` | 新增 + 修改 | ~20 行 |
+| `frontend/styles/history-list.css` | 新增（条件） | ~10 行 |
+| **总计** | - | **~115 行** |
+
+**变更影响范围：**
+- ✅ 前端样式优化（纯 CSS 改动）
+- ❌ 无 HTML 结构修改
+- ❌ 无 JavaScript 逻辑修改
+- ❌ 无后端 API 修改
