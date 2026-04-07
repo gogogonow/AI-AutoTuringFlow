@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
  * 角色实体
  */
 @Entity
-@Table(name = "role")
+@Table(name = "`role`")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

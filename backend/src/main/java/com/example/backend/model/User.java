@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
  * 用户实体
  */
 @Entity
-@Table(name = "user")
+@Table(name = "`user`")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
