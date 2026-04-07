@@ -126,6 +126,7 @@ describe('API', () => {
     test('should send DELETE request', async () => {
       fetch.mockResolvedValueOnce({
         ok: true,
+        status: 200,
         headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({})
       });
@@ -138,6 +139,18 @@ describe('API', () => {
           method: 'DELETE'
         })
       );
+    });
+
+    test('should handle 204 no content response', async () => {
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+        text: async () => ''
+      });
+
+      const result = await API.deleteModule(1);
+      expect(result).toBeNull();
     });
   });
 
