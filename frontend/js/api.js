@@ -12,22 +12,49 @@ class API {
 
     try {
       const response = await fetch(url, config);
-      
+      const contentType = response.headers.get('content-type') || '';
+      const contentLength = response.headers.get('content-length');
+      const isJson = contentType.includes('application/json');
+      const isNoContent = response.status === 204 || response.status === 205 || contentLength === '0';
+
+      // Gracefully handle responses without a body (e.g. DELETE 204)
+      if (isNoContent) {
+        if (!response.ok) {
+          const error = new Error('Request failed');
+          error.status = response.status;
+          throw error;
+        }
+        return null;
+      }
+
       // Handle non-JSON responses (like file downloads)
-      const contentType = response.headers.get('content-type');
-      if (contentType && !contentType.includes('application/json')) {
+      if (!isJson) {
         if (!response.ok) {
           throw new Error('Request failed');
         }
         return response;
       }
 
-      const data = await response.json();
+      let data = null;
+      try {
+        if (typeof response.text === 'function') {
+          const raw = await response.text();
+          data = raw ? JSON.parse(raw) : null;
+        } else if (typeof response.json === 'function') {
+          data = await response.json();
+        }
+      } catch (parseError) {
+        console.warn('Failed to parse JSON response', parseError);
+      }
 
       if (!response.ok) {
-        const error = new Error(data.message || data.error || 'Request failed');
+        const error = new Error(
+          (data && (data.message || data.error)) || 'Request failed'
+        );
         error.status = response.status;
-        error.validationErrors = data.validationErrors;
+        if (data && data.validationErrors) {
+          error.validationErrors = data.validationErrors;
+        }
         throw error;
       }
 
