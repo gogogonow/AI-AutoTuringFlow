@@ -394,6 +394,7 @@ class ModuleDetails {
             </div>
           ` : ''}
           ${item.remark ? `<div class="timeline-remark">${Utils.escapeHtml(item.remark)}</div>` : ''}
+          ${item.changeDetails ? `<div class="timeline-details" style="margin-top: 8px; padding: 8px; background-color: var(--color-bg-secondary, #f5f5f5); border-radius: 4px; font-size: 0.9em; color: var(--color-text-secondary, #666); white-space: pre-wrap; word-break: break-word;">${Utils.escapeHtml(item.changeDetails)}</div>` : ''}
         </div>
       </div>
     `).join('');
