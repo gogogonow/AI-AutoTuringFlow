@@ -26,8 +26,25 @@ public interface HistoryService {
         ModuleStatus previousStatus,
         ModuleStatus nextStatus,
         String remark,
-        String changeDetails
+        String changeDetails,
+        String serialNumber,
+        String model
     );
+
+    /**
+     * 创建历史记录（无序列号和型号）
+     */
+    default HistoryDto createHistory(
+        Long moduleId,
+        OperationType operationType,
+        String operator,
+        ModuleStatus previousStatus,
+        ModuleStatus nextStatus,
+        String remark,
+        String changeDetails
+    ) {
+        return createHistory(moduleId, operationType, operator, previousStatus, nextStatus, remark, changeDetails, null, null);
+    }
 
     /**
      * 创建历史记录（无变更详情）
@@ -40,7 +57,7 @@ public interface HistoryService {
         ModuleStatus nextStatus,
         String remark
     ) {
-        return createHistory(moduleId, operationType, operator, previousStatus, nextStatus, remark, null);
+        return createHistory(moduleId, operationType, operator, previousStatus, nextStatus, remark, null, null, null);
     }
 
     /**

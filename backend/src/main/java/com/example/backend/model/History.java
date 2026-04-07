@@ -46,6 +46,12 @@ public class History {
     @Column(name = "change_details", columnDefinition = "TEXT")
     private String changeDetails;
 
+    @Column(name = "serial_number", length = 50)
+    private String serialNumber;
+
+    @Column(name = "model", length = 100)
+    private String model;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -145,6 +151,22 @@ public class History {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getSerialNumber() {
+        return serialNumber;
+    }
+
+    public void setSerialNumber(String serialNumber) {
+        this.serialNumber = serialNumber;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public void setModel(String model) {
+        this.model = model;
     }
 
     @Override

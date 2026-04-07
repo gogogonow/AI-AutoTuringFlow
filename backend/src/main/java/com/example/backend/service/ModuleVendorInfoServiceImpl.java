@@ -56,9 +56,20 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
         ModuleVendorInfo info = toEntity(dto);
         info.setModuleId(moduleId);
         ModuleVendorInfoDto saved = toDto(vendorInfoRepository.save(info));
+
+        // Get module info for history
+        String serialNumber = null;
+        String model = null;
+        var moduleOpt = moduleRepository.findById(moduleId);
+        if (moduleOpt.isPresent()) {
+            serialNumber = moduleOpt.get().getSerialNumber();
+            model = moduleOpt.get().getModel();
+        }
+
         String changeDetails = buildVendorCreateDetails(dto);
         historyService.createHistory(moduleId, OperationType.VENDOR_ADD, "system",
-                null, null, "新增厂家信息: " + (dto.getVendor() != null ? dto.getVendor() : ""), changeDetails);
+                null, null, "新增厂家信息: " + (dto.getVendor() != null ? dto.getVendor() : ""),
+                changeDetails, serialNumber, model);
         return saved;
     }
 
@@ -67,11 +78,22 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
         ModuleVendorInfo existing = vendorInfoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("厂家信息不存在: ID=" + id));
         Long moduleId = existing.getModuleId();
+
+        // Get module info for history
+        String serialNumber = null;
+        String model = null;
+        var moduleOpt = moduleRepository.findById(moduleId);
+        if (moduleOpt.isPresent()) {
+            serialNumber = moduleOpt.get().getSerialNumber();
+            model = moduleOpt.get().getModel();
+        }
+
         String changeDetails = buildVendorUpdateDetails(existing, dto);
         updateEntity(existing, dto);
         ModuleVendorInfoDto saved = toDto(vendorInfoRepository.save(existing));
         historyService.createHistory(moduleId, OperationType.VENDOR_UPDATE, "system",
-                null, null, "更新厂家信息: " + (dto.getVendor() != null ? dto.getVendor() : ""), changeDetails);
+                null, null, "更新厂家信息: " + (dto.getVendor() != null ? dto.getVendor() : ""),
+                changeDetails, serialNumber, model);
         return saved;
     }
 
@@ -83,13 +105,23 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
         String vendor = existing.getVendor();
         String changeDetails = buildVendorDeleteDetails(existing);
 
+        // Get module info for history
+        String serialNumber = null;
+        String model = null;
+        var moduleOpt = moduleRepository.findById(moduleId);
+        if (moduleOpt.isPresent()) {
+            serialNumber = moduleOpt.get().getSerialNumber();
+            model = moduleOpt.get().getModel();
+        }
+
         // 软删除：设置删除标记和删除时间
         existing.setDeleted(true);
         existing.setDeletedAt(LocalDateTime.now());
         vendorInfoRepository.save(existing);
 
         historyService.createHistory(moduleId, OperationType.VENDOR_DELETE, "system",
-                null, null, "删除厂家信息: " + (vendor != null ? vendor : ""), changeDetails);
+                null, null, "删除厂家信息: " + (vendor != null ? vendor : ""),
+                changeDetails, serialNumber, model);
     }
 
     private ModuleVendorInfoDto toDto(ModuleVendorInfo info) {
