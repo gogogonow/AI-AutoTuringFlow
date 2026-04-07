@@ -32,25 +32,15 @@ class HistoryList {
         } catch (error) {
             Utils.hideLoading();
             Utils.showToast('加载历史记录失败: ' + error.message, 'error');
-            this.container.innerHTML = `
-                <div class="card">
-                    <div class="empty-state">
-                        <div class="empty-state-icon">⚠️</div>
-                        <div class="empty-state-text">加载失败</div>
-                        <button class="btn btn-secondary" onclick="window.app.showPage('details', ${this.moduleId})">返回详情</button>
-                    </div>
-                </div>
-            `;
+            this.container.innerHTML = Utils.renderErrorState(
+                '加载失败',
+                `<button class="btn btn-secondary" onclick="window.app.showPage('details', ${this.moduleId})">返回详情</button>`
+            );
         }
     }
     
     renderEmptyState() {
-        return `
-            <div class="empty-state">
-                <div class="empty-state-icon">📜</div>
-                <div class="empty-state-text">暂无修改历史记录</div>
-            </div>
-        `;
+        return Utils.renderEmptyState('📜', '暂无修改历史记录');
     }
     
     renderTimeline() {
@@ -131,12 +121,7 @@ class HistoryList {
     }
     
     getOperationTypeText(type) {
-        const typeMap = {
-            'create': '✨ 创建',
-            'update': '📝 更新',
-            'delete': '🗑️ 删除'
-        };
-        return typeMap[type] || type;
+        return Utils.getOperationTypeText(type);
     }
     
     getFieldName(field) {

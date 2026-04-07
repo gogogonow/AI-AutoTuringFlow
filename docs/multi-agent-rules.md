@@ -16,6 +16,7 @@
 3. `docs/module-boundaries.md`（职责边界，确认自己的作业范围）
 4. `docs/architecture.md`（架构约束，确保方案合规）
 5. `.ai_architect_plan.md`（当前任务的架构方案，如存在）
+6. **`docs/frontend-component-spec.md`（前端组件规范，含前端任务时必读）**
 
 ### 原则二：边界遵守（Boundary Compliance）
 
@@ -74,18 +75,22 @@
 - 基于架构方案设计界面布局和交互流程
 - 输出视觉规范、组件列表、交互说明
 - 为 Frontend Agent 提供明确的实现指导
+- **必须先读取 `docs/frontend-component-spec.md`，在组件清单中明确标注哪些是复用已有组件、哪些是新建**
 
 **输出规范**：
 ```markdown
 ## 界面布局描述
-## 组件清单
+## 组件清单（标注：复用/扩展/新建）
 ## 交互说明
 ## 视觉规范（配色、字体、间距）
+## 新增/修改的 CSS 类（仅新建组件时填写）
 ```
 
 **禁止行为**：
 - ❌ 不生成实际代码
 - ❌ 不建议使用框架（前端无框架约束）
+- ❌ 不建议使用内联 style= 属性替代 CSS 类
+- ❌ 不建议重新实现 `components.css` 中已有的 CSS 类
 
 ---
 
@@ -100,14 +105,28 @@
 
 **输入约定**：
 - 必须先读取 `docs/project-context.md`、`docs/module-boundaries.md`
+- **必须先读取 `docs/frontend-component-spec.md`（组件规范、共享 Utils、CSS 类清单）**
 - 必须先读取 `.ai_architect_plan.md` 中的 API 契约部分
 - feature 模式：直接生成新文件
 - upgrade/bugfix 模式：先用 `read_code_tool` 读取现有文件，再用 `patch_code_tool` 增量修改
+
+**组件复用检查（必须在生成代码前完成）**：
+```
+□ 检查 js/components/ 下是否有可复用/扩展的组件
+□ 确认使用 Utils.renderErrorState() 而非自定义 errorState 模板
+□ 确认使用 Utils.renderEmptyState() 而非自定义 emptyState 模板
+□ 确认状态文本通过 Utils.getStatusText() 获取（不要内置 statusMap）
+□ 确认操作类型文本通过 Utils.getOperationTypeText() 获取（不要内置 typeMap）
+□ 确认新增 CSS 类写入 components.css 而非内联样式
+□ 确认 API 字段使用 camelCase（对齐后端 Jackson 序列化）
+```
 
 **输出约定（JSON 格式）**：
 ```json
 {
   "files_modified": [],
+  "components_reused": [],
+  "components_new": [],
   "api_dependencies": [],
   "test_results": "passed/failed",
   "deliverables_summary": ""
@@ -163,13 +182,66 @@
 □ JPA 实体使用 jakarta.persistence.* 而非 javax.persistence.*
 □ DTO 与实体字段是否对齐
 □ 操作历史是否在所有写操作中写入
+□ 前端是否有重复实现 Utils 已有的 renderErrorState/renderEmptyState 模板？
+□ 前端组件是否有各自内置 statusMap/typeMap（应统一使用 Utils/CONFIG）？
 ```
 
 ---
 
-## 3. 任务执行流程
+## 3. 前端组件复用规则（Frontend Component Reuse）
 
-### 3.1 标准执行流程
+> 本节专门针对 multi-agent 在前端任务中容易产生重复组件的问题，给出强制规范。
+
+### 3.1 重复组件的根因
+
+multi-agent 在处理前端任务时常见的重复模式和根因：
+
+| 重复模式 | 根因 | 解决方案 |
+|---------|------|---------|
+| 每个组件都有自己的 `renderErrorState()` 模板 | Agent 没有检查共享 Utils 就直接生成 | 强制要求读取 `frontend-component-spec.md` |
+| 每个组件都有自己的 `renderEmptyState()` 模板 | 同上 | 使用 `Utils.renderEmptyState()` |
+| 每个组件都有自己的 `statusMap`/`typeMap` | 状态枚举未集中管理 | 统一使用 `config.js` + `Utils.getStatusText()` |
+| `api.js` 中混入 UI 工具类（Utils） | 职责边界不清，agent 在错误的文件中添加代码 | Utils 归属 `utils.js`，api.js 只负责 HTTP 调用 |
+| 同一 HTML 结构出现在多个组件的不同位置 | 没有提取公共片段 | 使用 `Utils.renderXxx()` 共享方法 |
+| 新 agent 创建了完全不同的 HTML 结构（如 `index.html` 重写） | UI Agent 未检查现有实现就从头设计 | UI Agent 必须先读取现有组件文件 |
+
+### 3.2 UI Agent 与 Frontend Agent 的协作规则
+
+```
+UI Designer Agent
+  │ 读取 frontend-component-spec.md
+  │ 读取 js/components/ 现有文件（了解已有实现）
+  │ 输出组件清单，明确标注：复用/扩展/新建
+  ↓
+Frontend Dev Agent
+  │ 读取 UI Designer 输出的组件清单
+  │ 对于"复用"项：直接使用，不修改
+  │ 对于"扩展"项：在现有文件中增量修改（patch_code_tool）
+  │ 对于"新建"项：
+  │   □ 先检查 Utils/CONFIG 有无可复用逻辑
+  │   □ 复用 components.css 中已有 CSS 类
+  │   □ 在 index.html 正确位置添加 <script> 标签
+  ↓
+Review Agent
+  │ 验证新增组件是否有重复实现 Utils 已有功能
+  │ 发现重复则用 patch_code_tool 替换为 Utils.* 调用
+```
+
+### 3.3 ui-beautify 模式的特殊约束
+
+`mode:ui-beautify` 是最容易产生组件重复的场景（UI 美化任务往往重写整个 HTML/CSS）。
+
+**强制约束**：
+- UI Designer 必须先读取 `index.html` 和所有 `js/components/*.js` 文件
+- 禁止重写 `index.html` 整体结构，只允许在现有结构上修改
+- CSS 美化只能修改 `styles/*.css`，不能在组件 JS 中引入内联样式
+- 如果需要大幅调整 HTML 结构，必须在架构师规划阶段讨论，不能在 ui-beautify 阶段直接替换
+
+---
+
+## 4. 任务执行流程
+
+### 4.1 标准执行流程
 
 ```
 Issue 创建（用户打 run-ai 标签）
@@ -208,7 +280,7 @@ Issue 创建（用户打 run-ai 标签）
 8. 创建 Pull Request
 ```
 
-### 3.2 上下文不足时的处理流程
+### 4.2 上下文不足时的处理流程
 
 ```
 Agent 发现上下文不足
@@ -228,7 +300,7 @@ Agent 发现上下文不足
 
 ---
 
-## 4. 禁止行为清单
+## 5. 禁止行为清单
 
 以下行为对所有 Agent 均明确禁止：
 
@@ -244,10 +316,15 @@ Agent 发现上下文不足
 | 在代码中硬编码密码/Token | 🔴 严重 | 安全漏洞 |
 | 生成需要构建工具才能运行的前端代码 | 🟡 中 | 前端无构建工具约束 |
 | Review Agent 发现问题不修复只报告 | 🟡 中 | 审查责任要求主动修复 |
+| **在组件中重新实现 Utils 已有的 renderErrorState/renderEmptyState 模板** | 🟠 高 | 导致错误状态 UI 不一致，增加维护成本 |
+| **在组件中内置 statusMap/typeMap 替代 Utils.getStatusText()** | 🟠 高 | 枚举值散落多处，修改时容易漏改 |
+| **重写 index.html 整体结构（ui-beautify 模式）** | 🔴 严重 | 会破坏现有组件挂载逻辑，产生平行实现 |
+| **在 api.js 中添加 UI 工具函数** | 🟠 高 | 职责混淆，应在 utils.js 中统一管理 |
+| **使用 snake_case 字段名访问后端 API 数据** | 🟠 高 | 后端 Jackson 默认 camelCase 序列化 |
 
 ---
 
-## 5. 上下文刷新触发条件
+## 6. 上下文刷新触发条件
 
 以下情况发生时，项目上下文会被自动或手动刷新：
 
