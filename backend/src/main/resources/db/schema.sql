@@ -15,12 +15,39 @@ CREATE TABLE IF NOT EXISTS module (
     status VARCHAR(20) NOT NULL DEFAULT 'IN_STOCK',
     inbound_time DATETIME(6) NOT NULL,
     remark TEXT,
+    -- Comprehensive fields for optical module specifications
+    lifecycle_status VARCHAR(20),
+    package_form VARCHAR(50),
+    fiber_count INT,
+    light_type VARCHAR(20),
+    speed_set TEXT,
+    fiber_type VARCHAR(20),
+    max_power_consumption DECIMAL(10, 2),
+    min_case_temp INT,
+    max_case_temp INT,
+    last_shipment_time DATETIME(6),
+    total_shipment_volume BIGINT DEFAULT 0,
+    recent_5year_shipment_volume BIGINT DEFAULT 0,
+    shipment_regions TEXT,
+    is_mainstream_shipment BOOLEAN DEFAULT FALSE,
+    spec_template_version VARCHAR(50),
+    current_shipping_vendors TEXT,
+    -- Soft delete columns
+    deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME(6),
+    -- Audit columns
     created_at DATETIME(6) NOT NULL,
     updated_at DATETIME(6) NOT NULL,
     INDEX idx_serial_number (serial_number),
     INDEX idx_status (status),
     INDEX idx_model (model),
-    INDEX idx_vendor (vendor)
+    INDEX idx_vendor (vendor),
+    INDEX idx_lifecycle_status (lifecycle_status),
+    INDEX idx_package_form (package_form),
+    INDEX idx_fiber_type (fiber_type),
+    INDEX idx_light_type (light_type),
+    INDEX idx_is_mainstream_shipment (is_mainstream_shipment),
+    INDEX idx_module_deleted (deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create module_vendor_info table (matches ModuleVendorInfo.java entity)

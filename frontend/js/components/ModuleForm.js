@@ -107,6 +107,138 @@ class ModuleForm {
             </div>
           </div>
 
+          <!-- Comprehensive Specifications -->
+          <div class="form-section">
+            <h3 class="form-section-title">完整规格信息</h3>
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label">生命周期状态</label>
+                  <select class="form-control" name="lifecycleStatus">
+                    <option value="">请选择</option>
+                    <option value="GA">GA（正式发布）</option>
+                    <option value="EOM">EOM（停止销售）</option>
+                    <option value="EOP">EOP（停止生产）</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label">封装形式</label>
+                  <input class="form-control" type="text" name="packageForm" placeholder="如 SFP, QSFP28">
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label">光纤数目</label>
+                  <input class="form-control" type="number" name="fiberCount" min="0">
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label">光类型</label>
+                  <select class="form-control" name="lightType">
+                    <option value="">请选择</option>
+                    <option value="GRAY">灰光</option>
+                    <option value="COLOR">彩光</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label">速率集</label>
+                  <input class="form-control" type="text" name="speedSet" placeholder="如 1G,10G,25G">
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label">光纤类型</label>
+                  <select class="form-control" name="fiberType">
+                    <option value="">请选择</option>
+                    <option value="SMF">SMF（单模）</option>
+                    <option value="MMF">MMF（多模）</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label">最大功耗（W）</label>
+                  <input class="form-control" type="number" name="maxPowerConsumption" step="0.01" min="0">
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label">最低工作壳温（°C）</label>
+                  <input class="form-control" type="number" name="minCaseTemp">
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label">最高工作壳温（°C）</label>
+                  <input class="form-control" type="number" name="maxCaseTemp">
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label">规格书模板版本</label>
+                  <input class="form-control" type="text" name="specTemplateVersion">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Shipment Information -->
+          <div class="form-section">
+            <h3 class="form-section-title">发货信息</h3>
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label">历史总发货量</label>
+                  <input class="form-control" type="number" name="totalShipmentVolume" min="0" value="0">
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label">近五年发货量</label>
+                  <input class="form-control" type="number" name="recent5yearShipmentVolume" min="0" value="0">
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label">发货地区</label>
+                  <input class="form-control" type="text" name="shipmentRegions" placeholder="如 中国, 北美, 欧洲">
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label">主流发货</label>
+                  <select class="form-control" name="isMainstreamShipment">
+                    <option value="false">否</option>
+                    <option value="true">是</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-col" style="flex: 1;">
+                <div class="form-group">
+                  <label class="form-label">当前发货厂家</label>
+                  <input class="form-control" type="text" name="currentShippingVendors" placeholder="多个厂家用逗号分隔">
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Remarks -->
           <div class="form-section">
             <h3 class="form-section-title">备注信息</h3>
