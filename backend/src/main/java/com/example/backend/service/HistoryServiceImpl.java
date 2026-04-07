@@ -40,7 +40,8 @@ public class HistoryServiceImpl implements HistoryService {
         String operator,
         ModuleStatus previousStatus,
         ModuleStatus nextStatus,
-        String remark
+        String remark,
+        String changeDetails
     ) {
         History history = new History();
         history.setModuleId(moduleId);
@@ -49,6 +50,7 @@ public class HistoryServiceImpl implements HistoryService {
         history.setPreviousStatus(previousStatus);
         history.setNextStatus(nextStatus);
         history.setRemark(remark);
+        history.setChangeDetails(changeDetails);
         history.setOperationTime(LocalDateTime.now());
 
         History savedHistory = historyRepository.save(history);
@@ -130,6 +132,7 @@ public class HistoryServiceImpl implements HistoryService {
         dto.setPreviousStatus(history.getPreviousStatus());
         dto.setNextStatus(history.getNextStatus());
         dto.setRemark(history.getRemark());
+        dto.setChangeDetails(history.getChangeDetails());
         dto.setCreatedAt(history.getCreatedAt());
 
         // Enrich with module information

@@ -2,10 +2,12 @@ package com.example.backend.service;
 
 import com.example.backend.dto.ModuleDto;
 import com.example.backend.dto.StatusChangeRequest;
+import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.model.Module;
 import com.example.backend.model.ModuleStatus;
 import com.example.backend.model.OperationType;
 import com.example.backend.repository.ModuleRepository;
+import com.example.backend.repository.ModuleVendorInfoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +27,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,6 +36,9 @@ class ModuleServiceTest {
 
     @Mock
     private ModuleRepository moduleRepository;
+
+    @Mock
+    private ModuleVendorInfoRepository vendorInfoRepository;
 
     @Mock
     private HistoryService historyService;
@@ -70,7 +77,7 @@ class ModuleServiceTest {
         assertNotNull(result);
         assertEquals("TEST001", result.getSerialNumber());
         verify(moduleRepository).save(any(Module.class));
-        verify(historyService).createHistory(any(), eq(OperationType.INBOUND), anyString(), any(), any(), anyString());
+        verify(historyService).createHistory(any(), eq(OperationType.INBOUND), anyString(), any(), any(), anyString(), anyString());
     }
 
     @Test
@@ -111,30 +118,32 @@ class ModuleServiceTest {
         updateDto.setVendor("Cisco");
 
         when(moduleRepository.findById(1L)).thenReturn(Optional.of(testModule));
-        when(moduleRepository.existsBySerialNumber("TEST001")).thenReturn(false);
         when(moduleRepository.save(any(Module.class))).thenReturn(testModule);
 
         ModuleDto result = moduleService.updateModule(1L, updateDto);
 
         assertNotNull(result);
         verify(moduleRepository).save(any(Module.class));
-        verify(historyService).createHistory(any(), eq(OperationType.UPDATE_INFO), anyString(), any(), any(), anyString());
+        verify(historyService).createHistory(any(), eq(OperationType.UPDATE_INFO), anyString(), any(), any(), anyString(), anyString());
     }
 
     @Test
     void testDeleteModule_Success() {
-        when(moduleRepository.existsById(1L)).thenReturn(true);
+        when(moduleRepository.findById(1L)).thenReturn(Optional.of(testModule));
 
         moduleService.deleteModule(1L);
 
+        verify(vendorInfoRepository).deleteByModuleId(1L);
         verify(moduleRepository).deleteById(1L);
+        verify(historyService).createHistory(eq(1L), eq(OperationType.OUTBOUND), anyString(),
+            eq(ModuleStatus.IN_STOCK), isNull(), anyString(), anyString());
     }
 
     @Test
     void testDeleteModule_NotFound() {
-        when(moduleRepository.existsById(999L)).thenReturn(false);
+        when(moduleRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(ResourceNotFoundException.class, () -> {
             moduleService.deleteModule(999L);
         });
     }
@@ -172,6 +181,7 @@ class ModuleServiceTest {
             eq("admin"),
             eq(ModuleStatus.IN_STOCK),
             eq(ModuleStatus.DEPLOYED),
+            anyString(),
             anyString()
         );
     }

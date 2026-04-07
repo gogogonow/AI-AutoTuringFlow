@@ -77,7 +77,8 @@ class ModuleVendorInfoServiceTest {
             anyString(),
             isNull(),
             isNull(),
-            contains("Cisco")
+            contains("Cisco"),
+            anyString()
         );
     }
 
@@ -90,7 +91,7 @@ class ModuleVendorInfoServiceTest {
         );
 
         verify(vendorInfoRepository, never()).save(any());
-        verify(historyService, never()).createHistory(any(), any(), any(), any(), any(), any());
+        verify(historyService, never()).createHistory(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -113,7 +114,8 @@ class ModuleVendorInfoServiceTest {
             anyString(),
             isNull(),
             isNull(),
-            contains("Huawei")
+            contains("Huawei"),
+            anyString()
         );
     }
 
@@ -125,7 +127,7 @@ class ModuleVendorInfoServiceTest {
             vendorInfoService.updateVendorInfo(999L, testVendorInfoDto)
         );
 
-        verify(historyService, never()).createHistory(any(), any(), any(), any(), any(), any());
+        verify(historyService, never()).createHistory(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -143,7 +145,8 @@ class ModuleVendorInfoServiceTest {
             anyString(),
             isNull(),
             isNull(),
-            contains("Cisco")
+            contains("Cisco"),
+            anyString()
         );
     }
 
@@ -156,7 +159,7 @@ class ModuleVendorInfoServiceTest {
         );
 
         verify(vendorInfoRepository, never()).deleteById(any());
-        verify(historyService, never()).createHistory(any(), any(), any(), any(), any(), any());
+        verify(historyService, never()).createHistory(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
