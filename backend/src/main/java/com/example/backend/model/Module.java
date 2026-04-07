@@ -51,6 +51,12 @@ public class Module {
     @Column(name = "remark", columnDefinition = "TEXT")
     private String remark;
 
+    @Column(name = "deleted", nullable = false)
+    private Boolean deleted = false;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -184,6 +190,22 @@ public class Module {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Boolean getDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(Boolean deleted) {
+        this.deleted = deleted;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
     }
 
     @Override

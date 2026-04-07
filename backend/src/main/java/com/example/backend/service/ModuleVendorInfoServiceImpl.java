@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -81,7 +82,12 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
         Long moduleId = existing.getModuleId();
         String vendor = existing.getVendor();
         String changeDetails = buildVendorDeleteDetails(existing);
-        vendorInfoRepository.deleteById(id);
+
+        // 软删除：设置删除标记和删除时间
+        existing.setDeleted(true);
+        existing.setDeletedAt(LocalDateTime.now());
+        vendorInfoRepository.save(existing);
+
         historyService.createHistory(moduleId, OperationType.VENDOR_DELETE, "system",
                 null, null, "删除厂家信息: " + (vendor != null ? vendor : ""), changeDetails);
     }

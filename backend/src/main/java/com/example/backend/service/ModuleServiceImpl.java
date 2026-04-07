@@ -141,10 +141,13 @@ public class ModuleServiceImpl implements ModuleService {
             changeDetails
         );
 
-        // 删除关联的厂家信息
+        // 软删除：设置删除标记和删除时间
+        module.setDeleted(true);
+        module.setDeletedAt(LocalDateTime.now());
+        moduleRepository.save(module);
+
+        // 软删除关联的厂家信息
         vendorInfoRepository.deleteByModuleId(id);
-        // 删除光模块
-        moduleRepository.deleteById(id);
     }
 
     @Override
