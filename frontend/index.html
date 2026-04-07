@@ -8,7 +8,7 @@
   <!-- CSS样式 -->
   <link rel="stylesheet" href="styles/reset.css">
   <link rel="stylesheet" href="styles/variables.css">
-  <link rel="stylesheet" href="styles/layout.css">
+  <link rel="stylesheet" href="styles/main.css">
   <link rel="stylesheet" href="styles/components.css">
   <link rel="stylesheet" href="styles/module-list.css">
   <link rel="stylesheet" href="styles/history-list.css">
@@ -16,309 +16,62 @@
 </head>
 <body>
   <!-- 顶部导航栏 -->
-  <header id="app-header" class="header">
-    <div class="header-container">
-      <div class="header-logo">
-        <span class="logo-icon">📦</span>
-        <h1 class="app-title">光模块管理系统</h1>
-      </div>
-      
-      <nav class="header-nav">
-        <ul class="nav-list">
-          <li class="nav-item">
-            <a href="#/modules" class="nav-link active" data-page="modules">
-              <span class="nav-icon">📦</span>
-              <span class="nav-text">模块管理</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="#/history" class="nav-link" data-page="history">
-              <span class="nav-icon">📋</span>
-              <span class="nav-text">历史记录</span>
-            </a>
-          </li>
-        </ul>
-      </nav>
-      
-      <div class="header-actions">
-        <button class="btn-icon" id="refresh-btn" title="刷新">
-          <span>🔄</span>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- 主内容区 -->
-  <main id="app-main" class="main-content">
-    <!-- 模块列表视图 -->
-    <div id="module-list-view" class="view-container" style="display: none;">
-      <!-- 筛选栏 -->
-      <div class="filter-bar">
-        <div class="filter-group">
-          <label class="filter-label">状态</label>
-          <select id="filter-status" class="filter-select">
-            <option value="">全部状态</option>
-            <option value="IN_STOCK">在库</option>
-            <option value="DEPLOYED">已部署</option>
-            <option value="FAULTY">故障</option>
-            <option value="UNDER_REPAIR">维修中</option>
-            <option value="SCRAPPED">已报废</option>
-          </select>
-        </div>
-        
-        <div class="filter-group">
-          <label class="filter-label">供应商</label>
-          <select id="filter-vendor" class="filter-select">
-            <option value="">全部供应商</option>
-          </select>
-        </div>
-        
-        <div class="filter-group">
-          <label class="filter-label">速率</label>
-          <select id="filter-speed" class="filter-select">
-            <option value="">全部速率</option>
-            <option value="1G">1G</option>
-            <option value="10G">10G</option>
-            <option value="25G">25G</option>
-            <option value="40G">40G</option>
-            <option value="100G">100G</option>
-          </select>
-        </div>
-        
-        <div class="filter-group filter-search">
-          <input type="text" id="search-keyword" class="search-input" placeholder="搜索序列号或型号">
-          <button id="search-btn" class="btn-primary">搜索</button>
-        </div>
-      </div>
-      
-      <!-- 操作栏 -->
-      <div class="action-bar">
-        <button id="add-module-btn" class="btn-primary">
-          <span class="btn-icon">+</span>
-          新增模块
-        </button>
-        <button id="batch-import-btn" class="btn-secondary">批量导入</button>
-        <button id="batch-export-btn" class="btn-secondary">批量导出</button>
-      </div>
-      
-      <!-- 数据表格 -->
-      <div class="table-container">
-        <table id="module-table" class="data-table">
-          <thead>
-            <tr>
-              <th class="col-sn">序列号</th>
-              <th class="col-model">型号</th>
-              <th class="col-vendor">供应商</th>
-              <th class="col-speed">速率</th>
-              <th class="col-wavelength">波长</th>
-              <th class="col-status">状态</th>
-              <th class="col-inbound-time">入库时间</th>
-              <th class="col-actions">操作</th>
-            </tr>
-          </thead>
-          <tbody id="module-table-body">
-          </tbody>
-        </table>
-        
-        <div id="empty-state" class="empty-state" style="display: none;">
-          <div class="empty-icon">📦</div>
-          <p class="empty-text">暂无模块数据</p>
-          <button class="btn-primary" id="add-first-module">新增第一个模块</button>
-        </div>
-        
-        <div id="loading-state" class="loading-state" style="display: none;">
-          <div class="spinner"></div>
-          <p>加载中...</p>
-        </div>
-      </div>
-      
-      <!-- 分页栏 -->
-      <div class="pagination-bar">
-        <div class="pagination-info">
-          第 <span id="page-start">1</span>-<span id="page-end">20</span> 条，
-          共 <span id="total-count">0</span> 条
-        </div>
-        <div class="pagination-controls">
-          <button id="prev-page-btn" class="btn-pagination" disabled>上一页</button>
-          <div id="page-numbers" class="page-numbers"></div>
-          <button id="next-page-btn" class="btn-pagination">下一页</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 历史记录视图 -->
-    <div id="history-list-view" class="view-container" style="display: none;">
-      <div class="filter-bar">
-        <div class="filter-group">
-          <label class="filter-label">操作类型</label>
-          <select id="filter-operation-type" class="filter-select">
-            <option value="">全部类型</option>
-            <option value="INBOUND">入库</option>
-            <option value="OUTBOUND">出库</option>
-            <option value="DEPLOY">部署</option>
-            <option value="RETRIEVE">收回</option>
-            <option value="MARK_FAULTY">标记故障</option>
-            <option value="SEND_REPAIR">送修</option>
-            <option value="RETURN_REPAIR">维修归还</option>
-            <option value="SCRAP">报废</option>
-            <option value="UPDATE_INFO">更新信息</option>
-          </select>
-        </div>
-        
-        <div class="filter-group filter-search">
-          <input type="text" id="history-search-keyword" class="search-input" placeholder="搜索模块序列号">
-          <button id="history-search-btn" class="btn-primary">搜索</button>
-        </div>
-      </div>
-      
-      <div class="table-container">
-        <table id="history-table" class="data-table">
-          <thead>
-            <tr>
-              <th class="col-time">操作时间</th>
-              <th class="col-type">操作类型</th>
-              <th class="col-sn">模块序列号</th>
-              <th class="col-prev-status">操作前状态</th>
-              <th class="col-next-status">操作后状态</th>
-              <th class="col-operator">操作人</th>
-              <th class="col-remark">备注</th>
-            </tr>
-          </thead>
-          <tbody id="history-table-body">
-          </tbody>
-        </table>
-        
-        <div id="history-empty-state" class="empty-state" style="display: none;">
-          <div class="empty-icon">📋</div>
-          <p class="empty-text">暂无历史记录</p>
-        </div>
-        
-        <div id="history-loading-state" class="loading-state" style="display: none;">
-          <div class="spinner"></div>
-          <p>加载中...</p>
-        </div>
-      </div>
-      
-      <div class="pagination-bar">
-        <div class="pagination-info">
-          第 <span id="history-page-start">1</span>-<span id="history-page-end">20</span> 条，
-          共 <span id="history-total-count">0</span> 条
-        </div>
-        <div class="pagination-controls">
-          <button id="history-prev-page-btn" class="btn-pagination" disabled>上一页</button>
-          <div id="history-page-numbers" class="page-numbers"></div>
-          <button id="history-next-page-btn" class="btn-pagination">下一页</button>
-        </div>
-      </div>
-    </div>
-  </main>
-
-  <!-- 模块模态框 -->
-  <div id="module-modal" class="modal" style="display: none;">
-    <div class="modal-overlay" id="modal-overlay"></div>
-    <div class="modal-dialog">
-      <div class="modal-header">
-        <h2 class="modal-title" id="modal-title">模块详情</h2>
-        <button class="modal-close" id="modal-close-btn">×</button>
-      </div>
-      
-      <div class="modal-body">
-        <form id="module-form" class="module-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label required">序列号</label>
-              <input type="text" id="input-serial-number" class="form-input" required maxlength="100" placeholder="请输入序列号">
-              <span class="form-error" id="error-serial-number"></span>
-            </div>
-            
-            <div class="form-group">
-              <label class="form-label required">型号</label>
-              <input type="text" id="input-model" class="form-input" required maxlength="100" placeholder="如 SFP+10G-SR">
-              <span class="form-error" id="error-model"></span>
-            </div>
-          </div>
-          
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label required">供应商</label>
-              <input type="text" id="input-vendor" class="form-input" required maxlength="100" placeholder="如华为、思科">
-              <span class="form-error" id="error-vendor"></span>
-            </div>
-            
-            <div class="form-group">
-              <label class="form-label required">速率</label>
-              <select id="input-speed" class="form-select" required>
-                <option value="">请选择速率</option>
-                <option value="1G">1G</option>
-                <option value="10G">10G</option>
-                <option value="25G">25G</option>
-                <option value="40G">40G</option>
-                <option value="100G">100G</option>
-              </select>
-              <span class="form-error" id="error-speed"></span>
-            </div>
-          </div>
-          
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label required">波长 (nm)</label>
-              <input type="number" id="input-wavelength" class="form-input" required placeholder="如 850、1310、1550">
-              <span class="form-error" id="error-wavelength"></span>
-            </div>
-            
-            <div class="form-group">
-              <label class="form-label">传输距离 (m)</label>
-              <input type="number" id="input-transmission-distance" class="form-input" placeholder="如 300、10000">
-            </div>
-          </div>
-          
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">接口类型</label>
-              <select id="input-connector-type" class="form-select">
-                <option value="">请选择接口类型</option>
-                <option value="LC">LC</option>
-                <option value="SC">SC</option>
-                <option value="MPO">MPO</option>
-                <option value="RJ45">RJ45</option>
-              </select>
-            </div>
-            
-            <div class="form-group">
-              <label class="form-label">状态</label>
-              <select id="input-status" class="form-select" required>
-                <option value="IN_STOCK">在库</option>
-                <option value="DEPLOYED">已部署</option>
-                <option value="FAULTY">故障</option>
-                <option value="UNDER_REPAIR">维修中</option>
-                <option value="SCRAPPED">已报废</option>
-              </select>
-            </div>
-          </div>
-          
-          <div class="form-row">
-            <div class="form-group form-group-full">
-              <label class="form-label">备注</label>
-              <textarea id="input-remark" class="form-textarea" rows="3" maxlength="500" placeholder="可选填写补充说明"></textarea>
-            </div>
-          </div>
-        </form>
-      </div>
-      
-      <div class="modal-footer">
-        <button class="btn-secondary" id="modal-cancel-btn">取消</button>
-        <button class="btn-primary" id="modal-save-btn">保存</button>
+  <div id="header">
+    <div class="header-content">
+      <div class="system-title">📦 光模块管理系统</div>
+      <div class="user-info">
+        <span class="user-name">管理员</span>
+        <button class="logout-btn">退出</button>
       </div>
     </div>
   </div>
 
-  <!-- JavaScript模块 -->
+  <!-- 主布局容器 -->
+  <div class="main-container">
+    <!-- 左侧导航栏 -->
+    <nav id="sidebar">
+      <div class="sidebar-nav">
+        <ul class="nav-menu">
+          <li class="nav-item active" data-page="list">
+            <a href="#list" class="nav-link">
+              <span class="nav-icon">📋</span>
+              <span class="nav-text">光模块列表</span>
+            </a>
+          </li>
+          <li class="nav-item" data-page="create">
+            <a href="#create" class="nav-link">
+              <span class="nav-icon">➕</span>
+              <span class="nav-text">创建光模块</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main id="main-content">
+      <div id="page-container"></div>
+    </main>
+  </div>
+
+  <!-- 加载遮罩 -->
+  <div id="loading" class="loading-overlay" style="display:none">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- 消息提示 -->
+  <div id="toast" class="toast" style="display:none"></div>
+
+  <!-- JavaScript模块：config → utils → api → components → app -->
   <script src="js/config.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/api.js"></script>
-  <script src="js/router.js"></script>
-  <script src="js/module-list.js"></script>
-  <script src="js/history-list.js"></script>
-  <script src="js/main.js"></script>
+  <script src="js/components/Header.js"></script>
+  <script src="js/components/Sidebar.js"></script>
+  <script src="js/components/ModuleList.js"></script>
+  <script src="js/components/ModuleForm.js"></script>
+  <script src="js/components/ModuleDetails.js"></script>
+  <script src="js/components/HistoryList.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>

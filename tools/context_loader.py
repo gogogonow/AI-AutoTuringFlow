@@ -31,6 +31,7 @@ _CONTEXT_FILES = {
     "module_boundaries": _DOCS_DIR / "module-boundaries.md",
     "architecture": _DOCS_DIR / "architecture.md",
     "multi_agent_rules": _DOCS_DIR / "multi-agent-rules.md",
+    "frontend_component_spec": _DOCS_DIR / "frontend-component-spec.md",
 }
 
 # 每个文件的最大读取字符数（防止过大文件撑爆 token）
@@ -108,12 +109,16 @@ def get_context_for_role(role: str) -> str:
             blocks.append(_build_context_block("架构约束", ctx["architecture"]))
         if "multi_agent_rules" in ctx:
             blocks.append(_build_context_block("协作规则", ctx["multi_agent_rules"]))
+        if "frontend_component_spec" in ctx:
+            blocks.append(_build_context_block("前端组件规范", ctx["frontend_component_spec"]))
     elif role in ("frontend_dev", "ui_designer"):
-        # 前端视角：只需要模块边界和架构约束
+        # 前端视角：模块边界 + 架构约束 + 前端组件规范（防止重复实现）
         if "module_boundaries" in ctx:
             blocks.append(_build_context_block("模块边界", ctx["module_boundaries"]))
         if "architecture" in ctx:
             blocks.append(_build_context_block("架构约束", ctx["architecture"]))
+        if "frontend_component_spec" in ctx:
+            blocks.append(_build_context_block("前端组件规范", ctx["frontend_component_spec"]))
     elif role == "backend_dev":
         # 后端视角：只需要模块边界和架构约束
         if "module_boundaries" in ctx:

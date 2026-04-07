@@ -30,26 +30,19 @@ class ModuleList {
         } catch (error) {
             Utils.hideLoading();
             Utils.showToast('加载光模块列表失败: ' + error.message, 'error');
-            this.container.innerHTML = `
-                <div class="card">
-                    <div class="empty-state">
-                        <div class="empty-state-icon">⚠️</div>
-                        <div class="empty-state-text">加载失败</div>
-                        <button class="btn btn-primary" onclick="window.app.showPage('list')">重试</button>
-                    </div>
-                </div>
-            `;
+            this.container.innerHTML = Utils.renderErrorState(
+                '加载失败',
+                `<button class="btn btn-primary" onclick="window.app.showPage('list')">重试</button>`
+            );
         }
     }
     
     renderEmptyState() {
-        return `
-            <div class="empty-state">
-                <div class="empty-state-icon">📋</div>
-                <div class="empty-state-text">暂无光模块数据</div>
-                <button class="btn btn-primary" onclick="window.app.showPage('create')">创建第一个光模块</button>
-            </div>
-        `;
+        return Utils.renderEmptyState(
+            '📋',
+            '暂无光模块数据',
+            `<button class="btn btn-primary" onclick="window.app.showPage('create')">创建第一个光模块</button>`
+        );
     }
     
     renderTable() {

@@ -37,15 +37,10 @@ class ModuleDetails {
         } catch (error) {
             Utils.hideLoading();
             Utils.showToast('加载光模块详情失败: ' + error.message, 'error');
-            this.container.innerHTML = `
-                <div class="card">
-                    <div class="empty-state">
-                        <div class="empty-state-icon">⚠️</div>
-                        <div class="empty-state-text">加载失败</div>
-                        <button class="btn btn-secondary" onclick="window.app.showPage('list')">返回列表</button>
-                    </div>
-                </div>
-            `;
+            this.container.innerHTML = Utils.renderErrorState(
+                '加载失败',
+                `<button class="btn btn-secondary" onclick="window.app.showPage('list')">返回列表</button>`
+            );
         }
     }
     
