@@ -78,15 +78,21 @@ public class DatabaseInitializer implements CommandLineRunner {
             }
 
             // Log any failed migrations
-            MigrationInfo[] failed = info.failed();
-            if (failed.length > 0) {
-                logger.warn("FAILED MIGRATIONS DETECTED: {}", failed.length);
-                for (MigrationInfo migration : failed) {
+            int failedCount = 0;
+            for (MigrationInfo migration : all) {
+                if (migration.getState().isFailed()) {
+                    if (failedCount == 0) {
+                        logger.warn("FAILED MIGRATIONS DETECTED:");
+                    }
+                    failedCount++;
                     logger.warn("  - V{}: {} (State: {})",
                         migration.getVersion(),
                         migration.getDescription(),
                         migration.getState());
                 }
+            }
+            if (failedCount > 0) {
+                logger.warn("Total failed migrations: {}", failedCount);
             }
 
             logger.info("========================================");
