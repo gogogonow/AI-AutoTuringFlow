@@ -231,11 +231,15 @@ Issue 触发
 
 ## 使用方法
 
-1. 在仓库中创建一个 Issue，详细描述你的需求
+1. 在仓库中创建一个 Issue，可直接使用对应 Issue 模板（**推荐**）：
+   - [🆕 新功能需求](.github/ISSUE_TEMPLATE/feature.yml)（`mode:feature`）
+   - [⬆️ 依赖升级 / 替换](.github/ISSUE_TEMPLATE/upgrade.yml)（`mode:upgrade`）
+   - [🐛 Bug 修复](.github/ISSUE_TEMPLATE/bugfix.yml)（`mode:bugfix`）
+   - [🎨 UI 美化需求](.github/ISSUE_TEMPLATE/ui-beautify.yml)（`mode:ui-beautify`）
 2. 给 Issue 添加以下标签：
    - **必须**：`run-ai`（触发工作流）
    - **可选**：`mode:feature` / `mode:upgrade` / `mode:bugfix` / `mode:ui-beautify`（默认 `mode:feature`）
-   - **可选**：`scope:frontend` / `scope:backend` / `scope:fullstack`（默认 `scope:fullstack`）
+   - **可选**：`scope:frontend` / `scope:backend` / `scope:fullstack`（默认 `scope:fullstack`，`mode:ui-beautify` 自动强制为 `scope:frontend`）
 3. GitHub Actions 自动触发，按以下三个 Job 执行：
    - **Job 1 `architecture`**：架构师规划 → 架构方案上传为 artifact
    - **Job 2 `human-approval`**：⏸️ 工作流暂停，等待审批人在 GitHub Actions UI 中审批（需提前配置 `architecture-review` environment）
@@ -371,7 +375,8 @@ AI-AutoTuringFlow/
 │       ├── feature.yml          # 新功能需求模板
 │       ├── bugfix.yml           # Bug 修复模板
 │       ├── upgrade.yml          # 依赖升级模板
-│       └── context-refresh.yml  # 🆕 上下文刷新请求模板
+│       ├── ui-beautify.yml      # 🆕 UI 美化需求模板
+│       └── context-refresh.yml  # 上下文刷新请求模板
 ├── requirements.txt             # Python 依赖
 └── README.md                    # 本文档
 ```

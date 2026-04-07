@@ -1,0 +1,68 @@
+name: 🎨 UI 美化需求
+description: 提交界面视觉优化需求，由 AI 多智能体团队（架构师 + UI 设计师 + 前端工程师）自动实现
+labels: ["mode:ui-beautify", "scope:frontend"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## AI 多智能体软件工厂 — UI 美化需求单
+        填写完成后，给 Issue 打上 `run-ai` 标签即可触发 AI 自动美化流水线。
+
+        > **提示**：`mode:ui-beautify` 会自动强制影响范围为 `scope:frontend`，无需手动设置 scope 标签。
+
+  - type: textarea
+    id: current_issue
+    attributes:
+      label: 当前视觉问题
+      description: 描述现有界面存在哪些视觉或交互体验问题
+      placeholder: |
+        例如：
+        - 光模块列表页面整体配色偏暗，与品牌色不一致
+        - 表格行间距过紧，信息密度过高，阅读体验差
+        - 操作按钮样式不统一，部分使用内联 style，部分使用 CSS 类
+        - 移动端适配缺失，窄屏下布局错乱
+    validations:
+      required: true
+
+  - type: textarea
+    id: target_style
+    attributes:
+      label: 目标视觉风格
+      description: 期望的视觉效果、参考设计或风格方向
+      placeholder: |
+        例如：
+        - 整体风格采用现代极简设计，主色调使用 #1890FF（蓝色系）
+        - 表格改为带斑马纹行（alternating row color），增加悬停高亮
+        - 按钮统一使用圆角样式（border-radius: 6px），主操作按钮使用主色
+        - 参考 Ant Design 设计规范
+
+  - type: checkboxes
+    id: affected_pages
+    attributes:
+      label: 涉及的页面 / 组件
+      description: 勾选本次美化涉及的页面或组件范围（可多选）
+      options:
+        - label: 光模块列表页（ModuleList）
+        - label: 光模块表单/详情（ModuleForm）
+        - label: 操作历史页（HistoryList）
+        - label: 全局导航 / 侧边栏
+        - label: 全局 CSS 变量（variables.css）
+        - label: 共享组件样式（components.css）
+        - label: 其他（请在"补充说明"中描述）
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      description: 视觉优化完成后需要满足的条件
+      placeholder: |
+        1. 所有新增样式写入 styles/components.css，禁止内联 style 属性
+        2. 配色、间距、字体均使用 variables.css 中定义的 CSS 变量
+        3. 不破坏现有组件的 JS 挂载逻辑和 API 调用
+        4. 在主流浏览器（Chrome / Firefox / Safari）下显示正常
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 补充说明
+      description: 设计参考图、Figma 链接、截图、其他约束等
