@@ -45,17 +45,17 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 公开的认证端点
-                        .requestMatchers("/api/auth/**").permitAll()
+                        // 公开的认证端点 - must be first and most specific
+                        .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers("/api/health").permitAll()
-
-                        // GET请求（读取操作）允许所有认证用户
-                        .requestMatchers(HttpMethod.GET, "/api/**").authenticated()
 
                         // POST, PUT, DELETE（写操作）只允许OWNER角色
                         .requestMatchers(HttpMethod.POST, "/api/**").hasRole("OWNER")
                         .requestMatchers(HttpMethod.PUT, "/api/**").hasRole("OWNER")
                         .requestMatchers(HttpMethod.DELETE, "/api/**").hasRole("OWNER")
+
+                        // GET请求（读取操作）允许所有认证用户
+                        .requestMatchers(HttpMethod.GET, "/api/**").authenticated()
 
                         // 其他所有请求需要认证
                         .anyRequest().authenticated()
