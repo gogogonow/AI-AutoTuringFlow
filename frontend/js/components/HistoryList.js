@@ -108,7 +108,7 @@ class HistoryList {
         <td>${Utils.escapeHtml(item.model || '-')}</td>
         <td>${Utils.escapeHtml(item.operator || '系统')}</td>
         <td>${Utils.escapeHtml(item.remark || '-')}</td>
-        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${Utils.escapeHtml(item.changeDetails || '')}">
+        <td title="${Utils.escapeHtml(item.changeDetails || '')}">
           ${Utils.escapeHtml(item.changeDetails || '-')}
         </td>
         <td>

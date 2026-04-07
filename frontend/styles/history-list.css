@@ -1,7 +1,7 @@
 /* History List Page Styles */
 
 .history-list-container {
-  max-width: 1400px;
+  width: 100%;
 }
 
 /* History Table */
@@ -17,7 +17,14 @@
 .history-table th:nth-child(2) { width: 120px; } /* 操作类型 */
 .history-table th:nth-child(3) { width: 150px; } /* 序列号 */
 .history-table th:nth-child(4) { width: 120px; } /* 型号 */
-.history-table th:nth-child(5) { width: 100px; } /* 操作前状态 */
-.history-table th:nth-child(6) { width: 100px; } /* 操作后状态 */
-.history-table th:nth-child(7) { width: 100px; } /* 操作人 */
-.history-table th:nth-child(8) { width: auto; }   /* 备注 */
+.history-table th:nth-child(5) { width: 100px; } /* 操作人 */
+.history-table th:nth-child(6) { width: 150px; } /* 备注 */
+.history-table th:nth-child(7) { width: auto; }   /* 变更详情 - wider to utilize space */
+.history-table th:nth-child(8) { width: 100px; }  /* 查看 */
+
+/* Change details column - allow wrapping for better readability */
+.history-table td:nth-child(7) {
+  word-break: break-word;
+  white-space: pre-wrap;
+  min-width: 200px;
+}
