@@ -28,6 +28,10 @@ public class ModuleVendorInfo {
     @Column(name = "process_status", length = 50)
     private String processStatus;
 
+    /** 版本/批次标识 (用于区分同一厂家的不同供货时期或版本) */
+    @Column(name = "version_batch", length = 100)
+    private String versionBatch;
+
     /** 进入时间 */
     @Column(name = "entry_time")
     private LocalDateTime entryTime;
@@ -123,6 +127,9 @@ public class ModuleVendorInfo {
 
     public String getProcessStatus() { return processStatus; }
     public void setProcessStatus(String processStatus) { this.processStatus = processStatus; }
+
+    public String getVersionBatch() { return versionBatch; }
+    public void setVersionBatch(String versionBatch) { this.versionBatch = versionBatch; }
 
     public LocalDateTime getEntryTime() { return entryTime; }
     public void setEntryTime(LocalDateTime entryTime) { this.entryTime = entryTime; }

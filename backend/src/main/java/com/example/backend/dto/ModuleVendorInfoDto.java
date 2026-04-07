@@ -19,6 +19,8 @@ public class ModuleVendorInfoDto {
 
     private String processStatus;
 
+    private String versionBatch;
+
     private LocalDateTime entryTime;
 
     private LocalDateTime exitTime;
@@ -66,6 +68,9 @@ public class ModuleVendorInfoDto {
 
     public String getProcessStatus() { return processStatus; }
     public void setProcessStatus(String processStatus) { this.processStatus = processStatus; }
+
+    public String getVersionBatch() { return versionBatch; }
+    public void setVersionBatch(String versionBatch) { this.versionBatch = versionBatch; }
 
     public LocalDateTime getEntryTime() { return entryTime; }
     public void setEntryTime(LocalDateTime entryTime) { this.entryTime = entryTime; }

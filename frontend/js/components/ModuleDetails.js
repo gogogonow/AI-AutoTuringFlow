@@ -178,6 +178,9 @@ class ModuleDetails {
             <button class="btn btn-primary btn-sm" id="addVendorInfoBtn">➕ 新增厂家</button>
           </div>
         </div>
+        <div style="padding: 8px 16px; background: #f0f7ff; border-bottom: 1px solid #e0e0e0; font-size: 0.9em; color: #555;">
+          💡 <strong>提示：</strong>支持为每个光模块配置多个供应商厂家；同一厂家可添加多条记录，使用"版本/批次"字段区分不同供货时期或版本
+        </div>
         <div id="vendorInfoSection">
           ${this.renderVendorInfoTable(this.vendorInfos)}
         </div>
@@ -225,6 +228,7 @@ class ModuleDetails {
           <thead>
             <tr>
               <th>厂家</th>
+              <th>版本/批次</th>
               <th>流程状态</th>
               <th>进入时间</th>
               <th>退出时间</th>
@@ -247,6 +251,7 @@ class ModuleDetails {
             ${vendorInfos.map(vi => `
               <tr>
                 <td>${Utils.escapeHtml(vi.vendor || '-')}</td>
+                <td>${Utils.escapeHtml(vi.versionBatch || '-')}</td>
                 <td>${Utils.escapeHtml(vi.processStatus || '-')}</td>
                 <td>${Utils.formatDateTime(vi.entryTime)}</td>
                 <td>${Utils.formatDateTime(vi.exitTime)}</td>
@@ -284,8 +289,23 @@ class ModuleDetails {
           <input class="form-control" id="vi_vendor" type="text" value="${Utils.escapeHtml(vi.vendor || '')}" placeholder="厂家名称">
         </div>
         <div class="form-col">
+          <label class="form-label">版本/批次</label>
+          <input class="form-control" id="vi_versionBatch" type="text" value="${Utils.escapeHtml(vi.versionBatch || '')}" placeholder="如：V1.0、批次2024Q1">
+          <small style="color:#666; font-size:0.85em;">用于区分同一厂家的不同供货时期或版本</small>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-col">
           <label class="form-label">流程状态</label>
           <input class="form-control" id="vi_processStatus" type="text" value="${Utils.escapeHtml(vi.processStatus || '')}" placeholder="如：引入中、已引入、已退出">
+        </div>
+        <div class="form-col">
+          <label class="form-label">是否建议高速重点测试</label>
+          <select class="form-control" id="vi_highSpeedTestRecommended">
+            <option value="" ${vi.highSpeedTestRecommended === null || vi.highSpeedTestRecommended === undefined ? 'selected' : ''}>未设置</option>
+            <option value="true" ${vi.highSpeedTestRecommended === true ? 'selected' : ''}>是</option>
+            <option value="false" ${vi.highSpeedTestRecommended === false ? 'selected' : ''}>否</option>
+          </select>
         </div>
       </div>
       <div class="form-row">
@@ -324,19 +344,11 @@ class ModuleDetails {
           <input class="form-control" id="vi_mcu" type="text" value="${Utils.escapeHtml(vi.mcu || '')}">
         </div>
         <div class="form-col">
-          <label class="form-label">是否建议高速重点测试</label>
-          <select class="form-control" id="vi_highSpeedTestRecommended">
-            <option value="" ${vi.highSpeedTestRecommended === null || vi.highSpeedTestRecommended === undefined ? 'selected' : ''}>未设置</option>
-            <option value="true" ${vi.highSpeedTestRecommended === true ? 'selected' : ''}>是</option>
-            <option value="false" ${vi.highSpeedTestRecommended === false ? 'selected' : ''}>否</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-col">
           <label class="form-label">获取性</label>
           <input class="form-control" id="vi_availability" type="text" value="${Utils.escapeHtml(vi.availability || '')}">
         </div>
+      </div>
+      <div class="form-row">
         <div class="form-col">
           <label class="form-label">导入测试报告（链接）</label>
           <input class="form-control" id="vi_testReportLink" type="url" value="${Utils.escapeHtml(vi.testReportLink || '')}" placeholder="https://...">
@@ -393,6 +405,7 @@ class ModuleDetails {
     return {
       vendor,
       processStatus: get('vi_processStatus') || null,
+      versionBatch: get('vi_versionBatch') || null,
       entryTime: get('vi_entryTime') ? get('vi_entryTime') + ':00' : null,
       exitTime: get('vi_exitTime') ? get('vi_exitTime') + ':00' : null,
       ld: get('vi_ld') || null,
