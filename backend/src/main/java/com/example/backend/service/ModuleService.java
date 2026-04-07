@@ -1,14 +1,11 @@
 package com.example.backend.service;
 
 import com.example.backend.dto.ModuleDto;
-import com.example.backend.dto.StatusChangeRequest;
 import com.example.backend.model.Module;
-import com.example.backend.model.ModuleStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 光模块服务接口
@@ -51,36 +48,14 @@ public interface ModuleService {
     Page<ModuleDto> searchModules(
         String serialNumber,
         String model,
-        String vendor,
-        ModuleStatus status,
         String speed,
         Pageable pageable
     );
 
     /**
-     * 根据状态查询光模块
-     */
-    Page<ModuleDto> getModulesByStatus(ModuleStatus status, Pageable pageable);
-
-    /**
-     * 变更光模块状态
-     */
-    ModuleDto changeStatus(Long id, StatusChangeRequest request);
-
-    /**
      * 批量入库
      */
     List<ModuleDto> batchInbound(List<ModuleDto> moduleDtos);
-
-    /**
-     * 统计各状态的光模块数量
-     */
-    Map<ModuleStatus, Long> getStatusStatistics();
-
-    /**
-     * 统计各供应商的光模块数量
-     */
-    Map<String, Long> getVendorStatistics();
 
     /**
      * Entity转DTO

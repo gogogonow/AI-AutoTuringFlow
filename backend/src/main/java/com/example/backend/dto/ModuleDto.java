@@ -1,6 +1,5 @@
 package com.example.backend.dto;
 
-import com.example.backend.model.ModuleStatus;
 import com.example.backend.model.LifecycleStatus;
 import com.example.backend.model.LightType;
 import com.example.backend.model.FiberType;
@@ -25,10 +24,6 @@ public class ModuleDto {
     @Size(max = 100, message = "型号长度不能超过100")
     private String model;
 
-    @NotBlank(message = "供应商不能为空")
-    @Size(max = 100, message = "供应商长度不能超过100")
-    private String vendor;
-
     private String speed;
 
     private String wavelength;
@@ -36,8 +31,6 @@ public class ModuleDto {
     private Integer transmissionDistance;
 
     private String connectorType;
-
-    private ModuleStatus status;
 
     private LocalDateTime inboundTime;
 
@@ -109,14 +102,6 @@ public class ModuleDto {
         this.model = model;
     }
 
-    public String getVendor() {
-        return vendor;
-    }
-
-    public void setVendor(String vendor) {
-        this.vendor = vendor;
-    }
-
     public String getSpeed() {
         return speed;
     }
@@ -147,14 +132,6 @@ public class ModuleDto {
 
     public void setConnectorType(String connectorType) {
         this.connectorType = connectorType;
-    }
-
-    public ModuleStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(ModuleStatus status) {
-        this.status = status;
     }
 
     public LocalDateTime getInboundTime() {

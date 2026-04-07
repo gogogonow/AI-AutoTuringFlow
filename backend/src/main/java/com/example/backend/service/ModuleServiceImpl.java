@@ -1,11 +1,9 @@
 package com.example.backend.service;
 
 import com.example.backend.dto.ModuleDto;
-import com.example.backend.dto.StatusChangeRequest;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.model.History;
 import com.example.backend.model.Module;
-import com.example.backend.model.ModuleStatus;
 import com.example.backend.model.OperationType;
 import com.example.backend.repository.ModuleRepository;
 import com.example.backend.repository.ModuleVendorInfoRepository;
@@ -43,9 +41,6 @@ public class ModuleServiceImpl implements ModuleService {
         }
 
         Module module = toEntity(moduleDto);
-        if (module.getStatus() == null) {
-            module.setStatus(ModuleStatus.IN_STOCK);
-        }
         if (module.getInboundTime() == null) {
             module.setInboundTime(LocalDateTime.now());
         }
@@ -59,7 +54,7 @@ public class ModuleServiceImpl implements ModuleService {
             OperationType.INBOUND,
             "system",
             null,
-            savedModule.getStatus(),
+            null,
             "首次入库",
             changeDetails
         );
@@ -101,7 +96,6 @@ public class ModuleServiceImpl implements ModuleService {
         // 更新字段
         existingModule.setSerialNumber(moduleDto.getSerialNumber());
         existingModule.setModel(moduleDto.getModel());
-        existingModule.setVendor(moduleDto.getVendor());
         existingModule.setSpeed(moduleDto.getSpeed());
         existingModule.setWavelength(moduleDto.getWavelength());
         existingModule.setTransmissionDistance(moduleDto.getTransmissionDistance());
@@ -135,7 +129,7 @@ public class ModuleServiceImpl implements ModuleService {
             module.getId(),
             OperationType.OUTBOUND,
             "system",
-            module.getStatus(),
+            null,
             null,
             "删除光模块",
             changeDetails
@@ -161,81 +155,15 @@ public class ModuleServiceImpl implements ModuleService {
     public Page<ModuleDto> searchModules(
         String serialNumber,
         String model,
-        String vendor,
-        ModuleStatus status,
         String speed,
         Pageable pageable
     ) {
         return moduleRepository.findByMultipleConditions(
             serialNumber,
             model,
-            vendor,
-            status,
             speed,
             pageable
         ).map(this::toDto);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<ModuleDto> getModulesByStatus(ModuleStatus status, Pageable pageable) {
-        return moduleRepository.findByStatus(status, pageable).map(this::toDto);
-    }
-
-    @Override
-    public ModuleDto changeStatus(Long id, StatusChangeRequest request) {
-        Module module = moduleRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("光模块不存在: ID=" + id));
-
-        ModuleStatus previousStatus = module.getStatus();
-        OperationType operationType;
-        ModuleStatus nextStatus;
-
-        switch (request.getAction().toUpperCase()) {
-            case "DEPLOY":
-                operationType = OperationType.DEPLOY;
-                nextStatus = ModuleStatus.DEPLOYED;
-                break;
-            case "RETRIEVE":
-                operationType = OperationType.RETRIEVE;
-                nextStatus = ModuleStatus.IN_STOCK;
-                break;
-            case "MARK_FAULTY":
-                operationType = OperationType.MARK_FAULTY;
-                nextStatus = ModuleStatus.FAULTY;
-                break;
-            case "SEND_REPAIR":
-                operationType = OperationType.SEND_REPAIR;
-                nextStatus = ModuleStatus.UNDER_REPAIR;
-                break;
-            case "RETURN_REPAIR":
-                operationType = OperationType.RETURN_REPAIR;
-                nextStatus = ModuleStatus.IN_STOCK;
-                break;
-            case "SCRAP":
-                operationType = OperationType.SCRAP;
-                nextStatus = ModuleStatus.SCRAPPED;
-                break;
-            default:
-                throw new IllegalArgumentException("无效的操作类型: " + request.getAction());
-        }
-
-        module.setStatus(nextStatus);
-        Module updatedModule = moduleRepository.save(module);
-
-        // 记录状态变更历史（含变更详情）
-        String changeDetails = buildStatusChangeDetails(previousStatus, nextStatus, request);
-        historyService.createHistory(
-            updatedModule.getId(),
-            operationType,
-            request.getOperator(),
-            previousStatus,
-            nextStatus,
-            request.getRemark(),
-            changeDetails
-        );
-
-        return toDto(updatedModule);
     }
 
     @Override
@@ -253,30 +181,6 @@ public class ModuleServiceImpl implements ModuleService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Map<ModuleStatus, Long> getStatusStatistics() {
-        List<Object[]> results = moduleRepository.countByStatus();
-        return results.stream()
-            .collect(Collectors.toMap(
-                row -> (ModuleStatus) row[0],
-                row -> (Long) row[1]
-            ));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Map<String, Long> getVendorStatistics() {
-        List<Object[]> results = moduleRepository.countByVendor();
-        return results.stream()
-            .collect(Collectors.toMap(
-                row -> (String) row[0],
-                row -> (Long) row[1],
-                (v1, v2) -> v1,
-                LinkedHashMap::new
-            ));
-    }
-
-    @Override
     public ModuleDto toDto(Module module) {
         if (module == null) return null;
 
@@ -284,16 +188,33 @@ public class ModuleServiceImpl implements ModuleService {
         dto.setId(module.getId());
         dto.setSerialNumber(module.getSerialNumber());
         dto.setModel(module.getModel());
-        dto.setVendor(module.getVendor());
         dto.setSpeed(module.getSpeed());
         dto.setWavelength(module.getWavelength());
         dto.setTransmissionDistance(module.getTransmissionDistance());
         dto.setConnectorType(module.getConnectorType());
-        dto.setStatus(module.getStatus());
         dto.setInboundTime(module.getInboundTime());
         dto.setRemark(module.getRemark());
         dto.setCreatedAt(module.getCreatedAt());
         dto.setUpdatedAt(module.getUpdatedAt());
+
+        // Set comprehensive optical module fields
+        dto.setLifecycleStatus(module.getLifecycleStatus());
+        dto.setPackageForm(module.getPackageForm());
+        dto.setFiberCount(module.getFiberCount());
+        dto.setLightType(module.getLightType());
+        dto.setSpeedSet(module.getSpeedSet());
+        dto.setFiberType(module.getFiberType());
+        dto.setMaxPowerConsumption(module.getMaxPowerConsumption());
+        dto.setMinCaseTemp(module.getMinCaseTemp());
+        dto.setMaxCaseTemp(module.getMaxCaseTemp());
+        dto.setLastShipmentTime(module.getLastShipmentTime());
+        dto.setTotalShipmentVolume(module.getTotalShipmentVolume());
+        dto.setRecent5yearShipmentVolume(module.getRecent5yearShipmentVolume());
+        dto.setShipmentRegions(module.getShipmentRegions());
+        dto.setIsMainstreamShipment(module.getIsMainstreamShipment());
+        dto.setSpecTemplateVersion(module.getSpecTemplateVersion());
+        dto.setCurrentShippingVendors(module.getCurrentShippingVendors());
+
         return dto;
     }
 
@@ -305,14 +226,31 @@ public class ModuleServiceImpl implements ModuleService {
         module.setId(dto.getId());
         module.setSerialNumber(dto.getSerialNumber());
         module.setModel(dto.getModel());
-        module.setVendor(dto.getVendor());
         module.setSpeed(dto.getSpeed());
         module.setWavelength(dto.getWavelength());
         module.setTransmissionDistance(dto.getTransmissionDistance());
         module.setConnectorType(dto.getConnectorType());
-        module.setStatus(dto.getStatus());
         module.setInboundTime(dto.getInboundTime());
         module.setRemark(dto.getRemark());
+
+        // Set comprehensive optical module fields
+        module.setLifecycleStatus(dto.getLifecycleStatus());
+        module.setPackageForm(dto.getPackageForm());
+        module.setFiberCount(dto.getFiberCount());
+        module.setLightType(dto.getLightType());
+        module.setSpeedSet(dto.getSpeedSet());
+        module.setFiberType(dto.getFiberType());
+        module.setMaxPowerConsumption(dto.getMaxPowerConsumption());
+        module.setMinCaseTemp(dto.getMinCaseTemp());
+        module.setMaxCaseTemp(dto.getMaxCaseTemp());
+        module.setLastShipmentTime(dto.getLastShipmentTime());
+        module.setTotalShipmentVolume(dto.getTotalShipmentVolume());
+        module.setRecent5yearShipmentVolume(dto.getRecent5yearShipmentVolume());
+        module.setShipmentRegions(dto.getShipmentRegions());
+        module.setIsMainstreamShipment(dto.getIsMainstreamShipment());
+        module.setSpecTemplateVersion(dto.getSpecTemplateVersion());
+        module.setCurrentShippingVendors(dto.getCurrentShippingVendors());
+
         return module;
     }
 
@@ -324,12 +262,10 @@ public class ModuleServiceImpl implements ModuleService {
         sb.append("新增字段：");
         appendField(sb, "序列号", null, module.getSerialNumber());
         appendField(sb, "型号", null, module.getModel());
-        appendField(sb, "供应商", null, module.getVendor());
         appendField(sb, "速率", null, module.getSpeed());
         appendField(sb, "波长", null, module.getWavelength());
         appendField(sb, "传输距离", null, module.getTransmissionDistance());
         appendField(sb, "接口类型", null, module.getConnectorType());
-        appendField(sb, "状态", null, module.getStatus());
         appendField(sb, "备注", null, module.getRemark());
         return sb.toString();
     }
@@ -343,7 +279,6 @@ public class ModuleServiceImpl implements ModuleService {
         boolean hasChange = false;
         hasChange |= appendField(sb, "序列号", existing.getSerialNumber(), updated.getSerialNumber());
         hasChange |= appendField(sb, "型号", existing.getModel(), updated.getModel());
-        hasChange |= appendField(sb, "供应商", existing.getVendor(), updated.getVendor());
         hasChange |= appendField(sb, "速率", existing.getSpeed(), updated.getSpeed());
         hasChange |= appendField(sb, "波长", existing.getWavelength(), updated.getWavelength());
         hasChange |= appendField(sb, "传输距离", existing.getTransmissionDistance(), updated.getTransmissionDistance());
@@ -363,25 +298,11 @@ public class ModuleServiceImpl implements ModuleService {
         sb.append("删除前字段：");
         sb.append("序列号=").append(nullSafe(module.getSerialNumber()));
         sb.append(", 型号=").append(nullSafe(module.getModel()));
-        sb.append(", 供应商=").append(nullSafe(module.getVendor()));
         sb.append(", 速率=").append(nullSafe(module.getSpeed()));
         sb.append(", 波长=").append(nullSafe(module.getWavelength()));
         sb.append(", 传输距离=").append(nullSafe(module.getTransmissionDistance()));
         sb.append(", 接口类型=").append(nullSafe(module.getConnectorType()));
-        sb.append(", 状态=").append(nullSafe(module.getStatus()));
         sb.append(", 备注=").append(nullSafe(module.getRemark()));
-        return sb.toString();
-    }
-
-    /**
-     * 构建状态变更的变更详情
-     */
-    private String buildStatusChangeDetails(ModuleStatus from, ModuleStatus to, StatusChangeRequest request) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("状态变更：").append(nullSafe(from)).append(" → ").append(nullSafe(to));
-        if (request.getTargetDevice() != null && !request.getTargetDevice().isEmpty()) {
-            sb.append(", 目标设备=").append(request.getTargetDevice());
-        }
         return sb.toString();
     }
 
