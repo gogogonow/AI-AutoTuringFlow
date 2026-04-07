@@ -43,6 +43,9 @@ public class History {
     @Column(name = "remark", columnDefinition = "TEXT")
     private String remark;
 
+    @Column(name = "change_details", columnDefinition = "TEXT")
+    private String changeDetails;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -126,6 +129,14 @@ public class History {
 
     public void setRemark(String remark) {
         this.remark = remark;
+    }
+
+    public String getChangeDetails() {
+        return changeDetails;
+    }
+
+    public void setChangeDetails(String changeDetails) {
+        this.changeDetails = changeDetails;
     }
 
     public LocalDateTime getCreatedAt() {

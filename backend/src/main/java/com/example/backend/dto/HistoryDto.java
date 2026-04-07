@@ -25,6 +25,8 @@ public class HistoryDto {
 
     private String remark;
 
+    private String changeDetails;
+
     private LocalDateTime createdAt;
 
     // For enriched queries with module information
@@ -97,6 +99,14 @@ public class HistoryDto {
 
     public void setRemark(String remark) {
         this.remark = remark;
+    }
+
+    public String getChangeDetails() {
+        return changeDetails;
+    }
+
+    public void setChangeDetails(String changeDetails) {
+        this.changeDetails = changeDetails;
     }
 
     public LocalDateTime getCreatedAt() {

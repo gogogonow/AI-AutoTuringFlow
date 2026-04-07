@@ -2,11 +2,13 @@ package com.example.backend.service;
 
 import com.example.backend.dto.ModuleDto;
 import com.example.backend.dto.StatusChangeRequest;
+import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.model.History;
 import com.example.backend.model.Module;
 import com.example.backend.model.ModuleStatus;
 import com.example.backend.model.OperationType;
 import com.example.backend.repository.ModuleRepository;
+import com.example.backend.repository.ModuleVendorInfoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +30,9 @@ public class ModuleServiceImpl implements ModuleService {
     private ModuleRepository moduleRepository;
 
     @Autowired
+    private ModuleVendorInfoRepository vendorInfoRepository;
+
+    @Autowired
     private HistoryService historyService;
 
     @Override
@@ -47,14 +52,16 @@ public class ModuleServiceImpl implements ModuleService {
 
         Module savedModule = moduleRepository.save(module);
 
-        // 记录入库历史
+        // 记录入库历史（含新增字段详情）
+        String changeDetails = buildCreateDetails(savedModule);
         historyService.createHistory(
             savedModule.getId(),
             OperationType.INBOUND,
             "system",
             null,
             savedModule.getStatus(),
-            "首次入库"
+            "首次入库",
+            changeDetails
         );
 
         return toDto(savedModule);
@@ -88,6 +95,9 @@ public class ModuleServiceImpl implements ModuleService {
             }
         }
 
+        // 记录更新前的值用于变更详情
+        String changeDetails = buildUpdateDetails(existingModule, moduleDto);
+
         // 更新字段
         existingModule.setSerialNumber(moduleDto.getSerialNumber());
         existingModule.setModel(moduleDto.getModel());
@@ -100,14 +110,15 @@ public class ModuleServiceImpl implements ModuleService {
 
         Module updatedModule = moduleRepository.save(existingModule);
 
-        // 记录更新历史
+        // 记录更新历史（含变更详情）
         historyService.createHistory(
             updatedModule.getId(),
             OperationType.UPDATE_INFO,
             "system",
             null,
             null,
-            "更新光模块信息"
+            "更新光模块信息",
+            changeDetails
         );
 
         return toDto(updatedModule);
@@ -115,10 +126,24 @@ public class ModuleServiceImpl implements ModuleService {
 
     @Override
     public void deleteModule(Long id) {
-        if (!moduleRepository.existsById(id)) {
-            throw new IllegalArgumentException("光模块不存在: ID=" + id);
-        }
-        // 级联删除会自动删除相关历史记录
+        Module module = moduleRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("光模块不存在: ID=" + id));
+
+        // 记录删除历史（含删除前各字段详情）
+        String changeDetails = buildDeleteDetails(module);
+        historyService.createHistory(
+            module.getId(),
+            OperationType.OUTBOUND,
+            "system",
+            module.getStatus(),
+            null,
+            "删除光模块",
+            changeDetails
+        );
+
+        // 删除关联的厂家信息
+        vendorInfoRepository.deleteByModuleId(id);
+        // 删除光模块
         moduleRepository.deleteById(id);
     }
 
@@ -195,14 +220,16 @@ public class ModuleServiceImpl implements ModuleService {
         module.setStatus(nextStatus);
         Module updatedModule = moduleRepository.save(module);
 
-        // 记录状态变更历史
+        // 记录状态变更历史（含变更详情）
+        String changeDetails = buildStatusChangeDetails(previousStatus, nextStatus, request);
         historyService.createHistory(
             updatedModule.getId(),
             operationType,
             request.getOperator(),
             previousStatus,
             nextStatus,
-            request.getRemark()
+            request.getRemark(),
+            changeDetails
         );
 
         return toDto(updatedModule);
@@ -284,5 +311,94 @@ public class ModuleServiceImpl implements ModuleService {
         module.setInboundTime(dto.getInboundTime());
         module.setRemark(dto.getRemark());
         return module;
+    }
+
+    /**
+     * 构建新增操作的变更详情
+     */
+    private String buildCreateDetails(Module module) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("新增字段：");
+        appendField(sb, "序列号", null, module.getSerialNumber());
+        appendField(sb, "型号", null, module.getModel());
+        appendField(sb, "供应商", null, module.getVendor());
+        appendField(sb, "速率", null, module.getSpeed());
+        appendField(sb, "波长", null, module.getWavelength());
+        appendField(sb, "传输距离", null, module.getTransmissionDistance());
+        appendField(sb, "接口类型", null, module.getConnectorType());
+        appendField(sb, "状态", null, module.getStatus());
+        appendField(sb, "备注", null, module.getRemark());
+        return sb.toString();
+    }
+
+    /**
+     * 构建更新操作的变更详情（仅记录有变化的字段）
+     */
+    private String buildUpdateDetails(Module existing, ModuleDto updated) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("更新字段：");
+        boolean hasChange = false;
+        hasChange |= appendField(sb, "序列号", existing.getSerialNumber(), updated.getSerialNumber());
+        hasChange |= appendField(sb, "型号", existing.getModel(), updated.getModel());
+        hasChange |= appendField(sb, "供应商", existing.getVendor(), updated.getVendor());
+        hasChange |= appendField(sb, "速率", existing.getSpeed(), updated.getSpeed());
+        hasChange |= appendField(sb, "波长", existing.getWavelength(), updated.getWavelength());
+        hasChange |= appendField(sb, "传输距离", existing.getTransmissionDistance(), updated.getTransmissionDistance());
+        hasChange |= appendField(sb, "接口类型", existing.getConnectorType(), updated.getConnectorType());
+        hasChange |= appendField(sb, "备注", existing.getRemark(), updated.getRemark());
+        if (!hasChange) {
+            sb.append("无变化");
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 构建删除操作的变更详情
+     */
+    private String buildDeleteDetails(Module module) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("删除前字段：");
+        sb.append("序列号=").append(nullSafe(module.getSerialNumber()));
+        sb.append(", 型号=").append(nullSafe(module.getModel()));
+        sb.append(", 供应商=").append(nullSafe(module.getVendor()));
+        sb.append(", 速率=").append(nullSafe(module.getSpeed()));
+        sb.append(", 波长=").append(nullSafe(module.getWavelength()));
+        sb.append(", 传输距离=").append(nullSafe(module.getTransmissionDistance()));
+        sb.append(", 接口类型=").append(nullSafe(module.getConnectorType()));
+        sb.append(", 状态=").append(nullSafe(module.getStatus()));
+        sb.append(", 备注=").append(nullSafe(module.getRemark()));
+        return sb.toString();
+    }
+
+    /**
+     * 构建状态变更的变更详情
+     */
+    private String buildStatusChangeDetails(ModuleStatus from, ModuleStatus to, StatusChangeRequest request) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("状态变更：").append(nullSafe(from)).append(" → ").append(nullSafe(to));
+        if (request.getTargetDevice() != null && !request.getTargetDevice().isEmpty()) {
+            sb.append(", 目标设备=").append(request.getTargetDevice());
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 追加字段变更（用于更新）。仅当值不同时追加，返回是否有变化。
+     */
+    private boolean appendField(StringBuilder sb, String label, Object oldVal, Object newVal) {
+        if (Objects.equals(oldVal, newVal)) {
+            return false;
+        }
+        if (oldVal == null) {
+            // 新增场景
+            sb.append(label).append("=").append(nullSafe(newVal)).append("; ");
+        } else {
+            sb.append(label).append(": ").append(nullSafe(oldVal)).append(" → ").append(nullSafe(newVal)).append("; ");
+        }
+        return true;
+    }
+
+    private String nullSafe(Object val) {
+        return val == null ? "(空)" : val.toString();
     }
 }

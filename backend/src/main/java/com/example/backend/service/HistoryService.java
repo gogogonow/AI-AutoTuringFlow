@@ -25,8 +25,23 @@ public interface HistoryService {
         String operator,
         ModuleStatus previousStatus,
         ModuleStatus nextStatus,
-        String remark
+        String remark,
+        String changeDetails
     );
+
+    /**
+     * 创建历史记录（无变更详情）
+     */
+    default HistoryDto createHistory(
+        Long moduleId,
+        OperationType operationType,
+        String operator,
+        ModuleStatus previousStatus,
+        ModuleStatus nextStatus,
+        String remark
+    ) {
+        return createHistory(moduleId, operationType, operator, previousStatus, nextStatus, remark, null);
+    }
 
     /**
      * 根据ID获取历史记录
