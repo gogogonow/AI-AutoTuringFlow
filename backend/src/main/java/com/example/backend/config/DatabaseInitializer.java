@@ -2,6 +2,9 @@ package com.example.backend.config;
 
 import com.example.backend.repository.ModuleRepository;
 import com.example.backend.repository.HistoryRepository;
+import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.MigrationInfo;
+import org.flywaydb.core.api.MigrationInfoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,9 +35,13 @@ public class DatabaseInitializer implements CommandLineRunner {
     @Autowired
     private HistoryRepository historyRepository;
 
+    @Autowired
+    private Flyway flyway;
+
     @Override
     public void run(String... args) {
         verifyDatabaseConnection();
+        logFlywayMigrationStatus();
         logTableStatus();
     }
 
@@ -49,6 +56,42 @@ public class DatabaseInitializer implements CommandLineRunner {
             logger.info("========================================");
         } catch (Exception e) {
             logger.error("Failed to verify database connection: {}", e.getMessage(), e);
+        }
+    }
+
+    private void logFlywayMigrationStatus() {
+        try {
+            MigrationInfoService info = flyway.info();
+            MigrationInfo[] all = info.all();
+            MigrationInfo current = info.current();
+
+            logger.info("========================================");
+            logger.info("Flyway Migration Status:");
+            logger.info("Total migrations: {}", all.length);
+            logger.info("Applied migrations: {}", info.applied().length);
+            logger.info("Pending migrations: {}", info.pending().length);
+
+            if (current != null) {
+                logger.info("Current version: {} ({})",
+                    current.getVersion(),
+                    current.getDescription());
+            }
+
+            // Log any failed migrations
+            MigrationInfo[] failed = info.failed();
+            if (failed.length > 0) {
+                logger.warn("FAILED MIGRATIONS DETECTED: {}", failed.length);
+                for (MigrationInfo migration : failed) {
+                    logger.warn("  - V{}: {} (State: {})",
+                        migration.getVersion(),
+                        migration.getDescription(),
+                        migration.getState());
+                }
+            }
+
+            logger.info("========================================");
+        } catch (Exception e) {
+            logger.error("Failed to query Flyway migration status: {}", e.getMessage(), e);
         }
     }
 
