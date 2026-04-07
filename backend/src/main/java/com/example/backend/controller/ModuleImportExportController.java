@@ -1,7 +1,6 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.ModuleDto;
-import com.example.backend.model.ModuleStatus;
 import com.example.backend.service.ModuleService;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -38,8 +37,8 @@ public class ModuleImportExportController {
 
     /** 导出列头顺序（与导入列顺序一致） */
     private static final String[] HEADERS = {
-        "序列号", "型号", "供应商", "端口速率", "波长",
-        "传输距离(m)", "接口类型", "状态", "入库时间", "备注"
+        "序列号", "型号", "端口速率", "波长",
+        "传输距离(m)", "接口类型", "入库时间", "备注"
     };
 
     @Autowired
@@ -52,15 +51,13 @@ public class ModuleImportExportController {
     public ResponseEntity<byte[]> exportModules(
             @RequestParam(required = false) String serialNumber,
             @RequestParam(required = false) String model,
-            @RequestParam(required = false) String vendor,
-            @RequestParam(required = false) ModuleStatus status,
             @RequestParam(required = false) String speed) throws IOException {
 
         // 取全部数据（最多 10000 条，防止内存溢出）
         Pageable pageable = PageRequest.of(0, 10000, Sort.by(Sort.Direction.DESC, "id"));
         Page<ModuleDto> page;
-        if (serialNumber != null || model != null || vendor != null || status != null || speed != null) {
-            page = moduleService.searchModules(serialNumber, model, vendor, status, speed, pageable);
+        if (serialNumber != null || model != null || speed != null) {
+            page = moduleService.searchModules(serialNumber, model, speed, pageable);
         } else {
             page = moduleService.getModules(pageable);
         }
@@ -163,17 +160,14 @@ public class ModuleImportExportController {
                 Row row = sheet.createRow(rowIdx++);
                 row.createCell(0).setCellValue(nullSafe(m.getSerialNumber()));
                 row.createCell(1).setCellValue(nullSafe(m.getModel()));
-                row.createCell(2).setCellValue(nullSafe(m.getVendor()));
-                row.createCell(3).setCellValue(nullSafe(m.getSpeed()));
-                row.createCell(4).setCellValue(nullSafe(m.getWavelength()));
-                row.createCell(5).setCellValue(
+                row.createCell(2).setCellValue(nullSafe(m.getSpeed()));
+                row.createCell(3).setCellValue(nullSafe(m.getWavelength()));
+                row.createCell(4).setCellValue(
                         m.getTransmissionDistance() != null ? m.getTransmissionDistance() : 0);
-                row.createCell(6).setCellValue(nullSafe(m.getConnectorType()));
-                row.createCell(7).setCellValue(
-                        m.getStatus() != null ? m.getStatus().name() : "");
-                row.createCell(8).setCellValue(
+                row.createCell(5).setCellValue(nullSafe(m.getConnectorType()));
+                row.createCell(6).setCellValue(
                         m.getInboundTime() != null ? m.getInboundTime().format(DT_FORMATTER) : "");
-                row.createCell(9).setCellValue(nullSafe(m.getRemark()));
+                row.createCell(7).setCellValue(nullSafe(m.getRemark()));
             }
 
             // 自动列宽
@@ -201,16 +195,10 @@ public class ModuleImportExportController {
         }
         dto.setModel(model.trim());
 
-        String vendor = getCellString(row, 2);
-        if (vendor == null || vendor.isBlank()) {
-            throw new IllegalArgumentException("供应商不能为空");
-        }
-        dto.setVendor(vendor.trim());
+        dto.setSpeed(getCellString(row, 2));
+        dto.setWavelength(getCellString(row, 3));
 
-        dto.setSpeed(getCellString(row, 3));
-        dto.setWavelength(getCellString(row, 4));
-
-        Cell distCell = row.getCell(5);
+        Cell distCell = row.getCell(4);
         if (distCell != null) {
             try {
                 dto.setTransmissionDistance((int) distCell.getNumericCellValue());
@@ -219,18 +207,9 @@ public class ModuleImportExportController {
             }
         }
 
-        dto.setConnectorType(getCellString(row, 6));
+        dto.setConnectorType(getCellString(row, 5));
 
-        String statusStr = getCellString(row, 7);
-        if (statusStr != null && !statusStr.isBlank()) {
-            try {
-                dto.setStatus(ModuleStatus.valueOf(statusStr.trim().toUpperCase()));
-            } catch (IllegalArgumentException e) {
-                // 未知状态，使用默认值
-            }
-        }
-
-        String inboundTimeStr = getCellString(row, 8);
+        String inboundTimeStr = getCellString(row, 6);
         if (inboundTimeStr != null && !inboundTimeStr.isBlank()) {
             try {
                 dto.setInboundTime(LocalDateTime.parse(inboundTimeStr.trim(), DT_FORMATTER));
@@ -239,7 +218,7 @@ public class ModuleImportExportController {
             }
         }
 
-        dto.setRemark(getCellString(row, 9));
+        dto.setRemark(getCellString(row, 7));
 
         return dto;
     }
