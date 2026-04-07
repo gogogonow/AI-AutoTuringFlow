@@ -1,8 +1,6 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.ModuleDto;
-import com.example.backend.dto.StatusChangeRequest;
-import com.example.backend.model.ModuleStatus;
 import com.example.backend.service.ModuleService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 光模块控制器
@@ -83,8 +80,6 @@ public class ModuleController {
     public ResponseEntity<Page<ModuleDto>> getModules(
         @RequestParam(required = false) String serialNumber,
         @RequestParam(required = false) String model,
-        @RequestParam(required = false) String vendor,
-        @RequestParam(required = false) ModuleStatus status,
         @RequestParam(required = false) String speed,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size,
@@ -95,39 +90,13 @@ public class ModuleController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
         Page<ModuleDto> modules;
-        if (serialNumber != null || model != null || vendor != null || status != null || speed != null) {
-            modules = moduleService.searchModules(serialNumber, model, vendor, status, speed, pageable);
+        if (serialNumber != null || model != null || speed != null) {
+            modules = moduleService.searchModules(serialNumber, model, speed, pageable);
         } else {
             modules = moduleService.getModules(pageable);
         }
 
         return ResponseEntity.ok(modules);
-    }
-
-    /**
-     * 根据状态查询光模块
-     */
-    @GetMapping("/status/{status}")
-    public ResponseEntity<Page<ModuleDto>> getModulesByStatus(
-        @PathVariable ModuleStatus status,
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size
-    ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "inboundTime"));
-        Page<ModuleDto> modules = moduleService.getModulesByStatus(status, pageable);
-        return ResponseEntity.ok(modules);
-    }
-
-    /**
-     * 变更光模块状态
-     */
-    @PostMapping("/{id}/status")
-    public ResponseEntity<ModuleDto> changeStatus(
-        @PathVariable Long id,
-        @Valid @RequestBody StatusChangeRequest request
-    ) {
-        ModuleDto updated = moduleService.changeStatus(id, request);
-        return ResponseEntity.ok(updated);
     }
 
     /**
@@ -137,23 +106,5 @@ public class ModuleController {
     public ResponseEntity<List<ModuleDto>> batchInbound(@Valid @RequestBody List<ModuleDto> moduleDtos) {
         List<ModuleDto> results = moduleService.batchInbound(moduleDtos);
         return ResponseEntity.status(HttpStatus.CREATED).body(results);
-    }
-
-    /**
-     * 统计各状态的光模块数量
-     */
-    @GetMapping("/statistics/status")
-    public ResponseEntity<Map<ModuleStatus, Long>> getStatusStatistics() {
-        Map<ModuleStatus, Long> stats = moduleService.getStatusStatistics();
-        return ResponseEntity.ok(stats);
-    }
-
-    /**
-     * 统计各供应商的光模块数量
-     */
-    @GetMapping("/statistics/vendor")
-    public ResponseEntity<Map<String, Long>> getVendorStatistics() {
-        Map<String, Long> stats = moduleService.getVendorStatistics();
-        return ResponseEntity.ok(stats);
     }
 }

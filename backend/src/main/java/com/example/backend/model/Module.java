@@ -10,9 +10,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "module", indexes = {
     @Index(name = "idx_serial_number", columnList = "serial_number"),
-    @Index(name = "idx_status", columnList = "status"),
-    @Index(name = "idx_model", columnList = "model"),
-    @Index(name = "idx_vendor", columnList = "vendor")
+    @Index(name = "idx_model", columnList = "model")
 })
 public class Module {
 
@@ -26,9 +24,6 @@ public class Module {
     @Column(name = "model", nullable = false, length = 100)
     private String model;
 
-    @Column(name = "vendor", nullable = false, length = 100)
-    private String vendor;
-
     @Column(name = "speed", length = 20)
     private String speed;
 
@@ -40,10 +35,6 @@ public class Module {
 
     @Column(name = "connector_type", length = 20)
     private String connectorType;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
-    private ModuleStatus status = ModuleStatus.IN_STOCK;
 
     // New comprehensive fields for optical module specifications
 
@@ -134,10 +125,9 @@ public class Module {
     // Constructors
     public Module() {}
 
-    public Module(String serialNumber, String model, String vendor) {
+    public Module(String serialNumber, String model) {
         this.serialNumber = serialNumber;
         this.model = model;
-        this.vendor = vendor;
     }
 
     // Getters and Setters
@@ -163,14 +153,6 @@ public class Module {
 
     public void setModel(String model) {
         this.model = model;
-    }
-
-    public String getVendor() {
-        return vendor;
-    }
-
-    public void setVendor(String vendor) {
-        this.vendor = vendor;
     }
 
     public String getSpeed() {
@@ -203,14 +185,6 @@ public class Module {
 
     public void setConnectorType(String connectorType) {
         this.connectorType = connectorType;
-    }
-
-    public ModuleStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(ModuleStatus status) {
-        this.status = status;
     }
 
     public LocalDateTime getInboundTime() {
@@ -395,8 +369,6 @@ public class Module {
                 "id=" + id +
                 ", serialNumber='" + serialNumber + '\'' +
                 ", model='" + model + '\'' +
-                ", vendor='" + vendor + '\'' +
-                ", status=" + status +
                 '}';
     }
 }
