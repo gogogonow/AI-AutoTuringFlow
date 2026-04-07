@@ -6,6 +6,7 @@ class App {
     this.mainContent = null;
     this.currentComponent = null;
     this.currentPage = 'list';
+    this._ignoreHashChange = false;
     this.init();
   }
 
@@ -65,7 +66,10 @@ class App {
     document.body.appendChild(confirmDialog);
 
     // Handle hash change
-    window.addEventListener('hashchange', () => this.handleHashChange());
+    window.addEventListener('hashchange', () => {
+      if (this._ignoreHashChange) return;
+      this.handleHashChange();
+    });
 
     // Load initial page
     this.handleHashChange();
@@ -91,6 +95,14 @@ class App {
   showPage(page, params = {}) {
     this.currentPage = page;
     this.sidebar.setActive(page);
+
+    // Update hash to include params, suppressing the resulting hashchange event
+    this._ignoreHashChange = true;
+    const queryString = Object.keys(params)
+      .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
+      .join('&');
+    window.location.hash = '#/' + page + (queryString ? '?' + queryString : '');
+    setTimeout(() => { this._ignoreHashChange = false; }, 0);
 
     // Clear current content
     this.mainContent.innerHTML = '';

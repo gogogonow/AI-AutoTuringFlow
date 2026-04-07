@@ -55,9 +55,6 @@ class Sidebar {
         item.classList.remove('active');
       }
     });
-    
-    // Update hash
-    window.location.hash = '#/' + page;
   }
 
   render() {

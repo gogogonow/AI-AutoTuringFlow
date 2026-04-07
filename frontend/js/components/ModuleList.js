@@ -58,6 +58,9 @@ class ModuleList {
         <div class="card-header">
           <h2 class="card-title">光模块列表（共 <span id="totalCount">0</span> 条）</h2>
           <div class="card-actions">
+            <button class="btn btn-success btn-sm" id="exportBtn">📥 导出Excel</button>
+            <button class="btn btn-info btn-sm" id="importBtn">📤 导入Excel</button>
+            <input type="file" id="importFileInput" accept=".xlsx,.xls" style="display:none;">
             <button class="btn btn-success btn-sm" id="batchInboundBtn">批量入库</button>
           </div>
         </div>
@@ -138,6 +141,26 @@ class ModuleList {
       }
       // TODO: Implement batch inbound modal
       Utils.showToast('批量入库功能开发中', 'info');
+    });
+
+    // Export
+    const exportBtn = this.container.querySelector('#exportBtn');
+    exportBtn.addEventListener('click', () => {
+      this.handleExport();
+    });
+
+    // Import
+    const importBtn = this.container.querySelector('#importBtn');
+    const importFileInput = this.container.querySelector('#importFileInput');
+    importBtn.addEventListener('click', () => {
+      importFileInput.click();
+    });
+    importFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        this.handleImport(file);
+        importFileInput.value = '';
+      }
     });
   }
 
@@ -298,6 +321,38 @@ class ModuleList {
   loadPage(page) {
     this.currentPage = page;
     this.loadData();
+  }
+
+  async handleExport() {
+    try {
+      Utils.showLoading();
+      await API.exportModules(this.filters);
+      Utils.hideLoading();
+      Utils.showToast('导出成功', 'success');
+    } catch (error) {
+      Utils.hideLoading();
+      Utils.showToast('导出失败: ' + error.message, 'error');
+    }
+  }
+
+  async handleImport(file) {
+    try {
+      Utils.showLoading();
+      const result = await API.importModules(file);
+      Utils.hideLoading();
+      let msg = `导入完成：成功 ${result.successCount} 条`;
+      if (result.failCount > 0) {
+        msg += `，失败 ${result.failCount} 条`;
+      }
+      if (result.errors && result.errors.length > 0) {
+        msg += '\n' + result.errors.slice(0, 5).join('\n');
+      }
+      Utils.showToast(msg, result.failCount > 0 ? 'warning' : 'success');
+      this.loadData();
+    } catch (error) {
+      Utils.hideLoading();
+      Utils.showToast('导入失败: ' + error.message, 'error');
+    }
   }
 
   refresh() {
