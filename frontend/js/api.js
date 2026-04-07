@@ -1,41 +1,124 @@
-// API 服务封装
-// Utils 工具类定义在 utils.js（在本文件之前加载）
-const API = {
-    baseURL: '/api',
-    
-    // 通用请求方法
-    async request(endpoint, options = {}) {
-        const url = `${this.baseURL}${endpoint}`;
-        const config = {
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
-            ...options
-        };
-        
-        try {
-            const response = await fetch(url, config);
-            
-            if (!response.ok) {
-                const error = await response.json().catch(() => ({}));
-                throw new Error(error.detail || error.message || `HTTP ${response.status}`);
-            }
-            
-            return await response.json();
-        } catch (error) {
-            console.error('API Error:', error);
-            throw error;
+// API Client
+class API {
+  static async request(endpoint, options = {}) {
+    const url = CONFIG.API_BASE_URL + endpoint;
+    const config = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+      },
+      ...options
+    };
+
+    try {
+      const response = await fetch(url, config);
+      
+      // Handle non-JSON responses (like file downloads)
+      const contentType = response.headers.get('content-type');
+      if (contentType && !contentType.includes('application/json')) {
+        if (!response.ok) {
+          throw new Error('Request failed');
         }
-    },
-    
-    // 光模块相关 API
-    modules: {
-        getAll:      ()       => API.request('/modules'),
-        getById:     (id)     => API.request(`/modules/${id}`),
-        create:      (data)   => API.request('/modules', { method: 'POST', body: JSON.stringify(data) }),
-        update:      (id, data) => API.request(`/modules/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-        delete:      (id)     => API.request(`/modules/${id}`, { method: 'DELETE' }),
-        getHistory:  (id)     => API.request(`/modules/${id}/history`)
+        return response;
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const error = new Error(data.message || data.error || 'Request failed');
+        error.status = response.status;
+        error.validationErrors = data.validationErrors;
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('API request failed:', error);
+      throw error;
     }
-};
+  }
+
+  // Module APIs
+  static async getModules(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/modules${queryString ? '?' + queryString : ''}`);
+  }
+
+  static async getModule(id) {
+    return this.request(`/modules/${id}`);
+  }
+
+  static async createModule(data) {
+    return this.request('/modules', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  static async updateModule(id, data) {
+    return this.request(`/modules/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  static async deleteModule(id) {
+    return this.request(`/modules/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
+  static async changeModuleStatus(id, action, data = {}) {
+    return this.request(`/modules/${id}/status`, {
+      method: 'POST',
+      body: JSON.stringify({ action, ...data })
+    });
+  }
+
+  static async batchInbound(modules) {
+    return this.request('/modules/batch', {
+      method: 'POST',
+      body: JSON.stringify(modules)
+    });
+  }
+
+  static async importModules(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request('/modules/import', {
+      method: 'POST',
+      headers: {}, // Let browser set Content-Type for FormData
+      body: formData
+    });
+  }
+
+  static async exportModules(filters = {}) {
+    const queryString = new URLSearchParams(filters).toString();
+    const response = await this.request(`/modules/export${queryString ? '?' + queryString : ''}`);
+    
+    // Trigger download
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'modules_' + new Date().getTime() + '.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
+
+  // History APIs
+  static async getHistories(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/histories${queryString ? '?' + queryString : ''}`);
+  }
+
+  static async getModuleHistory(moduleId, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/histories/module/${moduleId}${queryString ? '?' + queryString : ''}`);
+  }
+}
+
+// Make API globally available
+window.API = API;
