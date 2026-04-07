@@ -1,5 +1,7 @@
 runs-on:
   - self-hosted
+  - macOS
+  - ARM64
   - tanweideMacBook-Air
 steps:
   - name: Verify Machine Name
