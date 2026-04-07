@@ -58,10 +58,6 @@ class ModuleDetails {
             <div class="detail-value" id="detail-model">${Utils.escapeHtml(module.model || '-')}</div>
           </div>
           <div class="detail-item">
-            <div class="detail-label">供应商</div>
-            <div class="detail-value" id="detail-vendor">${Utils.escapeHtml(module.vendor || '-')}</div>
-          </div>
-          <div class="detail-item">
             <div class="detail-label">端口速率</div>
             <div class="detail-value" id="detail-speed">${Utils.escapeHtml(module.speed || '-')}</div>
           </div>
@@ -76,14 +72,6 @@ class ModuleDetails {
           <div class="detail-item">
             <div class="detail-label">接口类型</div>
             <div class="detail-value" id="detail-connectorType">${Utils.escapeHtml(module.connectorType || '-')}</div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">当前状态</div>
-            <div class="detail-value">
-              <span class="status-badge ${Utils.getStatusClass(module.status)}" id="detail-status">
-                ${Utils.getStatusText(module.status)}
-              </span>
-            </div>
           </div>
           <div class="detail-item">
             <div class="detail-label">入库时间</div>
@@ -157,16 +145,6 @@ class ModuleDetails {
             <div class="detail-label">备注</div>
             <div class="detail-value" id="detail-remark">${Utils.escapeHtml(module.remark || '-')}</div>
           </div>
-        </div>
-      </div>
-
-      <!-- Status Actions Card -->
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">状态操作</h2>
-        </div>
-        <div class="status-actions" style="padding: var(--spacing-lg); display: flex; gap: var(--spacing-sm); flex-wrap: wrap;">
-          ${this.renderStatusActions(module.status)}
         </div>
       </div>
 
@@ -423,32 +401,6 @@ class ModuleDetails {
     };
   }
 
-  renderStatusActions(currentStatus) {
-    const actions = [];
-
-    // Define available actions based on current status
-    if (currentStatus === 'IN_STOCK') {
-      actions.push({ id: 'deploy', label: '部署到设备', class: 'btn-primary' });
-      actions.push({ id: 'scrap', label: '报废', class: 'btn-danger' });
-    } else if (currentStatus === 'DEPLOYED') {
-      actions.push({ id: 'retrieve', label: '从设备收回', class: 'btn-secondary' });
-      actions.push({ id: 'markFaulty', label: '标记故障', class: 'btn-warning' });
-    } else if (currentStatus === 'FAULTY') {
-      actions.push({ id: 'sendRepair', label: '送修', class: 'btn-info' });
-      actions.push({ id: 'scrap', label: '报废', class: 'btn-danger' });
-    } else if (currentStatus === 'UNDER_REPAIR') {
-      actions.push({ id: 'returnRepair', label: '维修归还', class: 'btn-success' });
-    }
-
-    if (actions.length === 0) {
-      return '<div style="color: var(--color-text-secondary);">当前状态无可用操作</div>';
-    }
-
-    return actions.map(action => 
-      `<button class="btn ${action.class}" data-action="${action.id}">${action.label}</button>`
-    ).join('');
-  }
-
   renderTimeline(historyList) {
     if (historyList.length === 0) {
       return Utils.renderEmptyState('📜', '暂无操作历史', '');
@@ -493,15 +445,6 @@ class ModuleDetails {
         this.handleDelete();
       });
     }
-
-    // Status action buttons
-    const actionBtns = this.container.querySelectorAll('.status-actions button[data-action]');
-    actionBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const action = btn.dataset.action;
-        this.handleStatusAction(action);
-      });
-    });
 
     // Add vendor info button
     const addVendorInfoBtn = this.container.querySelector('#addVendorInfoBtn');
@@ -609,12 +552,6 @@ class ModuleDetails {
         Utils.showToast('删除失败: ' + error.message, 'error');
       }
     });
-  }
-
-  handleStatusAction(action) {
-    // TODO: Implement modal dialogs for each action type
-    // For now, just show a placeholder
-    Utils.showToast(`${action} 操作功能开发中`, 'info');
   }
 
   renderError(message) {
