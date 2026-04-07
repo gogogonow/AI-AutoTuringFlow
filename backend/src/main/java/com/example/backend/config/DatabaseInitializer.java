@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
@@ -15,8 +16,10 @@ import java.sql.DatabaseMetaData;
 /**
  * Database initializer that runs on application startup.
  * Verifies the database connection is healthy and logs table status.
+ * Depends on flyway to ensure migrations run before accessing repositories.
  */
 @Component
+@DependsOn("flyway")
 public class DatabaseInitializer implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(DatabaseInitializer.class);
