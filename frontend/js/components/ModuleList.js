@@ -11,6 +11,11 @@ class ModuleList {
     this.init();
   }
 
+  isOwner() {
+    const user = window.app.getCurrentUser();
+    return user && user.role === 'OWNER';
+  }
+
   init() {
     this.container = document.createElement('div');
     this.container.className = 'module-list-container';
@@ -18,6 +23,8 @@ class ModuleList {
   }
 
   render() {
+    const isOwner = this.isOwner();
+
     this.container.innerHTML = `
       <!-- Filters Card -->
       <div class="card">
@@ -46,16 +53,18 @@ class ModuleList {
           <h2 class="card-title">光模块列表（共 <span id="totalCount">0</span> 条）</h2>
           <div class="card-actions">
             <button class="btn btn-success btn-sm" id="exportBtn">📥 导出Excel</button>
-            <button class="btn btn-info btn-sm" id="importBtn">📤 导入Excel</button>
-            <input type="file" id="importFileInput" accept=".xlsx,.xls" style="display:none;">
-            <button class="btn btn-success btn-sm" id="batchInboundBtn">批量入库</button>
+            ${isOwner ? `
+              <button class="btn btn-info btn-sm" id="importBtn">📤 导入Excel</button>
+              <input type="file" id="importFileInput" accept=".xlsx,.xls" style="display:none;">
+              <button class="btn btn-success btn-sm" id="batchInboundBtn">批量入库</button>
+            ` : ''}
           </div>
         </div>
         <div class="table-container">
           <table class="table">
             <thead>
               <tr>
-                <th width="50"><input type="checkbox" id="selectAll"></th>
+                ${isOwner ? '<th width="50"><input type="checkbox" id="selectAll"></th>' : ''}
                 <th width="150">序列号</th>
                 <th width="120">型号</th>
                 <th width="80">速率</th>
@@ -66,7 +75,7 @@ class ModuleList {
             </thead>
             <tbody id="moduleTableBody">
               <tr>
-                <td colspan="7" style="text-align: center; padding: 40px;">
+                <td colspan="${isOwner ? '7' : '6'}" style="text-align: center; padding: 40px;">
                   <div class="loading-spinner" style="margin: 0 auto;"></div>
                 </td>
               </tr>
@@ -179,9 +188,10 @@ class ModuleList {
       }
     } catch (error) {
       const tbody = this.container.querySelector('#moduleTableBody');
+      const colspan = this.isOwner() ? '7' : '6';
       tbody.innerHTML = `
         <tr>
-          <td colspan="7">
+          <td colspan="${colspan}">
             ${Utils.renderErrorState(
               '加载失败: ' + error.message,
               '<button class="btn btn-secondary" onclick="window.app.currentComponent.loadData()">重试</button>'
@@ -194,15 +204,17 @@ class ModuleList {
 
   renderTable(modules) {
     const tbody = this.container.querySelector('#moduleTableBody');
+    const isOwner = this.isOwner();
+    const colspan = isOwner ? '7' : '6';
 
     if (modules.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="7">
+          <td colspan="${colspan}">
             ${Utils.renderEmptyState(
               '📦',
               '暂无数据',
-              '<button class="btn btn-primary" onclick="window.app.showPage(\'create\')">立即入库</button>'
+              isOwner ? '<button class="btn btn-primary" onclick="window.app.showPage(\'create\')">立即入库</button>' : ''
             )}
           </td>
         </tr>
@@ -212,11 +224,11 @@ class ModuleList {
 
     tbody.innerHTML = modules.map(module => `
       <tr>
-        <td>
+        ${isOwner ? `<td>
           <input type="checkbox" data-id="${module.id}"
             ${this.selectedIds.has(String(module.id)) ? 'checked' : ''}
             onchange="window.app.currentComponent.handleCheckbox(this)">
-        </td>
+        </td>` : ''}
         <td>${Utils.escapeHtml(module.serialNumber || '-')}</td>
         <td>${Utils.escapeHtml(module.model || '-')}</td>
         <td>${Utils.escapeHtml(module.speed || '-')}</td>
@@ -226,10 +238,12 @@ class ModuleList {
           <div class="action-buttons">
             <button class="btn btn-primary btn-sm"
               onclick="window.app.showPage('details', {id: ${module.id}})">查看</button>
-            <button class="btn btn-secondary btn-sm"
-              onclick="window.app.showPage('edit', {id: ${module.id}})">编辑</button>
-            <button class="btn btn-danger btn-sm"
-              onclick="window.app.currentComponent.handleDelete(${module.id})">删除</button>
+            ${isOwner ? `
+              <button class="btn btn-secondary btn-sm"
+                onclick="window.app.showPage('edit', {id: ${module.id}})">编辑</button>
+              <button class="btn btn-danger btn-sm"
+                onclick="window.app.currentComponent.handleDelete(${module.id})">删除</button>
+            ` : ''}
           </div>
         </td>
       </tr>

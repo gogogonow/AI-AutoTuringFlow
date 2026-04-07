@@ -20,6 +20,9 @@ class App {
   }
 
   setup() {
+    // Check authentication
+    const isAuthenticated = this.isAuthenticated();
+
     // Create header
     this.header = new Header();
     document.body.appendChild(this.header.render());
@@ -29,9 +32,11 @@ class App {
     layoutContainer.className = 'layout-container';
     document.body.appendChild(layoutContainer);
 
-    // Create sidebar
-    this.sidebar = new Sidebar();
-    layoutContainer.appendChild(this.sidebar.render());
+    // Create sidebar (only if authenticated)
+    if (isAuthenticated) {
+      this.sidebar = new Sidebar();
+      layoutContainer.appendChild(this.sidebar.render());
+    }
 
     // Create main content area
     this.mainContent = document.createElement('main');
@@ -75,6 +80,20 @@ class App {
     this.handleHashChange();
   }
 
+  isAuthenticated() {
+    return !!API.getAuthToken();
+  }
+
+  getCurrentUser() {
+    const userStr = localStorage.getItem('currentUser');
+    return userStr ? JSON.parse(userStr) : null;
+  }
+
+  hasRole(role) {
+    const user = this.getCurrentUser();
+    return user && user.role === role;
+  }
+
   handleHashChange() {
     const hash = window.location.hash.slice(1); // Remove '#'
     const [path, paramsStr] = hash.split('?');
@@ -93,8 +112,22 @@ class App {
   }
 
   showPage(page, params = {}) {
+    // Check authentication for protected pages
+    if (page !== 'login' && !this.isAuthenticated()) {
+      this.showPage('login');
+      return;
+    }
+
+    // Redirect to list if already logged in and trying to access login
+    if (page === 'login' && this.isAuthenticated()) {
+      this.showPage('list');
+      return;
+    }
+
     this.currentPage = page;
-    this.sidebar.setActive(page);
+    if (this.sidebar) {
+      this.sidebar.setActive(page);
+    }
 
     // Update hash to include params, suppressing the resulting hashchange event
     this._ignoreHashChange = true;
@@ -110,13 +143,28 @@ class App {
     // Create and mount component
     let component = null;
     switch (page) {
+      case 'login':
+        component = new Login();
+        break;
       case 'list':
         component = new ModuleList();
         break;
       case 'create':
+        // Check if user has OWNER role
+        if (!this.hasRole('OWNER')) {
+          Utils.showToast('您没有权限执行此操作', 'error');
+          this.showPage('list');
+          return;
+        }
         component = new ModuleForm();
         break;
       case 'edit':
+        // Check if user has OWNER role
+        if (!this.hasRole('OWNER')) {
+          Utils.showToast('您没有权限执行此操作', 'error');
+          this.showPage('list');
+          return;
+        }
         component = new ModuleForm(params);
         break;
       case 'details':

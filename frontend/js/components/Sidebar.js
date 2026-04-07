@@ -6,7 +6,14 @@ class Sidebar {
     this.init();
   }
 
+  isOwner() {
+    const user = window.app ? window.app.getCurrentUser() : null;
+    return user && user.role === 'OWNER';
+  }
+
   init() {
+    const isOwner = this.isOwner();
+
     this.element = document.createElement('aside');
     this.element.className = 'sidebar';
     this.element.id = 'sidebar';
@@ -16,10 +23,12 @@ class Sidebar {
           <span class="nav-icon">📦</span>
           <span class="nav-text">光模块列表</span>
         </a>
-        <a href="#/create" class="nav-item" data-page="create">
-          <span class="nav-icon">➕</span>
-          <span class="nav-text">入库登记</span>
-        </a>
+        ${isOwner ? `
+          <a href="#/create" class="nav-item" data-page="create">
+            <span class="nav-icon">➕</span>
+            <span class="nav-text">入库登记</span>
+          </a>
+        ` : ''}
         <a href="#/history" class="nav-item" data-page="history">
           <span class="nav-icon">📜</span>
           <span class="nav-text">修改历史</span>

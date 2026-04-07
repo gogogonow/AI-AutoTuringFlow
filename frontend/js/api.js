@@ -1,12 +1,32 @@
 // API Client
 class API {
+  static getAuthToken() {
+    return localStorage.getItem('authToken');
+  }
+
+  static setAuthToken(token) {
+    localStorage.setItem('authToken', token);
+  }
+
+  static removeAuthToken() {
+    localStorage.removeItem('authToken');
+  }
+
   static async request(endpoint, options = {}) {
     const url = CONFIG.API_BASE_URL + endpoint;
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers
+    };
+
+    // Add Authorization header if token exists
+    const token = this.getAuthToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const config = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-      },
+      headers,
       ...options
     };
 
@@ -55,6 +75,15 @@ class API {
         if (data && data.validationErrors) {
           error.validationErrors = data.validationErrors;
         }
+
+        // Handle 401 Unauthorized - redirect to login
+        if (response.status === 401) {
+          this.removeAuthToken();
+          if (window.app && window.location.hash !== '#/login') {
+            window.app.showPage('login');
+          }
+        }
+
         throw error;
       }
 
@@ -63,6 +92,33 @@ class API {
       console.error('API request failed:', error);
       throw error;
     }
+  }
+
+  // Auth APIs
+  static async login(username, password) {
+    const response = await this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password })
+    });
+    if (response && response.token) {
+      this.setAuthToken(response.token);
+    }
+    return response;
+  }
+
+  static async register(username, password, email, role) {
+    return this.request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, password, email, role })
+    });
+  }
+
+  static async getCurrentUser() {
+    return this.request('/auth/me');
+  }
+
+  static logout() {
+    this.removeAuthToken();
   }
 
   // Module APIs

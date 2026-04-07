@@ -8,6 +8,11 @@ class ModuleDetails {
     this.init();
   }
 
+  isOwner() {
+    const user = window.app ? window.app.getCurrentUser() : null;
+    return user && user.role === 'OWNER';
+  }
+
   init() {
     this.container = document.createElement('div');
     this.container.className = 'module-details-container';
@@ -38,14 +43,18 @@ class ModuleDetails {
     if (!this.moduleData) return;
 
     const module = this.moduleData;
+    const isOwner = this.isOwner();
+
     this.container.innerHTML = `
       <!-- Basic Info Card -->
       <div class="card">
         <div class="card-header">
           <h2 class="card-title">光模块详情</h2>
           <div class="card-actions">
-            <button class="btn btn-secondary btn-sm" id="editBtn">✏️ 编辑</button>
-            <button class="btn btn-danger btn-sm" id="deleteBtn">🗑️ 删除</button>
+            ${isOwner ? `
+              <button class="btn btn-secondary btn-sm" id="editBtn">✏️ 编辑</button>
+              <button class="btn btn-danger btn-sm" id="deleteBtn">🗑️ 删除</button>
+            ` : ''}
           </div>
         </div>
         <div class="details-grid">
@@ -153,7 +162,7 @@ class ModuleDetails {
         <div class="card-header">
           <h2 class="card-title">多厂家信息</h2>
           <div class="card-actions">
-            <button class="btn btn-primary btn-sm" id="addVendorInfoBtn">➕ 新增厂家</button>
+            ${isOwner ? '<button class="btn btn-primary btn-sm" id="addVendorInfoBtn">➕ 新增厂家</button>' : ''}
           </div>
         </div>
         <div style="padding: 8px 16px; background: #f0f7ff; border-bottom: 1px solid #e0e0e0; font-size: 0.9em; color: #555;">
@@ -197,6 +206,8 @@ class ModuleDetails {
   }
 
   renderVendorInfoTable(vendorInfos) {
+    const isOwner = this.isOwner();
+
     if (!vendorInfos || vendorInfos.length === 0) {
       return Utils.renderEmptyState('🏭', '暂无厂家信息', '');
     }
@@ -222,7 +233,7 @@ class ModuleDetails {
               <th>已覆盖单板</th>
               <th>测试报告</th>
               <th>备注</th>
-              <th>操作</th>
+              ${isOwner ? '<th>操作</th>' : ''}
             </tr>
           </thead>
           <tbody>
@@ -245,12 +256,14 @@ class ModuleDetails {
                 <td style="max-width:120px; word-break:break-word;">${Utils.escapeHtml(vi.coveredBoards || '-')}</td>
                 <td>${vi.testReportLink ? `<a href="${Utils.escapeHtml(vi.testReportLink)}" target="_blank" rel="noopener noreferrer">查看报告</a>` : '-'}</td>
                 <td>${Utils.escapeHtml(vi.remark || '-')}</td>
-                <td>
-                  <div class="action-buttons">
-                    <button class="btn btn-secondary btn-sm" data-edit-vendor="${vi.id}">编辑</button>
-                    <button class="btn btn-danger btn-sm" data-delete-vendor="${vi.id}">删除</button>
-                  </div>
-                </td>
+                ${isOwner ? `
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn btn-secondary btn-sm" data-edit-vendor="${vi.id}">编辑</button>
+                      <button class="btn btn-danger btn-sm" data-delete-vendor="${vi.id}">删除</button>
+                    </div>
+                  </td>
+                ` : ''}
               </tr>
             `).join('')}
           </tbody>
