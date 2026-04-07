@@ -2,7 +2,10 @@ package com.example.backend.service;
 
 import com.example.backend.dto.ModuleDto;
 import com.example.backend.dto.StatusChangeRequest;
-import com.example.backend.model.*;
+import com.example.backend.model.History;
+import com.example.backend.model.Module;
+import com.example.backend.model.ModuleStatus;
+import com.example.backend.model.OperationType;
 import com.example.backend.repository.ModuleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;

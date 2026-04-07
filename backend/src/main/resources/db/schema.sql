@@ -2,43 +2,39 @@
 -- This script is safe to re-run: uses CREATE TABLE IF NOT EXISTS
 -- Column definitions match Module.java and History.java JPA entities.
 
--- Create modules table
-CREATE TABLE IF NOT EXISTS modules (
+-- Create module table (matches Module.java entity: @Table(name = "module"))
+CREATE TABLE IF NOT EXISTS module (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    serial_number VARCHAR(100) NOT NULL UNIQUE,
-    manufacturer VARCHAR(100) NOT NULL,
-    model_number VARCHAR(100),
-    wavelength DOUBLE,
-    transmit_power DOUBLE,
-    receive_sensitivity DOUBLE,
-    transmission_distance DOUBLE,
-    fiber_type VARCHAR(50),
-    connector_type VARCHAR(50),
-    temperature_range VARCHAR(50),
-    voltage DOUBLE,
-    power_consumption DOUBLE,
-    created_at DATETIME(6) NOT NULL DEFAULT NOW(6),
-    updated_at DATETIME(6) NOT NULL DEFAULT NOW(6),
+    serial_number VARCHAR(50) NOT NULL UNIQUE,
+    model VARCHAR(100) NOT NULL,
+    vendor VARCHAR(100) NOT NULL,
+    speed VARCHAR(20),
+    wavelength VARCHAR(20),
+    transmission_distance INT,
+    connector_type VARCHAR(20),
+    status VARCHAR(20) NOT NULL DEFAULT 'IN_STOCK',
+    inbound_time DATETIME(6) NOT NULL,
+    remark TEXT,
+    created_at DATETIME(6) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
     INDEX idx_serial_number (serial_number),
-    INDEX idx_manufacturer (manufacturer)
+    INDEX idx_status (status),
+    INDEX idx_model (model),
+    INDEX idx_vendor (vendor)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Migrate existing tables: add columns missing from older schema versions.
--- These statements are safe to re-run; errors on already-existing columns are
--- suppressed by spring.sql.init.continue-on-error=true.
-ALTER TABLE modules ADD COLUMN IF NOT EXISTS created_at DATETIME(6) NOT NULL DEFAULT NOW(6);
-ALTER TABLE modules ADD COLUMN IF NOT EXISTS updated_at DATETIME(6) NOT NULL DEFAULT NOW(6);
-
--- Create history table
+-- Create history table (matches History.java entity: @Table(name = "history"))
 CREATE TABLE IF NOT EXISTS history (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     module_id BIGINT NOT NULL,
-    operation VARCHAR(20) NOT NULL,
-    field_name VARCHAR(100),
-    old_value TEXT,
-    new_value TEXT,
+    operation_type VARCHAR(30) NOT NULL,
+    operation_time DATETIME(6) NOT NULL,
+    operator VARCHAR(100),
+    previous_status VARCHAR(20),
+    next_status VARCHAR(20),
+    remark TEXT,
     created_at DATETIME(6) NOT NULL,
     INDEX idx_module_id (module_id),
-    INDEX idx_created_at (created_at),
-    FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE
+    INDEX idx_operation_time (operation_time),
+    INDEX idx_operation_type (operation_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
