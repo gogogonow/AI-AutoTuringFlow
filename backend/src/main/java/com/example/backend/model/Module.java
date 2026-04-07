@@ -68,7 +68,7 @@ public class Module {
     @Column(name = "fiber_type", length = 20)
     private FiberType fiberType;
 
-    @Column(name = "max_power_consumption", precision = 10, scale = 2)
+    @Column(name = "max_power_consumption")
     private Double maxPowerConsumption;
 
     @Column(name = "min_case_temp")
