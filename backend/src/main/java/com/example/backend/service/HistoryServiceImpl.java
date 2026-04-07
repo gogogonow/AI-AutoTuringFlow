@@ -41,7 +41,9 @@ public class HistoryServiceImpl implements HistoryService {
         ModuleStatus previousStatus,
         ModuleStatus nextStatus,
         String remark,
-        String changeDetails
+        String changeDetails,
+        String serialNumber,
+        String model
     ) {
         History history = new History();
         history.setModuleId(moduleId);
@@ -51,6 +53,8 @@ public class HistoryServiceImpl implements HistoryService {
         history.setNextStatus(nextStatus);
         history.setRemark(remark);
         history.setChangeDetails(changeDetails);
+        history.setSerialNumber(serialNumber);
+        history.setModel(model);
         history.setOperationTime(LocalDateTime.now());
 
         History savedHistory = historyRepository.save(history);
@@ -135,11 +139,17 @@ public class HistoryServiceImpl implements HistoryService {
         dto.setChangeDetails(history.getChangeDetails());
         dto.setCreatedAt(history.getCreatedAt());
 
-        // Enrich with module information
-        moduleRepository.findById(history.getModuleId()).ifPresent(module -> {
-            dto.setSerialNumber(module.getSerialNumber());
-            dto.setModel(module.getModel());
-        });
+        // Use stored serial number and model if available
+        if (history.getSerialNumber() != null && history.getModel() != null) {
+            dto.setSerialNumber(history.getSerialNumber());
+            dto.setModel(history.getModel());
+        } else {
+            // Fallback: enrich with module information from join
+            moduleRepository.findById(history.getModuleId()).ifPresent(module -> {
+                dto.setSerialNumber(module.getSerialNumber());
+                dto.setModel(module.getModel());
+            });
+        }
 
         return dto;
     }

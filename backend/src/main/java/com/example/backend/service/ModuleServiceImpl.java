@@ -56,7 +56,9 @@ public class ModuleServiceImpl implements ModuleService {
             null,
             null,
             "首次入库",
-            changeDetails
+            changeDetails,
+            savedModule.getSerialNumber(),
+            savedModule.getModel()
         );
 
         return toDto(savedModule);
@@ -112,7 +114,9 @@ public class ModuleServiceImpl implements ModuleService {
             null,
             null,
             "更新光模块信息",
-            changeDetails
+            changeDetails,
+            updatedModule.getSerialNumber(),
+            updatedModule.getModel()
         );
 
         return toDto(updatedModule);
@@ -127,12 +131,14 @@ public class ModuleServiceImpl implements ModuleService {
         String changeDetails = buildDeleteDetails(module);
         historyService.createHistory(
             module.getId(),
-            OperationType.OUTBOUND,
+            OperationType.DELETE_MODULE,
             "system",
             null,
             null,
             "删除光模块",
-            changeDetails
+            changeDetails,
+            module.getSerialNumber(),
+            module.getModel()
         );
 
         // 软删除：设置删除标记和删除时间

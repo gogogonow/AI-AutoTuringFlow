@@ -2,6 +2,7 @@ package com.example.backend.service;
 
 import com.example.backend.dto.HistoryDto;
 import com.example.backend.model.History;
+import com.example.backend.model.Module;
 import com.example.backend.model.ModuleStatus;
 import com.example.backend.model.OperationType;
 import com.example.backend.repository.HistoryRepository;
@@ -39,6 +40,7 @@ class HistoryServiceTest {
     private HistoryServiceImpl historyService;
 
     private History savedHistory;
+    private Module mockModule;
 
     @BeforeEach
     void setUp() {
@@ -47,6 +49,11 @@ class HistoryServiceTest {
         savedHistory.setModuleId(5L);
         savedHistory.setOperationTime(LocalDateTime.now());
         savedHistory.setCreatedAt(LocalDateTime.now());
+
+        mockModule = new Module();
+        mockModule.setId(5L);
+        mockModule.setSerialNumber("SN12345");
+        mockModule.setModel("SFP-10G-SR");
     }
 
     @Test
@@ -167,5 +174,93 @@ class HistoryServiceTest {
                 "OperationType." + type.name() + " (" + type.name().length()
                 + " chars) must fit in VARCHAR(50) database column");
         }
+    }
+
+    @Test
+    void testCreateHistory_DeleteModule_RecordsCorrectOperationType() {
+        savedHistory.setOperationType(OperationType.DELETE_MODULE);
+        savedHistory.setSerialNumber("SN12345");
+        savedHistory.setModel("SFP-10G-SR");
+        when(historyRepository.save(any(History.class))).thenReturn(savedHistory);
+        when(moduleRepository.findById(5L)).thenReturn(Optional.of(mockModule));
+
+        HistoryDto result = historyService.createHistory(
+            5L, OperationType.DELETE_MODULE, "system", null, null,
+            "删除光模块", "删除前字段：序列号=SN12345, 型号=SFP-10G-SR",
+            "SN12345", "SFP-10G-SR"
+        );
+
+        assertNotNull(result);
+        assertEquals(OperationType.DELETE_MODULE, result.getOperationType());
+
+        // Verify the history entity saved to DB has DELETE_MODULE and stores serial number/model
+        ArgumentCaptor<History> captor = ArgumentCaptor.forClass(History.class);
+        verify(historyRepository).save(captor.capture());
+        assertEquals(OperationType.DELETE_MODULE, captor.getValue().getOperationType());
+        assertEquals("SN12345", captor.getValue().getSerialNumber());
+        assertEquals("SFP-10G-SR", captor.getValue().getModel());
+        assertNotNull(captor.getValue().getOperationTime());
+    }
+
+    @Test
+    void testCreateHistory_WithSerialNumberAndModel() {
+        savedHistory.setOperationType(OperationType.INBOUND);
+        savedHistory.setSerialNumber("SN98765");
+        savedHistory.setModel("QSFP-100G-LR4");
+        when(historyRepository.save(any(History.class))).thenReturn(savedHistory);
+        when(moduleRepository.findById(5L)).thenReturn(Optional.empty());
+
+        HistoryDto result = historyService.createHistory(
+            5L, OperationType.INBOUND, "system", null, null,
+            "首次入库", "新增字段：序列号=SN98765, 型号=QSFP-100G-LR4",
+            "SN98765", "QSFP-100G-LR4"
+        );
+
+        assertNotNull(result);
+        ArgumentCaptor<History> captor = ArgumentCaptor.forClass(History.class);
+        verify(historyRepository).save(captor.capture());
+        assertEquals("SN98765", captor.getValue().getSerialNumber());
+        assertEquals("QSFP-100G-LR4", captor.getValue().getModel());
+    }
+
+    @Test
+    void testToDto_UsesStoredSerialNumberAndModel() {
+        History history = new History();
+        history.setId(1L);
+        history.setModuleId(5L);
+        history.setOperationType(OperationType.DELETE_MODULE);
+        history.setOperationTime(LocalDateTime.now());
+        history.setCreatedAt(LocalDateTime.now());
+        history.setSerialNumber("SN-STORED");
+        history.setModel("MODEL-STORED");
+
+        HistoryDto dto = historyService.toDto(history);
+
+        assertNotNull(dto);
+        assertEquals("SN-STORED", dto.getSerialNumber());
+        assertEquals("MODEL-STORED", dto.getModel());
+        // Should NOT query moduleRepository when serial number and model are stored
+        verify(moduleRepository, never()).findById(any());
+    }
+
+    @Test
+    void testToDto_FallsBackToModuleJoinWhenFieldsMissing() {
+        History history = new History();
+        history.setId(1L);
+        history.setModuleId(5L);
+        history.setOperationType(OperationType.UPDATE_INFO);
+        history.setOperationTime(LocalDateTime.now());
+        history.setCreatedAt(LocalDateTime.now());
+        // serialNumber and model are null
+
+        when(moduleRepository.findById(5L)).thenReturn(Optional.of(mockModule));
+
+        HistoryDto dto = historyService.toDto(history);
+
+        assertNotNull(dto);
+        assertEquals("SN12345", dto.getSerialNumber());
+        assertEquals("SFP-10G-SR", dto.getModel());
+        // Should query moduleRepository as fallback
+        verify(moduleRepository).findById(5L);
     }
 }

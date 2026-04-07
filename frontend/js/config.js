@@ -14,7 +14,7 @@ const CONFIG = {
   
   // Operation type text mapping
   OPERATION_TYPE_TEXT: {
-    INBOUND: '入库',
+    INBOUND: '光模块入库',
     OUTBOUND: '出库',
     DEPLOY: '部署',
     RETRIEVE: '收回',
@@ -25,7 +25,8 @@ const CONFIG = {
     UPDATE_INFO: '更新信息',
     VENDOR_ADD: '新增厂家',
     VENDOR_UPDATE: '更新厂家',
-    VENDOR_DELETE: '删除厂家'
+    VENDOR_DELETE: '删除厂家',
+    DELETE_MODULE: '删除光模块'
   },
   
   // Speed options

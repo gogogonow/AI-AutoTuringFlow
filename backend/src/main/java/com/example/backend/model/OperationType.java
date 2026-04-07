@@ -62,5 +62,10 @@ public enum OperationType {
     /**
      * 删除厂家信息
      */
-    VENDOR_DELETE
+    VENDOR_DELETE,
+
+    /**
+     * 删除光模块
+     */
+    DELETE_MODULE
 }

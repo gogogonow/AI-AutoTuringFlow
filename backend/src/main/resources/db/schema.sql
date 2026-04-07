@@ -89,10 +89,14 @@ CREATE TABLE IF NOT EXISTS history (
     previous_status VARCHAR(20),
     next_status VARCHAR(20),
     remark TEXT,
+    change_details TEXT,
+    serial_number VARCHAR(50),
+    model VARCHAR(100),
     created_at DATETIME(6) NOT NULL,
     INDEX idx_module_id (module_id),
     INDEX idx_operation_time (operation_time),
-    INDEX idx_operation_type (operation_type)
+    INDEX idx_operation_type (operation_type),
+    INDEX idx_history_serial_number (serial_number)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Fix legacy 'operation' column that may exist from a previous schema version.
