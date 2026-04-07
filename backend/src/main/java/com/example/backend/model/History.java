@@ -32,14 +32,6 @@ public class History {
     @Column(name = "operator", length = 100)
     private String operator;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "previous_status", length = 20)
-    private ModuleStatus previousStatus;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "next_status", length = 20)
-    private ModuleStatus nextStatus;
-
     @Column(name = "remark", columnDefinition = "TEXT")
     private String remark;
 
@@ -111,22 +103,6 @@ public class History {
 
     public void setOperator(String operator) {
         this.operator = operator;
-    }
-
-    public ModuleStatus getPreviousStatus() {
-        return previousStatus;
-    }
-
-    public void setPreviousStatus(ModuleStatus previousStatus) {
-        this.previousStatus = previousStatus;
-    }
-
-    public ModuleStatus getNextStatus() {
-        return nextStatus;
-    }
-
-    public void setNextStatus(ModuleStatus nextStatus) {
-        this.nextStatus = nextStatus;
     }
 
     public String getRemark() {

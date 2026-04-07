@@ -30,8 +30,6 @@ class HistoryList {
                   <th>操作类型</th>
                   <th>序列号</th>
                   <th>型号</th>
-                  <th>操作前状态</th>
-                  <th>操作后状态</th>
                   <th>操作人</th>
                   <th>备注</th>
                   <th>变更详情</th>
@@ -40,7 +38,7 @@ class HistoryList {
               </thead>
               <tbody id="historyTableBody">
                 <tr>
-                  <td colspan="10" style="text-align: center; padding: 40px;">
+                  <td colspan="8" style="text-align: center; padding: 40px;">
                     <div class="loading-spinner" style="margin: 0 auto;"></div>
                   </td>
                 </tr>
@@ -77,7 +75,7 @@ class HistoryList {
       const tbody = this.container.querySelector('#historyTableBody');
       tbody.innerHTML = `
         <tr>
-          <td colspan="10">
+          <td colspan="8">
             ${Utils.renderErrorState(
               '加载失败: ' + error.message,
               '<button class="btn btn-secondary" onclick="window.app.currentComponent.loadData()">重试</button>'
@@ -94,7 +92,7 @@ class HistoryList {
     if (histories.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="10">
+          <td colspan="8">
             ${Utils.renderEmptyState('📜', '暂无历史记录', '')}
           </td>
         </tr>
@@ -108,12 +106,6 @@ class HistoryList {
         <td>${Utils.getOperationTypeText(item.operationType)}</td>
         <td>${Utils.escapeHtml(item.serialNumber || '-')}</td>
         <td>${Utils.escapeHtml(item.model || '-')}</td>
-        <td>
-          ${item.previousStatus ? `<span class="status-badge ${Utils.getStatusClass(item.previousStatus)}">${Utils.getStatusText(item.previousStatus)}</span>` : '-'}
-        </td>
-        <td>
-          ${item.nextStatus ? `<span class="status-badge ${Utils.getStatusClass(item.nextStatus)}">${Utils.getStatusText(item.nextStatus)}</span>` : '-'}
-        </td>
         <td>${Utils.escapeHtml(item.operator || '系统')}</td>
         <td>${Utils.escapeHtml(item.remark || '-')}</td>
         <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${Utils.escapeHtml(item.changeDetails || '')}">

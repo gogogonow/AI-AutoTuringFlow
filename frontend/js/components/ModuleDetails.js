@@ -415,13 +415,6 @@ class ModuleDetails {
             <div class="timeline-time">${Utils.formatDateTime(item.operationTime)}</div>
           </div>
           <div class="timeline-operator">操作人：${Utils.escapeHtml(item.operator || '系统')}</div>
-          ${item.previousStatus || item.nextStatus ? `
-            <div class="timeline-states">
-              ${item.previousStatus ? `<span class="status-badge ${Utils.getStatusClass(item.previousStatus)}">${Utils.getStatusText(item.previousStatus)}</span>` : ''}
-              ${item.previousStatus && item.nextStatus ? '<span>→</span>' : ''}
-              ${item.nextStatus ? `<span class="status-badge ${Utils.getStatusClass(item.nextStatus)}">${Utils.getStatusText(item.nextStatus)}</span>` : ''}
-            </div>
-          ` : ''}
           ${item.remark ? `<div class="timeline-remark">${Utils.escapeHtml(item.remark)}</div>` : ''}
           ${item.changeDetails ? `<div class="timeline-details" style="margin-top: 8px; padding: 8px; background-color: var(--color-bg-secondary, #f5f5f5); border-radius: 4px; font-size: 0.9em; color: var(--color-text-secondary, #666); white-space: pre-wrap; word-break: break-word;">${Utils.escapeHtml(item.changeDetails)}</div>` : ''}
         </div>

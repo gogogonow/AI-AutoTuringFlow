@@ -86,8 +86,6 @@ CREATE TABLE IF NOT EXISTS history (
     operation_type VARCHAR(50) NOT NULL,
     operation_time DATETIME(6) NOT NULL,
     operator VARCHAR(100),
-    previous_status VARCHAR(20),
-    next_status VARCHAR(20),
     remark TEXT,
     change_details TEXT,
     serial_number VARCHAR(50),
