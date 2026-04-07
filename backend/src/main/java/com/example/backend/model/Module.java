@@ -39,7 +39,7 @@ public class Module {
     // New comprehensive fields for optical module specifications
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "lifecycle_status", length = 20)
+    @Column(name = "lifecycle_status", columnDefinition = "VARCHAR(20)")
     private LifecycleStatus lifecycleStatus;
 
     @Column(name = "package_form", length = 50)
@@ -49,14 +49,14 @@ public class Module {
     private Integer fiberCount;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "light_type", length = 20)
+    @Column(name = "light_type", columnDefinition = "VARCHAR(20)")
     private LightType lightType;
 
     @Column(name = "speed_set", columnDefinition = "TEXT")
     private String speedSet;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "fiber_type", length = 20)
+    @Column(name = "fiber_type", columnDefinition = "VARCHAR(20)")
     private FiberType fiberType;
 
     @Column(name = "max_power_consumption")
