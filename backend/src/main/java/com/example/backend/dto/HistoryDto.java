@@ -1,67 +1,38 @@
-package com.example.backend.model;
+package com.example.backend.dto;
 
-import jakarta.persistence.*;
+import com.example.backend.model.ModuleStatus;
+import com.example.backend.model.OperationType;
 import java.time.LocalDateTime;
 
 /**
- * 操作历史实体类
- * 记录每一次光模块状态变更或操作事件
+ * 操作历史数据传输对象
  */
-@Entity
-@Table(name = "history", indexes = {
-    @Index(name = "idx_module_id", columnList = "module_id"),
-    @Index(name = "idx_operation_time", columnList = "operation_time"),
-    @Index(name = "idx_operation_type", columnList = "operation_type")
-})
-public class History {
+public class HistoryDto {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "module_id", nullable = false)
     private Long moduleId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "operation_type", nullable = false, length = 30)
     private OperationType operationType;
 
-    @Column(name = "operation_time", nullable = false)
     private LocalDateTime operationTime;
 
-    @Column(name = "operator", length = 100)
     private String operator;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "previous_status", length = 20)
     private ModuleStatus previousStatus;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "next_status", length = 20)
     private ModuleStatus nextStatus;
 
-    @Column(name = "remark", columnDefinition = "TEXT")
     private String remark;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        if (this.operationTime == null) {
-            this.operationTime = LocalDateTime.now();
-        }
-    }
+    // For enriched queries with module information
+    private String serialNumber;
+    private String model;
 
     // Constructors
-    public History() {}
-
-    public History(Long moduleId, OperationType operationType, String operator) {
-        this.moduleId = moduleId;
-        this.operationType = operationType;
-        this.operator = operator;
-    }
+    public HistoryDto() {}
 
     // Getters and Setters
     public Long getId() {
@@ -136,14 +107,19 @@ public class History {
         this.createdAt = createdAt;
     }
 
-    @Override
-    public String toString() {
-        return "History{" +
-                "id=" + id +
-                ", moduleId=" + moduleId +
-                ", operationType=" + operationType +
-                ", operationTime=" + operationTime +
-                ", operator='" + operator + '\'' +
-                '}';
+    public String getSerialNumber() {
+        return serialNumber;
+    }
+
+    public void setSerialNumber(String serialNumber) {
+        this.serialNumber = serialNumber;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public void setModel(String model) {
+        this.model = model;
     }
 }

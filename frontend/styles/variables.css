@@ -1,218 +1,53 @@
-/* CSS Variables - Design System v2.0 */
-/* 光模块管理系统 UI 视觉升级 */
-
+/* CSS Variables */
 :root {
-  /* ========== 主色调（Primary Colors） ========== */
-  /* 主品牌色 - 科技蓝 */
-  --color-primary: #2563eb;           /* Blue-600 - 主操作按钮 */
-  --color-primary-hover: #1d4ed8;     /* Blue-700 - 悬停状态 */
-  --color-primary-light: #dbeafe;     /* Blue-100 - 浅色背景 */
-  --color-primary-dark: #1e3a8a;      /* Blue-900 - 深色文字 */
+  /* 主色调 */
+  --color-primary: #1890ff;
+  --color-primary-hover: #40a9ff;
+  --color-primary-active: #096dd9;
   
-  /* 辅助色 - 专业灰 */
-  --color-secondary: #64748b;         /* Slate-500 - 次要按钮 */
-  --color-secondary-hover: #475569;   /* Slate-600 - 悬停 */
-  --color-secondary-light: #f1f5f9;   /* Slate-100 - 背景 */
-  --color-secondary-dark: #1e293b;    /* Slate-800 - 深色文字 */
-
-  /* ========== 功能色（Functional Colors） ========== */
-  /* 成功 - 绿色系 */
-  --color-success: #10b981;           /* Green-500 - 成功操作 */
-  --color-success-bg: #d1fae5;        /* Green-100 - 成功背景 */
-  --color-success-border: #6ee7b7;    /* Green-300 - 边框 */
+  /* 功能色 */
+  --color-success: #52c41a;
+  --color-warning: #faad14;
+  --color-danger: #ff4d4f;
+  --color-info: #1890ff;
   
-  /* 警告 - 琥珀色系 */
-  --color-warning: #f59e0b;           /* Amber-500 - 警告操作 */
-  --color-warning-bg: #fef3c7;        /* Amber-100 - 警告背景 */
-  --color-warning-border: #fcd34d;    /* Amber-300 - 边框 */
+  /* 中性色 */
+  --color-text-primary: #262626;
+  --color-text-secondary: #595959;
+  --color-text-disabled: #bfbfbf;
+  --color-border: #d9d9d9;
+  --color-divider: #f0f0f0;
+  --color-background: #f5f5f5;
+  --color-background-light: #fafafa;
   
-  /* 危险 - 红色系 */
-  --color-danger: #ef4444;            /* Red-500 - 危险操作 */
-  --color-danger-bg: #fee2e2;         /* Red-100 - 危险背景 */
-  --color-danger-border: #fca5a5;     /* Red-300 - 边框 */
+  /* 状态徽章色 */
+  --status-in-stock: #52c41a;
+  --status-deployed: #1890ff;
+  --status-faulty: #ff4d4f;
+  --status-under-repair: #faad14;
+  --status-scrapped: #8c8c8c;
   
-  /* 信息 - 青色系 */
-  --color-info: #06b6d4;              /* Cyan-500 - 信息提示 */
-  --color-info-bg: #cffafe;           /* Cyan-100 - 信息背景 */
-  --color-info-border: #67e8f9;       /* Cyan-300 - 边框 */
-
-  /* ========== 状态色映射（Status Badge Colors） ========== */
-  /* 光模块状态颜色 */
-  --status-in-stock: #10b981;         /* 在库 - 绿色 */
-  --status-in-stock-bg: #d1fae5;
+  /* 字体 */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-size-base: 14px;
+  --font-size-lg: 16px;
+  --font-size-sm: 12px;
+  --font-size-xl: 20px;
   
-  --status-deployed: #2563eb;         /* 已部署 - 蓝色 */
-  --status-deployed-bg: #dbeafe;
+  /* 间距 */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
   
-  --status-faulty: #ef4444;           /* 故障 - 红色 */
-  --status-faulty-bg: #fee2e2;
+  /* 圆角 */
+  --border-radius-sm: 2px;
+  --border-radius-base: 4px;
+  --border-radius-lg: 8px;
   
-  --status-under-repair: #f59e0b;     /* 维修中 - 琥珀色 */
-  --status-under-repair-bg: #fef3c7;
-  
-  --status-scrapped: #64748b;         /* 已报废 - 灰色 */
-  --status-scrapped-bg: #f1f5f9;
-
-  /* ========== 中性色（Neutral Colors） ========== */
-  /* 文字颜色 */
-  --text-primary: #0f172a;            /* Slate-900 - 主文字 */
-  --text-secondary: #475569;          /* Slate-600 - 次要文字 */
-  --text-tertiary: #94a3b8;           /* Slate-400 - 辅助文字 */
-  --text-disabled: #cbd5e1;           /* Slate-300 - 禁用文字 */
-  --text-inverse: #ffffff;            /* 反色文字 */
-  
-  /* 背景颜色 */
-  --bg-primary: #ffffff;              /* 主背景 */
-  --bg-secondary: #f8fafc;            /* Slate-50 - 次要背景 */
-  --bg-tertiary: #f1f5f9;             /* Slate-100 - 三级背景 */
-  --bg-overlay: rgba(0, 0, 0, 0.5);   /* 遮罩层 */
-  
-  /* 边框颜色 */
-  --border-primary: #e2e8f0;          /* Slate-200 - 主边框 */
-  --border-secondary: #cbd5e1;        /* Slate-300 - 次要边框 */
-  --border-focus: #2563eb;            /* 焦点边框 */
-
-  /* ========== 字体排版系统（Typography） ========== */
-  /* 字体族 */
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 
-               'Noto Sans SC', 'Microsoft YaHei', sans-serif;
-  --font-mono: 'SF Mono', 'Monaco', 'Consolas', 
-               'Liberation Mono', monospace;
-  --font-numeric: 'SF Pro Display', 'Helvetica Neue', 
-                  var(--font-sans);
-  
-  /* 字号系统 - 12px 基准，使用 rem 单位 */
-  --text-xs: 0.75rem;      /* 12px - 辅助说明 */
-  --text-sm: 0.875rem;     /* 14px - 正文小字 */
-  --text-base: 1rem;       /* 16px - 正文 */
-  --text-lg: 1.125rem;     /* 18px - 小标题 */
-  --text-xl: 1.25rem;      /* 20px - 卡片标题 */
-  --text-2xl: 1.5rem;      /* 24px - 页面标题 */
-  --text-3xl: 1.875rem;    /* 30px - 主标题 */
-  
-  /* 字重系统 */
-  --font-regular: 400;     /* 正文 */
-  --font-medium: 500;      /* 加重 */
-  --font-semibold: 600;    /* 小标题 */
-  --font-bold: 700;        /* 标题 */
-  
-  /* 行高系统 */
-  --leading-tight: 1.25;   /* 紧凑 - 标题 */
-  --leading-normal: 1.5;   /* 正常 - 正文 */
-  --leading-relaxed: 1.75; /* 宽松 - 长文本 */
-
-  /* ========== 间距系统（Spacing System） ========== */
-  /* 4px 基准倍数系统 */
-  --space-0: 0;
-  --space-1: 0.25rem;   /* 4px */
-  --space-2: 0.5rem;    /* 8px */
-  --space-3: 0.75rem;   /* 12px */
-  --space-4: 1rem;      /* 16px */
-  --space-5: 1.25rem;   /* 20px */
-  --space-6: 1.5rem;    /* 24px */
-  --space-8: 2rem;      /* 32px */
-  --space-10: 2.5rem;   /* 40px */
-  --space-12: 3rem;     /* 48px */
-  --space-16: 4rem;     /* 64px */
-
-  /* ========== 圆角与边框（Border Radius & Borders） ========== */
-  --radius-none: 0;
-  --radius-sm: 0.25rem;    /* 4px - 小元素（徽章） */
-  --radius-base: 0.5rem;   /* 8px - 按钮、输入框 */
-  --radius-lg: 0.75rem;    /* 12px - 卡片 */
-  --radius-xl: 1rem;       /* 16px - 模态框 */
-  --radius-full: 9999px;   /* 圆形（头像、图标） */
-  
-  --border-width: 1px;
-  --border-width-2: 2px;
-  --border-width-4: 4px;
-  
-  --border-solid: solid;
-  --border-dashed: dashed;
-
-  /* ========== 阴影系统（Shadow System） ========== */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-base: 0 1px 3px 0 rgba(0, 0, 0, 0.1),
-                 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-               0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-               0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
-               0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
-
-  /* ========== 动效系统（Animation & Transition） ========== */
-  /* 过渡时长 */
-  --duration-fast: 150ms;      /* 快速 - 悬停、焦点 */
-  --duration-base: 200ms;      /* 基准 - 按钮、链接 */
-  --duration-slow: 300ms;      /* 慢速 - 模态框、侧边栏 */
-  --duration-slower: 500ms;    /* 更慢 - 页面切换 */
-  
-  /* 缓动函数 */
-  --ease-in: cubic-bezier(0.4, 0, 1, 1);          /* 加速 */
-  --ease-out: cubic-bezier(0, 0, 0.2, 1);         /* 减速 */
-  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);    /* 标准 */
-  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55); /* 弹性 */
-
-  /* ========== 布局（Layout） ========== */
-  --header-height: 64px;
-  --sidebar-width: 240px;
-  --max-width: 1400px;
-  
-  /* ========== Z-index 层级 ========== */
-  --z-header: 1000;
-  --z-sidebar: 999;
-  --z-dropdown: 1001;
-  --z-modal-overlay: 9998;
-  --z-loading: 9998;
-  --z-toast: 9999;
-  --z-modal: 9997;
-}
-
-/* ========== 关键帧动画（Keyframes） ========== */
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideInDown {
-  from {
-    transform: translateY(-20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes slideInUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes bounceIn {
-  0% {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  /* 阴影 */
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.08);
+  --shadow-base: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
 }

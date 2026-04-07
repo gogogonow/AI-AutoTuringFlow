@@ -1,85 +1,51 @@
-package com.example.backend.model;
+package com.example.backend.dto;
 
-import jakarta.persistence.*;
+import com.example.backend.model.ModuleStatus;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 /**
- * 光模块实体类
- * 代表一个物理光收发器设备
+ * 光模块数据传输对象
  */
-@Entity
-@Table(name = "module", indexes = {
-    @Index(name = "idx_serial_number", columnList = "serial_number"),
-    @Index(name = "idx_status", columnList = "status"),
-    @Index(name = "idx_model", columnList = "model"),
-    @Index(name = "idx_vendor", columnList = "vendor")
-})
-public class Module {
+public class ModuleDto {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "serial_number", nullable = false, unique = true, length = 50)
+    @NotBlank(message = "序列号不能为空")
+    @Size(min = 6, max = 50, message = "序列号长度必须在6-50之间")
+    @Pattern(regexp = "^\\S+$", message = "序列号不能包含空格")
     private String serialNumber;
 
-    @Column(name = "model", nullable = false, length = 100)
+    @NotBlank(message = "型号不能为空")
+    @Size(max = 100, message = "型号长度不能超过100")
     private String model;
 
-    @Column(name = "vendor", nullable = false, length = 100)
+    @NotBlank(message = "供应商不能为空")
+    @Size(max = 100, message = "供应商长度不能超过100")
     private String vendor;
 
-    @Column(name = "speed", length = 20)
     private String speed;
 
-    @Column(name = "wavelength", length = 20)
     private String wavelength;
 
-    @Column(name = "transmission_distance")
     private Integer transmissionDistance;
 
-    @Column(name = "connector_type", length = 20)
     private String connectorType;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
-    private ModuleStatus status = ModuleStatus.IN_STOCK;
+    private ModuleStatus status;
 
-    @Column(name = "inbound_time", nullable = false)
     private LocalDateTime inboundTime;
 
-    @Column(name = "remark", columnDefinition = "TEXT")
     private String remark;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @PrePersist
-    protected void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
-        this.createdAt = now;
-        this.updatedAt = now;
-        if (this.inboundTime == null) {
-            this.inboundTime = now;
-        }
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
-
     // Constructors
-    public Module() {}
-
-    public Module(String serialNumber, String model, String vendor) {
-        this.serialNumber = serialNumber;
-        this.model = model;
-        this.vendor = vendor;
-    }
+    public ModuleDto() {}
 
     // Getters and Setters
     public Long getId() {
@@ -184,16 +150,5 @@ public class Module {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
-    }
-
-    @Override
-    public String toString() {
-        return "Module{" +
-                "id=" + id +
-                ", serialNumber='" + serialNumber + '\'' +
-                ", model='" + model + '\'' +
-                ", vendor='" + vendor + '\'' +
-                ", status=" + status +
-                '}';
     }
 }

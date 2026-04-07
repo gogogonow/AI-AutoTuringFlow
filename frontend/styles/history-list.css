@@ -1,9 +1,23 @@
-/* History List Specific Styles */
+/* History List Page Styles */
 
-/* History table column widths */
-.col-time { width: 180px; }
-.col-type { width: 120px; }
-.col-prev-status { width: 100px; }
-.col-next-status { width: 100px; }
-.col-operator { width: 120px; }
-.col-remark { min-width: 200px; }
+.history-list-container {
+  max-width: 1400px;
+}
+
+/* History Table */
+.history-table-container {
+  padding: var(--spacing-lg);
+}
+
+.history-table {
+  width: 100%;
+}
+
+.history-table th:nth-child(1) { width: 180px; } /* 操作时间 */
+.history-table th:nth-child(2) { width: 120px; } /* 操作类型 */
+.history-table th:nth-child(3) { width: 150px; } /* 序列号 */
+.history-table th:nth-child(4) { width: 120px; } /* 型号 */
+.history-table th:nth-child(5) { width: 100px; } /* 操作前状态 */
+.history-table th:nth-child(6) { width: 100px; } /* 操作后状态 */
+.history-table th:nth-child(7) { width: 100px; } /* 操作人 */
+.history-table th:nth-child(8) { width: auto; }   /* 备注 */
