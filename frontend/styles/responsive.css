@@ -106,13 +106,14 @@
 /* Desktop (min-width: 1201px) */
 @media (min-width: 1201px) {
   .main-content {
-    max-width: 1400px;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 264px; /* 240px sidebar + 24px padding */
+    max-width: none;
+    margin-left: 240px;
+    margin-right: 0;
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
   }
 
   .sidebar.collapsed + .main-content {
-    padding-left: 84px; /* 60px sidebar + 24px padding */
+    margin-left: 60px;
   }
 }

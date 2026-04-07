@@ -1,4 +1,4 @@
-// HistoryList Component
+// HistoryList Component - Global history view showing all module operations
 class HistoryList {
   constructor() {
     this.container = null;
@@ -19,7 +19,7 @@ class HistoryList {
     this.container.innerHTML = `
       <div class="card">
         <div class="card-header">
-          <h2 class="card-title">修改历史（共 <span id="historyTotalCount">0</span> 条）</h2>
+          <h2 class="card-title">全局操作历史（共 <span id="historyTotalCount">0</span> 条）</h2>
         </div>
         <div class="history-table-container">
           <div class="table-container">
@@ -34,11 +34,12 @@ class HistoryList {
                   <th>操作后状态</th>
                   <th>操作人</th>
                   <th>备注</th>
+                  <th>查看</th>
                 </tr>
               </thead>
               <tbody id="historyTableBody">
                 <tr>
-                  <td colspan="8" style="text-align: center; padding: 40px;">
+                  <td colspan="9" style="text-align: center; padding: 40px;">
                     <div class="loading-spinner" style="margin: 0 auto;"></div>
                   </td>
                 </tr>
@@ -75,7 +76,7 @@ class HistoryList {
       const tbody = this.container.querySelector('#historyTableBody');
       tbody.innerHTML = `
         <tr>
-          <td colspan="8">
+          <td colspan="9">
             ${Utils.renderErrorState(
               '加载失败: ' + error.message,
               '<button class="btn btn-secondary" onclick="window.app.currentComponent.loadData()">重试</button>'
@@ -92,7 +93,7 @@ class HistoryList {
     if (histories.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="8">
+          <td colspan="9">
             ${Utils.renderEmptyState('📜', '暂无历史记录', '')}
           </td>
         </tr>
@@ -104,8 +105,8 @@ class HistoryList {
       <tr>
         <td>${Utils.formatDateTime(item.operationTime)}</td>
         <td>${Utils.getOperationTypeText(item.operationType)}</td>
-        <td>${Utils.escapeHtml(item.moduleSerialNumber || '-')}</td>
-        <td>${Utils.escapeHtml(item.moduleModel || '-')}</td>
+        <td>${Utils.escapeHtml(item.serialNumber || '-')}</td>
+        <td>${Utils.escapeHtml(item.model || '-')}</td>
         <td>
           ${item.previousStatus ? `<span class="status-badge ${Utils.getStatusClass(item.previousStatus)}">${Utils.getStatusText(item.previousStatus)}</span>` : '-'}
         </td>
@@ -114,6 +115,9 @@ class HistoryList {
         </td>
         <td>${Utils.escapeHtml(item.operator || '系统')}</td>
         <td>${Utils.escapeHtml(item.remark || '-')}</td>
+        <td>
+          ${item.moduleId ? `<button class="btn btn-primary btn-sm" onclick="window.app.showPage('details', {id: ${item.moduleId}})">查看模块</button>` : '-'}
+        </td>
       </tr>
     `).join('');
   }

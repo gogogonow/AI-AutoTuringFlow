@@ -22,7 +22,10 @@ const CONFIG = {
     SEND_REPAIR: '送修',
     RETURN_REPAIR: '维修归还',
     SCRAP: '报废',
-    UPDATE_INFO: '更新信息'
+    UPDATE_INFO: '更新信息',
+    VENDOR_ADD: '新增厂家',
+    VENDOR_UPDATE: '更新厂家',
+    VENDOR_DELETE: '删除厂家'
   },
   
   // Speed options
