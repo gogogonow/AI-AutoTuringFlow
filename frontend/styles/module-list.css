@@ -1,7 +1,7 @@
 /* Module List Page Styles */
 
 .module-list-container {
-  max-width: 1400px;
+  width: 100%;
 }
 
 /* Filters Form */

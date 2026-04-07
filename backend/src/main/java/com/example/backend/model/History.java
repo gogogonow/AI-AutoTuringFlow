@@ -23,7 +23,7 @@ public class History {
     private Long moduleId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "operation_type", nullable = false, length = 30)
+    @Column(name = "operation_type", nullable = false, length = 50)
     private OperationType operationType;
 
     @Column(name = "operation_time", nullable = false)

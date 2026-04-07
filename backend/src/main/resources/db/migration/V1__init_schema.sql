@@ -32,7 +32,7 @@ CREATE TABLE module (
 CREATE TABLE history (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     module_id BIGINT NOT NULL,
-    operation_type VARCHAR(30) NOT NULL,
+    operation_type VARCHAR(50) NOT NULL,
     operation_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     operator VARCHAR(100),
     previous_status VARCHAR(20),
@@ -40,11 +40,6 @@ CREATE TABLE history (
     remark TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_history_module FOREIGN KEY (module_id) REFERENCES module(id) ON DELETE CASCADE,
-    CONSTRAINT chk_operation_type CHECK (operation_type IN (
-        'INBOUND', 'OUTBOUND', 'DEPLOY', 'RETRIEVE', 
-        'MARK_FAULTY', 'SEND_REPAIR', 'RETURN_REPAIR', 
-        'SCRAP', 'UPDATE_INFO'
-    )),
     INDEX idx_module_id (module_id),
     INDEX idx_operation_time (operation_time),
     INDEX idx_operation_type (operation_type)
