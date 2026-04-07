@@ -1,10 +1,8 @@
 package com.example.backend.service;
 
 import com.example.backend.dto.ModuleDto;
-import com.example.backend.dto.StatusChangeRequest;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.model.Module;
-import com.example.backend.model.ModuleStatus;
 import com.example.backend.model.OperationType;
 import com.example.backend.repository.ModuleRepository;
 import com.example.backend.repository.ModuleVendorInfoRepository;
@@ -55,15 +53,12 @@ class ModuleServiceTest {
         testModule.setId(1L);
         testModule.setSerialNumber("TEST001");
         testModule.setModel("SFP-10G-SR");
-        testModule.setVendor("Cisco");
         testModule.setSpeed("10G");
-        testModule.setStatus(ModuleStatus.IN_STOCK);
         testModule.setInboundTime(LocalDateTime.now());
 
         testModuleDto = new ModuleDto();
         testModuleDto.setSerialNumber("TEST001");
         testModuleDto.setModel("SFP-10G-SR");
-        testModuleDto.setVendor("Cisco");
         testModuleDto.setSpeed("10G");
     }
 
@@ -115,7 +110,6 @@ class ModuleServiceTest {
         ModuleDto updateDto = new ModuleDto();
         updateDto.setSerialNumber("TEST001");
         updateDto.setModel("SFP-10G-LR");
-        updateDto.setVendor("Cisco");
 
         when(moduleRepository.findById(1L)).thenReturn(Optional.of(testModule));
         when(moduleRepository.save(any(Module.class))).thenReturn(testModule);
@@ -136,7 +130,7 @@ class ModuleServiceTest {
         verify(vendorInfoRepository).deleteByModuleId(1L);
         verify(moduleRepository).deleteById(1L);
         verify(historyService).createHistory(eq(1L), eq(OperationType.OUTBOUND), anyString(),
-            eq(ModuleStatus.IN_STOCK), isNull(), anyString(), anyString());
+            isNull(), isNull(), anyString(), anyString());
     }
 
     @Test
@@ -163,53 +157,14 @@ class ModuleServiceTest {
     }
 
     @Test
-    void testChangeStatus_Deploy() {
-        StatusChangeRequest request = new StatusChangeRequest();
-        request.setAction("DEPLOY");
-        request.setOperator("admin");
-        request.setRemark("Deploy to device");
-
-        when(moduleRepository.findById(1L)).thenReturn(Optional.of(testModule));
-        when(moduleRepository.save(any(Module.class))).thenReturn(testModule);
-
-        ModuleDto result = moduleService.changeStatus(1L, request);
-
-        assertNotNull(result);
-        verify(historyService).createHistory(
-            eq(1L),
-            eq(OperationType.DEPLOY),
-            eq("admin"),
-            eq(ModuleStatus.IN_STOCK),
-            eq(ModuleStatus.DEPLOYED),
-            anyString(),
-            anyString()
-        );
-    }
-
-    @Test
-    void testChangeStatus_InvalidAction() {
-        StatusChangeRequest request = new StatusChangeRequest();
-        request.setAction("INVALID_ACTION");
-        request.setOperator("admin");
-
-        when(moduleRepository.findById(1L)).thenReturn(Optional.of(testModule));
-
-        assertThrows(IllegalArgumentException.class, () -> {
-            moduleService.changeStatus(1L, request);
-        });
-    }
-
-    @Test
     void testBatchInbound() {
         ModuleDto dto1 = new ModuleDto();
         dto1.setSerialNumber("BATCH001");
         dto1.setModel("Model1");
-        dto1.setVendor("Vendor1");
 
         ModuleDto dto2 = new ModuleDto();
         dto2.setSerialNumber("BATCH002");
         dto2.setModel("Model2");
-        dto2.setVendor("Vendor2");
 
         when(moduleRepository.existsBySerialNumber(anyString())).thenReturn(false);
         when(moduleRepository.save(any(Module.class))).thenReturn(testModule);
