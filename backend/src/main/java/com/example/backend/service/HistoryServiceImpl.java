@@ -3,7 +3,6 @@ package com.example.backend.service;
 import com.example.backend.dto.HistoryDto;
 import com.example.backend.model.History;
 import com.example.backend.model.Module;
-import com.example.backend.model.ModuleStatus;
 import com.example.backend.model.OperationType;
 import com.example.backend.repository.HistoryRepository;
 import com.example.backend.repository.ModuleRepository;
@@ -38,8 +37,6 @@ public class HistoryServiceImpl implements HistoryService {
         Long moduleId,
         OperationType operationType,
         String operator,
-        ModuleStatus previousStatus,
-        ModuleStatus nextStatus,
         String remark,
         String changeDetails,
         String serialNumber,
@@ -49,8 +46,6 @@ public class HistoryServiceImpl implements HistoryService {
         history.setModuleId(moduleId);
         history.setOperationType(operationType);
         history.setOperator(operator);
-        history.setPreviousStatus(previousStatus);
-        history.setNextStatus(nextStatus);
         history.setRemark(remark);
         history.setChangeDetails(changeDetails);
         history.setSerialNumber(serialNumber);
@@ -133,8 +128,6 @@ public class HistoryServiceImpl implements HistoryService {
         dto.setOperationType(history.getOperationType());
         dto.setOperationTime(history.getOperationTime());
         dto.setOperator(history.getOperator());
-        dto.setPreviousStatus(history.getPreviousStatus());
-        dto.setNextStatus(history.getNextStatus());
         dto.setRemark(history.getRemark());
         dto.setChangeDetails(history.getChangeDetails());
         dto.setCreatedAt(history.getCreatedAt());

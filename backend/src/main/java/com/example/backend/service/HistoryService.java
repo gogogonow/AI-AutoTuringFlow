@@ -2,7 +2,6 @@ package com.example.backend.service;
 
 import com.example.backend.dto.HistoryDto;
 import com.example.backend.model.History;
-import com.example.backend.model.ModuleStatus;
 import com.example.backend.model.OperationType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,8 +22,6 @@ public interface HistoryService {
         Long moduleId,
         OperationType operationType,
         String operator,
-        ModuleStatus previousStatus,
-        ModuleStatus nextStatus,
         String remark,
         String changeDetails,
         String serialNumber,
@@ -38,12 +35,10 @@ public interface HistoryService {
         Long moduleId,
         OperationType operationType,
         String operator,
-        ModuleStatus previousStatus,
-        ModuleStatus nextStatus,
         String remark,
         String changeDetails
     ) {
-        return createHistory(moduleId, operationType, operator, previousStatus, nextStatus, remark, changeDetails, null, null);
+        return createHistory(moduleId, operationType, operator, remark, changeDetails, null, null);
     }
 
     /**
@@ -53,11 +48,9 @@ public interface HistoryService {
         Long moduleId,
         OperationType operationType,
         String operator,
-        ModuleStatus previousStatus,
-        ModuleStatus nextStatus,
         String remark
     ) {
-        return createHistory(moduleId, operationType, operator, previousStatus, nextStatus, remark, null, null, null);
+        return createHistory(moduleId, operationType, operator, remark, null, null, null);
     }
 
     /**

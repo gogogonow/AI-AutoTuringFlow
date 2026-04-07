@@ -68,7 +68,7 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
 
         String changeDetails = buildVendorCreateDetails(dto);
         historyService.createHistory(moduleId, OperationType.VENDOR_ADD, "system",
-                null, null, "新增厂家信息: " + (dto.getVendor() != null ? dto.getVendor() : ""),
+                "新增厂家信息: " + (dto.getVendor() != null ? dto.getVendor() : ""),
                 changeDetails, serialNumber, model);
         return saved;
     }
@@ -92,7 +92,7 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
         updateEntity(existing, dto);
         ModuleVendorInfoDto saved = toDto(vendorInfoRepository.save(existing));
         historyService.createHistory(moduleId, OperationType.VENDOR_UPDATE, "system",
-                null, null, "更新厂家信息: " + (dto.getVendor() != null ? dto.getVendor() : ""),
+                "更新厂家信息: " + (dto.getVendor() != null ? dto.getVendor() : ""),
                 changeDetails, serialNumber, model);
         return saved;
     }
@@ -120,7 +120,7 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
         vendorInfoRepository.save(existing);
 
         historyService.createHistory(moduleId, OperationType.VENDOR_DELETE, "system",
-                null, null, "删除厂家信息: " + (vendor != null ? vendor : ""),
+                "删除厂家信息: " + (vendor != null ? vendor : ""),
                 changeDetails, serialNumber, model);
     }
 

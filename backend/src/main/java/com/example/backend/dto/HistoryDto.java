@@ -1,6 +1,5 @@
 package com.example.backend.dto;
 
-import com.example.backend.model.ModuleStatus;
 import com.example.backend.model.OperationType;
 import java.time.LocalDateTime;
 
@@ -18,10 +17,6 @@ public class HistoryDto {
     private LocalDateTime operationTime;
 
     private String operator;
-
-    private ModuleStatus previousStatus;
-
-    private ModuleStatus nextStatus;
 
     private String remark;
 
@@ -75,22 +70,6 @@ public class HistoryDto {
 
     public void setOperator(String operator) {
         this.operator = operator;
-    }
-
-    public ModuleStatus getPreviousStatus() {
-        return previousStatus;
-    }
-
-    public void setPreviousStatus(ModuleStatus previousStatus) {
-        this.previousStatus = previousStatus;
-    }
-
-    public ModuleStatus getNextStatus() {
-        return nextStatus;
-    }
-
-    public void setNextStatus(ModuleStatus nextStatus) {
-        this.nextStatus = nextStatus;
     }
 
     public String getRemark() {
