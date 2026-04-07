@@ -1,7 +1,12 @@
-setup:
-  runs-on:
-    - self-hosted
-    - tanweideMacBook-Air
-  steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+jobs:
+  setup:
+    runs-on:
+      - self-hosted
+      - tanweideMacBook-Air
+    steps:
+      - name: Verify Machine Name
+        run: |
+          hostname
+          whoami
+      - name: Checkout repository
+        uses: actions/checkout@v4
