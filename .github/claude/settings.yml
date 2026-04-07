@@ -1,10 +1,12 @@
 runs-on:
-  - self-hosted
-  - tanweideMacBook-Air
+      - self-hosted
+      - macOS
+      - ARM64
+      - tanweideMacBook-Air
 steps:
-  - name: Verify Machine Name
-    run: |
-      hostname
-      whoami
-  - name: Checkout repository
-    uses: actions/checkout@v4
+      - name: Verify Machine Name
+        run: |
+          hostname
+          whoami
+      - name: Checkout repository
+        uses: actions/checkout@v4
