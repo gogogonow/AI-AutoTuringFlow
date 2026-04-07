@@ -23,6 +23,31 @@ CREATE TABLE IF NOT EXISTS module (
     INDEX idx_vendor (vendor)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Create module_vendor_info table (matches ModuleVendorInfo.java entity)
+CREATE TABLE IF NOT EXISTS module_vendor_info (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    module_id BIGINT NOT NULL,
+    vendor VARCHAR(100) NOT NULL,
+    process_status VARCHAR(50),
+    entry_time DATETIME(6),
+    exit_time DATETIME(6),
+    ld VARCHAR(200),
+    pd VARCHAR(200),
+    la_ldo VARCHAR(200),
+    tia VARCHAR(200),
+    mcu VARCHAR(200),
+    pcn_changes TEXT,
+    high_speed_test_recommended BOOLEAN,
+    availability VARCHAR(100),
+    photodetector_data TEXT,
+    covered_boards TEXT,
+    test_report_link VARCHAR(500),
+    remark TEXT,
+    created_at DATETIME(6) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    INDEX idx_mvi_module_id (module_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Create history table (matches History.java entity: @Table(name = "history"))
 CREATE TABLE IF NOT EXISTS history (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,

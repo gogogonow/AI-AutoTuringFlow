@@ -97,7 +97,7 @@ class API {
     const response = await this.request(`/modules/export${queryString ? '?' + queryString : ''}`);
     
     // Trigger download
-    const blob = await response.blob();
+    const blob = response instanceof Response ? await response.blob() : new Blob([response], {type: 'application/octet-stream'});
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -106,6 +106,31 @@ class API {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+  }
+
+  // Vendor Info APIs
+  static async getVendorInfos(moduleId) {
+    return this.request(`/modules/${moduleId}/vendor-infos`);
+  }
+
+  static async createVendorInfo(moduleId, data) {
+    return this.request(`/modules/${moduleId}/vendor-infos`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  static async updateVendorInfo(moduleId, id, data) {
+    return this.request(`/modules/${moduleId}/vendor-infos/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  static async deleteVendorInfo(moduleId, id) {
+    return this.request(`/modules/${moduleId}/vendor-infos/${id}`, {
+      method: 'DELETE'
+    });
   }
 
   // History APIs
