@@ -64,6 +64,7 @@ class Header {
       API.logout();
       localStorage.removeItem('currentUser');
       Utils.showToast('已退出登录', 'success');
+      this.updateUserInfo();
       window.app.showPage('login');
     }
   }

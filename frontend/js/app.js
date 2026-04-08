@@ -125,7 +125,24 @@ class App {
     }
 
     this.currentPage = page;
-    if (this.sidebar) {
+
+    // Handle sidebar visibility
+    if (page === 'login') {
+      // Hide sidebar on login page
+      if (this.sidebar && this.sidebar.element) {
+        this.sidebar.element.style.display = 'none';
+      }
+    } else {
+      // Show sidebar on other pages (or create if needed)
+      if (!this.sidebar) {
+        this.sidebar = new Sidebar();
+        const layoutContainer = document.querySelector('.layout-container');
+        if (layoutContainer) {
+          layoutContainer.insertBefore(this.sidebar.render(), this.mainContent);
+        }
+      } else if (this.sidebar.element) {
+        this.sidebar.element.style.display = '';
+      }
       this.sidebar.setActive(page);
     }
 
