@@ -96,6 +96,7 @@
   font-weight: 500;
   margin-bottom: var(--spacing-xs);
   color: var(--color-text-primary);
+  text-align: center;
 }
 
 .login-form .form-control {
