@@ -47,7 +47,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 公开的认证端点 - must be first and most specific
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
-                        .requestMatchers("/api/health").permitAll()
+                        .requestMatchers("/health").permitAll()
 
                         // POST, PUT, DELETE（写操作）只允许OWNER角色
                         .requestMatchers(HttpMethod.POST, "/api/**").hasRole("OWNER")
