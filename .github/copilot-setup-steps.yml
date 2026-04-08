@@ -1,3 +1,8 @@
+name: Copilot setup steps
+
+on:
+  workflow_dispatch:
+
 jobs:
   setup:
     runs-on:
