@@ -11,6 +11,41 @@ class Login {
     return this.element;
   }
 
+  updateText() {
+    if (!this.element) return;
+
+    // Update title
+    const title = this.element.querySelector('.login-title');
+    if (title) {
+      title.textContent = '光模块管理系统';
+    }
+
+    // Update username label
+    const usernameLabel = this.element.querySelector('label[for="username"]');
+    if (usernameLabel) {
+      usernameLabel.textContent = '用户名';
+    }
+
+    // Update password label
+    const passwordLabel = this.element.querySelector('label[for="password"]');
+    if (passwordLabel) {
+      passwordLabel.textContent = '密码';
+    }
+
+    // Update login button
+    const loginBtn = this.element.querySelector('button[type="submit"]');
+    if (loginBtn) {
+      loginBtn.textContent = '登录';
+    }
+
+    // Update footer text
+    const footerParagraphs = this.element.querySelectorAll('.login-footer p');
+    if (footerParagraphs.length >= 2) {
+      footerParagraphs[0].innerHTML = '<strong>默认管理员账号:</strong> admin / admin123';
+      footerParagraphs[1].innerHTML = '<strong>默认只读账号:</strong> reader / reader123';
+    }
+  }
+
   render() {
     const container = document.createElement('div');
     container.className = 'login-container';
