@@ -31,15 +31,29 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Object> handleResourceNotFoundException(
             ResourceNotFoundException ex, WebRequest request) {
-        
+
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("status", HttpStatus.NOT_FOUND.value());
         body.put("error", "Not Found");
         body.put("message", ex.getMessage());
         body.put("path", request.getDescription(false).replace("uri=", ""));
-        
+
         return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(AuthenticationFailedException.class)
+    public ResponseEntity<Object> handleAuthenticationFailedException(
+            AuthenticationFailedException ex, WebRequest request) {
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.UNAUTHORIZED.value());
+        body.put("error", "Unauthorized");
+        body.put("message", ex.getMessage());
+        body.put("path", request.getDescription(false).replace("uri=", ""));
+
+        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(Exception.class)
