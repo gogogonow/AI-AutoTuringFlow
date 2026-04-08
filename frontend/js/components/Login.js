@@ -45,7 +45,8 @@ class Login {
           </div>
         </form>
         <div class="login-footer">
-          <p>默认管理员账号: admin / admin123</p>
+          <p><strong>默认管理员账号:</strong> admin / admin123</p>
+          <p><strong>默认只读账号:</strong> reader / reader123</p>
         </div>
       </div>
     `;

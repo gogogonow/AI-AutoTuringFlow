@@ -38,8 +38,11 @@
   }
 
   /* Main Content */
-  .main-content {
+  .layout-container:has(.sidebar) .main-content {
     margin-left: 60px;
+  }
+
+  .main-content {
     padding: var(--spacing-md);
   }
 
@@ -105,15 +108,18 @@
 
 /* Desktop (min-width: 1201px) */
 @media (min-width: 1201px) {
+  .layout-container:has(.sidebar) .main-content {
+    margin-left: 240px;
+  }
+
+  .layout-container:has(.sidebar.collapsed) .main-content {
+    margin-left: 60px;
+  }
+
   .main-content {
     max-width: none;
-    margin-left: 240px;
     margin-right: 0;
     padding-left: var(--spacing-lg);
     padding-right: var(--spacing-lg);
-  }
-
-  .sidebar.collapsed + .main-content {
-    margin-left: 60px;
   }
 }

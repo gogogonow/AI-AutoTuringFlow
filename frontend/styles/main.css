@@ -127,12 +127,16 @@ body {
 /* Main Content */
 .main-content {
   flex: 1;
-  margin-left: 240px;
+  margin-left: 0;
   padding: var(--spacing-lg);
   transition: margin-left 0.3s ease;
 }
 
-.sidebar.collapsed + .main-content {
+.layout-container:has(.sidebar) .main-content {
+  margin-left: 240px;
+}
+
+.layout-container:has(.sidebar.collapsed) .main-content {
   margin-left: 60px;
 }
 
