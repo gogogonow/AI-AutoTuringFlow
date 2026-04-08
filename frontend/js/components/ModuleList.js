@@ -70,12 +70,12 @@ class ModuleList {
                 <th width="80">速率</th>
                 <th width="80">波长</th>
                 <th width="150">入库时间</th>
-                <th width="150">操作</th>
+                ${isOwner ? '<th width="150">操作</th>' : ''}
               </tr>
             </thead>
             <tbody id="moduleTableBody">
               <tr>
-                <td colspan="${isOwner ? '7' : '6'}" style="text-align: center; padding: 40px;">
+                <td colspan="${isOwner ? '7' : '5'}" style="text-align: center; padding: 40px;">
                   <div class="loading-spinner" style="margin: 0 auto;"></div>
                 </td>
               </tr>
@@ -194,7 +194,7 @@ class ModuleList {
       }
     } catch (error) {
       const tbody = this.container.querySelector('#moduleTableBody');
-      const colspan = this.isOwner() ? '7' : '6';
+      const colspan = this.isOwner() ? '7' : '5';
       tbody.innerHTML = `
         <tr>
           <td colspan="${colspan}">
@@ -211,7 +211,7 @@ class ModuleList {
   renderTable(modules) {
     const tbody = this.container.querySelector('#moduleTableBody');
     const isOwner = this.isOwner();
-    const colspan = isOwner ? '7' : '6';
+    const colspan = isOwner ? '7' : '5';
 
     if (modules.length === 0) {
       tbody.innerHTML = `
@@ -229,8 +229,8 @@ class ModuleList {
     }
 
     tbody.innerHTML = modules.map(module => `
-      <tr>
-        ${isOwner ? `<td>
+      <tr onclick="window.app.showPage('details', {id: ${module.id}})">
+        ${isOwner ? `<td onclick="event.stopPropagation()">
           <input type="checkbox" data-id="${module.id}"
             ${this.selectedIds.has(String(module.id)) ? 'checked' : ''}
             onchange="window.app.currentComponent.handleCheckbox(this)">
@@ -240,18 +240,14 @@ class ModuleList {
         <td>${Utils.escapeHtml(module.speed || '-')}</td>
         <td>${Utils.escapeHtml(module.wavelength || '-')}</td>
         <td>${Utils.formatDateTime(module.inboundTime)}</td>
-        <td>
+        ${isOwner ? `<td onclick="event.stopPropagation()">
           <div class="action-buttons">
-            <button class="btn btn-primary btn-sm"
-              onclick="window.app.showPage('details', {id: ${module.id}})">查看</button>
-            ${isOwner ? `
-              <button class="btn btn-secondary btn-sm"
-                onclick="window.app.showPage('edit', {id: ${module.id}})">编辑</button>
-              <button class="btn btn-danger btn-sm"
-                onclick="window.app.currentComponent.handleDelete(${module.id})">删除</button>
-            ` : ''}
+            <button class="btn btn-secondary btn-sm"
+              onclick="window.app.showPage('edit', {id: ${module.id}})">编辑</button>
+            <button class="btn btn-danger btn-sm"
+              onclick="window.app.currentComponent.handleDelete(${module.id})">删除</button>
           </div>
-        </td>
+        </td>` : ''}
       </tr>
     `).join('');
   }
