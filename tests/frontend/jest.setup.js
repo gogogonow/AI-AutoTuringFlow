@@ -4,7 +4,7 @@
  */
 
 // Import testing library extensions
-import '@testing-library/jest-dom';
+require('@testing-library/jest-dom');
 
 // Mock window.location
 delete window.location;
