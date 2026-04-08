@@ -4,6 +4,7 @@ import com.example.backend.dto.LoginRequest;
 import com.example.backend.dto.LoginResponse;
 import com.example.backend.dto.RegisterRequest;
 import com.example.backend.dto.UserDto;
+import com.example.backend.exception.AuthenticationFailedException;
 import com.example.backend.model.Role;
 import com.example.backend.model.User;
 import com.example.backend.repository.RoleRepository;
@@ -49,13 +50,13 @@ public class AuthService {
             );
 
             User user = userRepository.findByUsername(request.getUsername())
-                    .orElseThrow(() -> new RuntimeException("用户不存在"));
+                    .orElseThrow(() -> new AuthenticationFailedException("用户不存在"));
 
             String token = jwtUtil.generateToken(user.getUsername(), user.getRole().getName());
 
             return new LoginResponse(token, user.getUsername(), user.getRole().getName(), user.getEmail());
         } catch (AuthenticationException e) {
-            throw new RuntimeException("用户名或密码错误");
+            throw new AuthenticationFailedException("用户名或密码错误");
         }
     }
 
