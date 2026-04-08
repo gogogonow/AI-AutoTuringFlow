@@ -3,6 +3,34 @@
  * Tests the utility functions in js/utils.js
  */
 
+// Load CONFIG first
+global.CONFIG = {
+  API_BASE_URL: '/api',
+  DEFAULT_PAGE_SIZE: 20,
+  STATUS_TEXT: {
+    IN_STOCK: '在库',
+    DEPLOYED: '已部署',
+    FAULTY: '故障',
+    UNDER_REPAIR: '维修中',
+    SCRAPPED: '已报废'
+  },
+  OPERATION_TYPE_TEXT: {
+    INBOUND: '入库',
+    OUTBOUND: '出库',
+    DEPLOY: '部署',
+    RETRIEVE: '收回',
+    MARK_FAULTY: '标记故障',
+    SEND_REPAIR: '送修',
+    RETURN_REPAIR: '维修归还',
+    SCRAP: '报废',
+    UPDATE_INFO: '更新信息',
+    DELETE_MODULE: '删除光模块'
+  }
+};
+
+// Load the actual Utils class from the source
+require('../../frontend/js/utils.js');
+
 describe('Utils', () => {
   beforeEach(() => {
     // Setup DOM elements for testing
@@ -120,6 +148,77 @@ describe('Utils', () => {
       expect(result).toContain('📦');
       expect(result).toContain('No data');
       expect(result).toContain('<button>Add</button>');
+    });
+  });
+
+  describe('confirm', () => {
+    test('should show dialog with correct message when called with callback', () => {
+      const callback = jest.fn();
+      Utils.confirm('Test message', callback);
+
+      const dialog = document.getElementById('confirmDialog');
+      const messageEl = dialog.querySelector('.confirm-message');
+
+      expect(messageEl.textContent).toBe('Test message');
+      expect(dialog.classList.contains('show')).toBe(true);
+    });
+
+    test('should call callback when confirm button clicked (callback pattern)', () => {
+      const callback = jest.fn();
+      Utils.confirm('Test message', callback);
+
+      const confirmBtn = document.getElementById('confirmYes');
+      confirmBtn.click();
+
+      expect(callback).toHaveBeenCalled();
+
+      const dialog = document.getElementById('confirmDialog');
+      expect(dialog.classList.contains('show')).toBe(false);
+    });
+
+    test('should not call callback when cancel button clicked (callback pattern)', () => {
+      const callback = jest.fn();
+      Utils.confirm('Test message', callback);
+
+      const cancelBtn = document.getElementById('confirmNo');
+      cancelBtn.click();
+
+      expect(callback).not.toHaveBeenCalled();
+
+      const dialog = document.getElementById('confirmDialog');
+      expect(dialog.classList.contains('show')).toBe(false);
+    });
+
+    test('should return Promise that resolves to true when confirm clicked', async () => {
+      const promise = Utils.confirm('Test message');
+
+      const confirmBtn = document.getElementById('confirmYes');
+      confirmBtn.click();
+
+      const result = await promise;
+      expect(result).toBe(true);
+
+      const dialog = document.getElementById('confirmDialog');
+      expect(dialog.classList.contains('show')).toBe(false);
+    });
+
+    test('should return Promise that resolves to false when cancel clicked', async () => {
+      const promise = Utils.confirm('Test message');
+
+      const cancelBtn = document.getElementById('confirmNo');
+      cancelBtn.click();
+
+      const result = await promise;
+      expect(result).toBe(false);
+
+      const dialog = document.getElementById('confirmDialog');
+      expect(dialog.classList.contains('show')).toBe(false);
+    });
+
+    test('should return rejected Promise when dialog element does not exist', async () => {
+      document.body.innerHTML = ''; // Remove dialog
+
+      await expect(Utils.confirm('Test')).rejects.toThrow('Confirm dialog not found');
     });
   });
 });
