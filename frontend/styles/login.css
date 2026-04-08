@@ -99,7 +99,10 @@
 }
 
 .login-form .form-control {
-  width: 100%;
+  width: 85%;
+  max-width: 320px;
+  margin: 0 auto;
+  display: block;
   padding: 14px 16px;
   border: 2px solid var(--color-border);
   border-radius: var(--border-radius-base);
@@ -117,7 +120,10 @@
 }
 
 .login-form .btn-block {
-  width: 100%;
+  width: 85%;
+  max-width: 320px;
+  margin: 0 auto;
+  display: block;
   padding: 14px;
   font-size: 16px;
   font-weight: 600;
