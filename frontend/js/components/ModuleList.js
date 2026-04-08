@@ -109,31 +109,35 @@ class ModuleList {
       this.loadData();
     });
 
-    // Select all
+    // Select all (only for OWNER role)
     const selectAll = this.container.querySelector('#selectAll');
-    selectAll.addEventListener('change', (e) => {
-      const checkboxes = this.container.querySelectorAll('tbody input[type="checkbox"]');
-      checkboxes.forEach(cb => {
-        cb.checked = e.target.checked;
-        const id = cb.dataset.id;
-        if (e.target.checked) {
-          this.selectedIds.add(id);
-        } else {
-          this.selectedIds.delete(id);
-        }
+    if (selectAll) {
+      selectAll.addEventListener('change', (e) => {
+        const checkboxes = this.container.querySelectorAll('tbody input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+          cb.checked = e.target.checked;
+          const id = cb.dataset.id;
+          if (e.target.checked) {
+            this.selectedIds.add(id);
+          } else {
+            this.selectedIds.delete(id);
+          }
+        });
       });
-    });
+    }
 
-    // Batch inbound
+    // Batch inbound (only for OWNER role)
     const batchBtn = this.container.querySelector('#batchInboundBtn');
-    batchBtn.addEventListener('click', () => {
-      if (this.selectedIds.size === 0) {
-        Utils.showToast('请先选择要操作的光模块', 'warning');
-        return;
-      }
-      // TODO: Implement batch inbound modal
-      Utils.showToast('批量入库功能开发中', 'info');
-    });
+    if (batchBtn) {
+      batchBtn.addEventListener('click', () => {
+        if (this.selectedIds.size === 0) {
+          Utils.showToast('请先选择要操作的光模块', 'warning');
+          return;
+        }
+        // TODO: Implement batch inbound modal
+        Utils.showToast('批量入库功能开发中', 'info');
+      });
+    }
 
     // Export
     const exportBtn = this.container.querySelector('#exportBtn');
@@ -141,19 +145,21 @@ class ModuleList {
       this.handleExport();
     });
 
-    // Import
+    // Import (only for OWNER role)
     const importBtn = this.container.querySelector('#importBtn');
     const importFileInput = this.container.querySelector('#importFileInput');
-    importBtn.addEventListener('click', () => {
-      importFileInput.click();
-    });
-    importFileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        this.handleImport(file);
-        importFileInput.value = '';
-      }
-    });
+    if (importBtn && importFileInput) {
+      importBtn.addEventListener('click', () => {
+        importFileInput.click();
+      });
+      importFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          this.handleImport(file);
+          importFileInput.value = '';
+        }
+      });
+    }
   }
 
   getFilters() {
