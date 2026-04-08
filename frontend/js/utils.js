@@ -31,7 +31,12 @@ class Utils {
   // Confirm dialog
   static confirm(message, onConfirm) {
     const dialog = document.getElementById('confirmDialog');
-    if (!dialog) return;
+    if (!dialog) {
+      // If dialog doesn't exist and no callback, return rejected promise
+      if (!onConfirm) return Promise.reject(new Error('Confirm dialog not found'));
+      // For backward compatibility with callback pattern
+      return;
+    }
 
     const messageEl = dialog.querySelector('.confirm-message');
     messageEl.textContent = message;
@@ -39,20 +44,45 @@ class Utils {
     const confirmBtn = dialog.querySelector('#confirmYes');
     const cancelBtn = dialog.querySelector('#confirmNo');
 
-    const close = () => {
-      dialog.classList.remove('show');
-      confirmBtn.onclick = null;
-      cancelBtn.onclick = null;
-    };
+    // If onConfirm callback is provided, use the old callback pattern for backward compatibility
+    if (onConfirm) {
+      const close = () => {
+        dialog.classList.remove('show');
+        confirmBtn.onclick = null;
+        cancelBtn.onclick = null;
+      };
 
-    confirmBtn.onclick = () => {
-      close();
-      if (onConfirm) onConfirm();
-    };
+      confirmBtn.onclick = () => {
+        close();
+        onConfirm();
+      };
 
-    cancelBtn.onclick = close;
+      cancelBtn.onclick = close;
 
-    dialog.classList.add('show');
+      dialog.classList.add('show');
+      return;
+    }
+
+    // Return a Promise for async/await pattern
+    return new Promise((resolve) => {
+      const close = () => {
+        dialog.classList.remove('show');
+        confirmBtn.onclick = null;
+        cancelBtn.onclick = null;
+      };
+
+      confirmBtn.onclick = () => {
+        close();
+        resolve(true);
+      };
+
+      cancelBtn.onclick = () => {
+        close();
+        resolve(false);
+      };
+
+      dialog.classList.add('show');
+    });
   }
 
   // Format date time
