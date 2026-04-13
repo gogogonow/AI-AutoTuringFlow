@@ -85,7 +85,7 @@ public class ModuleVendorInfo {
     private String coveredBoards;
 
     /** 导入测试报告链接 */
-    @Column(name = "test_report_link", length = 500)
+    @Column(name = "test_report_link", columnDefinition = "TEXT")
     private String testReportLink;
 
     /** 备注 */

@@ -1,4 +1,7 @@
 // ModuleDetails Component
+// Delimiter regex for splitting multi-value fields (coveredBoards, testReportLink)
+const MULTI_VALUE_DELIMITER = /[,，;；\n]/;
+
 class ModuleDetails {
   constructor(options = {}) {
     this.container = null;
@@ -235,8 +238,8 @@ class ModuleDetails {
           <tbody>
             ${vendorInfos.map(vi => {
               // Split covered boards and test reports into arrays for multi-row display
-              const boards = (vi.coveredBoards || '').split(/[,，;；\n]/).map(s => s.trim()).filter(Boolean);
-              const reports = (vi.testReportLink || '').split(/[,，;；\n]/).map(s => s.trim()).filter(Boolean);
+              const boards = (vi.coveredBoards || '').split(MULTI_VALUE_DELIMITER).map(s => s.trim()).filter(Boolean);
+              const reports = (vi.testReportLink || '').split(MULTI_VALUE_DELIMITER).map(s => s.trim()).filter(Boolean);
               const maxRows = Math.max(boards.length, reports.length, 1);
 
               let rows = '';
@@ -372,13 +375,6 @@ class ModuleDetails {
       </div>
       <div class="form-row">
         <div class="form-col" style="grid-column: 1 / -1;">
-          <label class="form-label">导入测试报告（链接）</label>
-          <textarea class="form-control" id="vi_testReportLink" rows="2" placeholder="多个链接可用逗号、分号或换行分隔">${Utils.escapeHtml(vi.testReportLink || '')}</textarea>
-          <small style="color:#666; font-size:0.85em;">支持多个链接，用逗号、分号或换行分隔</small>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-col" style="grid-column: 1 / -1;">
           <label class="form-label">PCN变更点</label>
           <textarea class="form-control" id="vi_pcnChanges" rows="2">${Utils.escapeHtml(vi.pcnChanges || '')}</textarea>
         </div>
@@ -394,8 +390,12 @@ class ModuleDetails {
       </div>
       <div class="form-row">
         <div class="form-col" style="grid-column: 1 / -1;">
-          <label class="form-label">目前已知已覆盖过的单板</label>
-          <textarea class="form-control" id="vi_coveredBoards" rows="2">${Utils.escapeHtml(vi.coveredBoards || '')}</textarea>
+          <label class="form-label">已覆盖单板 & 测试报告</label>
+          <small style="color:#666; font-size:0.85em; display:block; margin-bottom:6px;">每行为一组：左侧填写单板名称，右侧填写对应的测试报告链接</small>
+          <div id="vi_boardReportRows">
+            ${this._renderBoardReportRows(vi)}
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="addBoardReportRow" style="margin-top:6px;">➕ 添加一组</button>
         </div>
       </div>
       <div class="form-row">
@@ -417,6 +417,26 @@ class ModuleDetails {
     }
   }
 
+  _renderBoardReportRows(vi) {
+    const boards = (vi.coveredBoards || '').split(MULTI_VALUE_DELIMITER).map(s => s.trim()).filter(Boolean);
+    const reports = (vi.testReportLink || '').split(MULTI_VALUE_DELIMITER).map(s => s.trim()).filter(Boolean);
+    const maxRows = Math.max(boards.length, reports.length, 1);
+
+    let html = '';
+    for (let i = 0; i < maxRows; i++) {
+      html += this._renderSingleBoardReportRow(boards[i] || '', reports[i] || '');
+    }
+    return html;
+  }
+
+  _renderSingleBoardReportRow(board, report) {
+    return `<div class="board-report-row" style="display:flex; gap:8px; align-items:center; margin-bottom:4px;">
+      <input class="form-control vi_board_input" type="text" placeholder="单板名称" value="${Utils.escapeHtml(board)}" style="flex:1;">
+      <input class="form-control vi_report_input" type="text" placeholder="测试报告链接" value="${Utils.escapeHtml(report)}" style="flex:1;">
+      <button type="button" class="btn btn-danger btn-sm remove-board-report-row" style="flex-shrink:0;">✕</button>
+    </div>`;
+  }
+
   _readVendorForm() {
     const get = id => {
       const el = this.container.querySelector('#' + id);
@@ -427,6 +447,21 @@ class ModuleDetails {
 
     const hsVal = get('vi_highSpeedTestRecommended');
     const highSpeedTestRecommended = hsVal === 'true' ? true : hsVal === 'false' ? false : null;
+
+    // Collect paired board/report inputs
+    const boardInputs = this.container.querySelectorAll('.vi_board_input');
+    const reportInputs = this.container.querySelectorAll('.vi_report_input');
+    const boards = [];
+    const reports = [];
+    const maxInputCount = Math.max(boardInputs.length, reportInputs.length);
+    for (let i = 0; i < maxInputCount; i++) {
+      const b = boardInputs[i] ? boardInputs[i].value.trim() : '';
+      const r = reportInputs[i] ? reportInputs[i].value.trim() : '';
+      if (b || r) {
+        boards.push(b);
+        reports.push(r);
+      }
+    }
 
     return {
       vendor,
@@ -442,8 +477,8 @@ class ModuleDetails {
       pcnChanges: get('vi_pcnChanges') || null,
       highSpeedTestRecommended,
       availability: get('vi_availability') || null,
-      coveredBoards: get('vi_coveredBoards') || null,
-      testReportLink: get('vi_testReportLink') || null,
+      coveredBoards: boards.length > 0 ? boards.join('\n') : null,
+      testReportLink: reports.length > 0 ? reports.join('\n') : null,
       remark: get('vi_remark') || null
     };
   }
@@ -506,32 +541,66 @@ class ModuleDetails {
       saveVendorBtn.addEventListener('click', () => this._saveVendorInfo());
     }
 
-    // Edit/Delete vendor info rows
-    this.container.addEventListener('click', (e) => {
-      const editTarget = e.target.closest('[data-edit-vendor]');
-      if (editTarget) {
-        const id = editTarget.dataset.editVendor;
-        const vi = this.vendorInfos.find(v => String(v.id) === String(id));
-        if (vi) this._openVendorModal(vi);
-        return;
-      }
-      const deleteTarget = e.target.closest('[data-delete-vendor]');
-      if (deleteTarget) {
-        const id = deleteTarget.dataset.deleteVendor;
-        this._deleteVendorInfo(id);
-      }
-    });
+    // Event delegation on container (only bind once since container persists across re-renders)
+    if (!this._containerEventsBound) {
+      this._containerEventsBound = true;
 
-    // File upload for photodetector data
-    this.container.addEventListener('change', (e) => {
-      const uploadInput = e.target.closest('[data-upload-vendor]');
-      if (uploadInput && uploadInput.files.length > 0) {
-        const vendorId = uploadInput.dataset.uploadVendor;
-        const moduleId = uploadInput.dataset.moduleId;
-        this._uploadPhotodetectorFile(moduleId, vendorId, uploadInput.files[0]);
-        uploadInput.value = '';
-      }
-    });
+      // Edit/Delete vendor info rows + board-report row management (event delegation)
+      this.container.addEventListener('click', (e) => {
+        // Add board-report row
+        if (e.target.closest('#addBoardReportRow')) {
+          const rowsContainer = this.container.querySelector('#vi_boardReportRows');
+          if (rowsContainer) {
+            const temp = document.createElement('div');
+            temp.innerHTML = this._renderSingleBoardReportRow('', '');
+            rowsContainer.appendChild(temp.firstElementChild);
+          }
+          return;
+        }
+
+        // Remove board-report row
+        const removeBtn = e.target.closest('.remove-board-report-row');
+        if (removeBtn) {
+          const row = removeBtn.closest('.board-report-row');
+          const rowsContainer = this.container.querySelector('#vi_boardReportRows');
+          if (rowsContainer && row) {
+            const allRows = rowsContainer.querySelectorAll('.board-report-row');
+            if (allRows.length > 1) {
+              row.remove();
+            } else {
+              // Clear the values instead of removing the last row
+              const inputs = row.querySelectorAll('input');
+              inputs.forEach(input => { input.value = ''; });
+            }
+          }
+          return;
+        }
+
+        const editTarget = e.target.closest('[data-edit-vendor]');
+        if (editTarget) {
+          const id = editTarget.dataset.editVendor;
+          const vi = this.vendorInfos.find(v => String(v.id) === String(id));
+          if (vi) this._openVendorModal(vi);
+          return;
+        }
+        const deleteTarget = e.target.closest('[data-delete-vendor]');
+        if (deleteTarget) {
+          const id = deleteTarget.dataset.deleteVendor;
+          this._deleteVendorInfo(id);
+        }
+      });
+
+      // File upload for photodetector data
+      this.container.addEventListener('change', (e) => {
+        const uploadInput = e.target.closest('[data-upload-vendor]');
+        if (uploadInput && uploadInput.files.length > 0) {
+          const vendorId = uploadInput.dataset.uploadVendor;
+          const moduleId = uploadInput.dataset.moduleId;
+          this._uploadPhotodetectorFile(moduleId, vendorId, uploadInput.files[0]);
+          uploadInput.value = '';
+        }
+      });
+    }
   }
 
   _openVendorModal(vi) {

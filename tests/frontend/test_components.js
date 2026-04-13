@@ -234,6 +234,104 @@ describe('ModuleDetails Component', () => {
     expect(html).toContain('rowspan');
   });
 
+  test('should render vendor form with paired board/report input rows', () => {
+    const vi = {
+      vendor: 'Cisco',
+      coveredBoards: 'Board-A,Board-B',
+      testReportLink: 'https://example.com/report1,https://example.com/report2'
+    };
+    
+    const html = component.renderVendorForm(vi);
+    // Should contain paired input rows instead of textareas
+    expect(html).toContain('vi_board_input');
+    expect(html).toContain('vi_report_input');
+    expect(html).toContain('Board-A');
+    expect(html).toContain('Board-B');
+    expect(html).toContain('addBoardReportRow');
+    // Should NOT contain old separate textareas
+    expect(html).not.toContain('id="vi_coveredBoards"');
+    expect(html).not.toContain('id="vi_testReportLink"');
+  });
+
+  test('should render at least one empty board/report row for new vendor form', () => {
+    const html = component.renderVendorForm({});
+    expect(html).toContain('vi_board_input');
+    expect(html).toContain('vi_report_input');
+    expect(html).toContain('board-report-row');
+  });
+
+  test('should add board/report row when add button clicked', async () => {
+    await component.loadData();
+    // Open modal with existing vendor data
+    component._openVendorModal({
+      id: 1,
+      vendor: 'Cisco',
+      coveredBoards: 'Board-A',
+      testReportLink: 'https://example.com/report1'
+    });
+
+    const initialRows = component.container.querySelectorAll('.board-report-row');
+    const initialCount = initialRows.length;
+
+    // Click add button
+    const addBtn = component.container.querySelector('#addBoardReportRow');
+    expect(addBtn).not.toBeNull();
+    addBtn.click();
+
+    const newRows = component.container.querySelectorAll('.board-report-row');
+    expect(newRows.length).toBe(initialCount + 1);
+  });
+
+  test('should remove board/report row when remove button clicked', async () => {
+    await component.loadData();
+    // Open modal with multiple rows
+    component._openVendorModal({
+      id: 1,
+      vendor: 'Cisco',
+      coveredBoards: 'Board-A,Board-B',
+      testReportLink: 'https://example.com/report1,https://example.com/report2'
+    });
+
+    const initialRows = component.container.querySelectorAll('.board-report-row');
+    expect(initialRows.length).toBe(2);
+
+    // Click remove button on first row
+    const removeBtn = initialRows[0].querySelector('.remove-board-report-row');
+    expect(removeBtn).not.toBeNull();
+    removeBtn.click();
+
+    const newRows = component.container.querySelectorAll('.board-report-row');
+    expect(newRows.length).toBe(1);
+  });
+
+  test('should keep at least one board/report row and clear values instead of removing', async () => {
+    await component.loadData();
+    // Open modal with single row
+    component._openVendorModal({
+      id: 1,
+      vendor: 'Cisco',
+      coveredBoards: 'Board-A',
+      testReportLink: 'https://example.com/report1'
+    });
+
+    const rows = component.container.querySelectorAll('.board-report-row');
+    expect(rows.length).toBe(1);
+
+    // Click remove button on the only row
+    const removeBtn = rows[0].querySelector('.remove-board-report-row');
+    removeBtn.click();
+
+    // Should still have one row
+    const remainingRows = component.container.querySelectorAll('.board-report-row');
+    expect(remainingRows.length).toBe(1);
+
+    // Values should be cleared
+    const boardInput = remainingRows[0].querySelector('.vi_board_input');
+    const reportInput = remainingRows[0].querySelector('.vi_report_input');
+    expect(boardInput.value).toBe('');
+    expect(reportInput.value).toBe('');
+  });
+
   test('should use 编码 label in details', async () => {
     await component.loadData();
     const detailsHtml = component.container.innerHTML;
