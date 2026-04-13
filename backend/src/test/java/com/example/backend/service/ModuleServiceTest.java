@@ -129,7 +129,7 @@ class ModuleServiceTest {
 
         // Verify soft delete (save is called with deleted=true, not deleteById)
         verify(moduleRepository).save(argThat(module ->
-            module.getDeleted() == true && module.getDeletedAt() != null
+            module.getDeleted() && module.getDeletedAt() != null
         ));
         verify(vendorInfoRepository).deleteByModuleId(1L);
         verify(historyService).createHistory(eq(1L), eq(OperationType.DELETE_MODULE), anyString(),

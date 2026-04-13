@@ -374,7 +374,7 @@ class ModuleDetails {
         <div class="form-col" style="grid-column: 1 / -1;">
           <label class="form-label">导入测试报告（链接）</label>
           <textarea class="form-control" id="vi_testReportLink" rows="2" placeholder="多个链接可用逗号、分号或换行分隔">${Utils.escapeHtml(vi.testReportLink || '')}</textarea>
-          <small style="color:#666; font-size:0.85em;">每一行"已覆盖单板"与"测试报告"为一组，请用逗号、分号或换行分隔多条记录</small>
+          <small style="color:#666; font-size:0.85em;">支持多个链接，用逗号、分号或换行分隔</small>
         </div>
       </div>
       <div class="form-row">

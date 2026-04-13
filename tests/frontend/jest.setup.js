@@ -110,9 +110,7 @@ const path = require('path');
 
 function loadScript(filePath) {
   const code = fs.readFileSync(filePath, 'utf8');
-  // Wrap in a function to avoid duplicate declaration errors
-  // Extract class name and assign to global
-  const fn = new Function(code + '\n; return typeof arguments !== "undefined" ? undefined : undefined;');
+  const fn = new Function(code);
   fn();
 }
 
@@ -145,7 +143,8 @@ for (const file of filesToLoad) {
       );
     }
     try {
-      // Use indirect eval to execute in global scope
+      // Use indirect eval (0, eval) to execute in global scope, ensuring
+      // class declarations and window.* assignments are visible globally
       (0, eval)(code);
     } catch (e) {
       // Ignore errors from files that reference browser APIs not available in test env
