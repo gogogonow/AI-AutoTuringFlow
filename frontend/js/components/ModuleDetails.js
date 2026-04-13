@@ -538,32 +538,66 @@ class ModuleDetails {
       saveVendorBtn.addEventListener('click', () => this._saveVendorInfo());
     }
 
-    // Edit/Delete vendor info rows
-    this.container.addEventListener('click', (e) => {
-      const editTarget = e.target.closest('[data-edit-vendor]');
-      if (editTarget) {
-        const id = editTarget.dataset.editVendor;
-        const vi = this.vendorInfos.find(v => String(v.id) === String(id));
-        if (vi) this._openVendorModal(vi);
-        return;
-      }
-      const deleteTarget = e.target.closest('[data-delete-vendor]');
-      if (deleteTarget) {
-        const id = deleteTarget.dataset.deleteVendor;
-        this._deleteVendorInfo(id);
-      }
-    });
+    // Event delegation on container (only bind once since container persists across re-renders)
+    if (!this._containerEventsBound) {
+      this._containerEventsBound = true;
 
-    // File upload for photodetector data
-    this.container.addEventListener('change', (e) => {
-      const uploadInput = e.target.closest('[data-upload-vendor]');
-      if (uploadInput && uploadInput.files.length > 0) {
-        const vendorId = uploadInput.dataset.uploadVendor;
-        const moduleId = uploadInput.dataset.moduleId;
-        this._uploadPhotodetectorFile(moduleId, vendorId, uploadInput.files[0]);
-        uploadInput.value = '';
-      }
-    });
+      // Edit/Delete vendor info rows + board-report row management (event delegation)
+      this.container.addEventListener('click', (e) => {
+        // Add board-report row
+        if (e.target.closest('#addBoardReportRow')) {
+          const rowsContainer = this.container.querySelector('#vi_boardReportRows');
+          if (rowsContainer) {
+            const temp = document.createElement('div');
+            temp.innerHTML = this._renderSingleBoardReportRow('', '');
+            rowsContainer.appendChild(temp.firstElementChild);
+          }
+          return;
+        }
+
+        // Remove board-report row
+        const removeBtn = e.target.closest('.remove-board-report-row');
+        if (removeBtn) {
+          const row = removeBtn.closest('.board-report-row');
+          const rowsContainer = this.container.querySelector('#vi_boardReportRows');
+          if (rowsContainer && row) {
+            const allRows = rowsContainer.querySelectorAll('.board-report-row');
+            if (allRows.length > 1) {
+              row.remove();
+            } else {
+              // Clear the values instead of removing the last row
+              const inputs = row.querySelectorAll('input');
+              inputs.forEach(input => { input.value = ''; });
+            }
+          }
+          return;
+        }
+
+        const editTarget = e.target.closest('[data-edit-vendor]');
+        if (editTarget) {
+          const id = editTarget.dataset.editVendor;
+          const vi = this.vendorInfos.find(v => String(v.id) === String(id));
+          if (vi) this._openVendorModal(vi);
+          return;
+        }
+        const deleteTarget = e.target.closest('[data-delete-vendor]');
+        if (deleteTarget) {
+          const id = deleteTarget.dataset.deleteVendor;
+          this._deleteVendorInfo(id);
+        }
+      });
+
+      // File upload for photodetector data
+      this.container.addEventListener('change', (e) => {
+        const uploadInput = e.target.closest('[data-upload-vendor]');
+        if (uploadInput && uploadInput.files.length > 0) {
+          const vendorId = uploadInput.dataset.uploadVendor;
+          const moduleId = uploadInput.dataset.moduleId;
+          this._uploadPhotodetectorFile(moduleId, vendorId, uploadInput.files[0]);
+          uploadInput.value = '';
+        }
+      });
+    }
   }
 
   _openVendorModal(vi) {
@@ -574,48 +608,12 @@ class ModuleDetails {
     if (title) title.textContent = vi ? '编辑厂家信息' : '新增厂家信息';
     if (form) form.innerHTML = this.renderVendorForm(vi || {});
     if (modal) modal.style.display = 'block';
-    this._bindBoardReportEvents();
   }
 
   _closeVendorModal() {
     const modal = this.container.querySelector('#vendorInfoModal');
     if (modal) modal.style.display = 'none';
     this._editingVendorId = null;
-  }
-
-  _bindBoardReportEvents() {
-    // Add row button
-    const addBtn = this.container.querySelector('#addBoardReportRow');
-    if (addBtn) {
-      addBtn.addEventListener('click', () => {
-        const rowsContainer = this.container.querySelector('#vi_boardReportRows');
-        if (rowsContainer) {
-          const temp = document.createElement('div');
-          temp.innerHTML = this._renderSingleBoardReportRow('', '');
-          rowsContainer.appendChild(temp.firstElementChild);
-        }
-      });
-    }
-
-    // Remove row buttons (use event delegation on the rows container)
-    const rowsContainer = this.container.querySelector('#vi_boardReportRows');
-    if (rowsContainer) {
-      rowsContainer.addEventListener('click', (e) => {
-        const removeBtn = e.target.closest('.remove-board-report-row');
-        if (removeBtn) {
-          const row = removeBtn.closest('.board-report-row');
-          // Keep at least one row
-          const allRows = rowsContainer.querySelectorAll('.board-report-row');
-          if (allRows.length > 1 && row) {
-            row.remove();
-          } else if (row) {
-            // Clear the values instead of removing the last row
-            const inputs = row.querySelectorAll('input');
-            inputs.forEach(input => { input.value = ''; });
-          }
-        }
-      });
-    }
   }
 
   async _saveVendorInfo() {
