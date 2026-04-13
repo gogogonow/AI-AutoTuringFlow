@@ -143,6 +143,7 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
         dto.setHighSpeedTestRecommended(info.getHighSpeedTestRecommended());
         dto.setAvailability(info.getAvailability());
         dto.setPhotodetectorData(info.getPhotodetectorData());
+        dto.setPhotodetectorDataFile(info.getPhotodetectorDataFile());
         dto.setCoveredBoards(info.getCoveredBoards());
         dto.setTestReportLink(info.getTestReportLink());
         dto.setRemark(info.getRemark());
@@ -172,6 +173,7 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
         info.setHighSpeedTestRecommended(dto.getHighSpeedTestRecommended());
         info.setAvailability(dto.getAvailability());
         info.setPhotodetectorData(dto.getPhotodetectorData());
+        info.setPhotodetectorDataFile(dto.getPhotodetectorDataFile());
         info.setCoveredBoards(dto.getCoveredBoards());
         info.setTestReportLink(dto.getTestReportLink());
         info.setRemark(dto.getRemark());

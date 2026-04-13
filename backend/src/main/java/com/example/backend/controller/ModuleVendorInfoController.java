@@ -4,11 +4,19 @@ import com.example.backend.dto.ModuleVendorInfoDto;
 import com.example.backend.service.ModuleVendorInfoService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * 光模块厂家信息控制器
@@ -20,6 +28,9 @@ public class ModuleVendorInfoController {
 
     @Autowired
     private ModuleVendorInfoService vendorInfoService;
+
+    @Value("${app.upload.dir:uploads}")
+    private String uploadDir;
 
     /**
      * 获取指定模块的所有厂家信息
@@ -71,5 +82,49 @@ public class ModuleVendorInfoController {
             @PathVariable Long id) {
         vendorInfoService.deleteVendorInfo(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 上传电眼数据文件
+     */
+    @PostMapping("/{id}/photodetector-file")
+    public ResponseEntity<Map<String, String>> uploadPhotodetectorFile(
+            @PathVariable Long moduleId,
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "文件不能为空"));
+        }
+
+        try {
+            // Create upload directory if it doesn't exist
+            Path uploadPath = Paths.get(uploadDir, "photodetector");
+            Files.createDirectories(uploadPath);
+
+            // Generate unique filename
+            String originalFilename = file.getOriginalFilename();
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+            String uniqueFilename = UUID.randomUUID().toString() + extension;
+            Path filePath = uploadPath.resolve(uniqueFilename);
+
+            // Save file
+            Files.copy(file.getInputStream(), filePath);
+
+            // Update vendor info with file path
+            ModuleVendorInfoDto vendorInfo = vendorInfoService.getVendorInfoById(id);
+            vendorInfo.setPhotodetectorDataFile(uniqueFilename);
+            vendorInfoService.updateVendorInfo(id, vendorInfo);
+
+            return ResponseEntity.ok(Map.of(
+                "filename", uniqueFilename,
+                "originalFilename", originalFilename != null ? originalFilename : uniqueFilename
+            ));
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "文件上传失败: " + e.getMessage()));
+        }
     }
 }

@@ -2,6 +2,9 @@ package com.example.backend.service;
 
 import com.example.backend.dto.ModuleDto;
 import com.example.backend.model.Module;
+import com.example.backend.model.FiberType;
+import com.example.backend.model.LifecycleStatus;
+import com.example.backend.model.LightType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -38,17 +41,23 @@ public interface ModuleService {
     void deleteModule(Long id);
 
     /**
-     * 分页查询光模块列表
+     * 分页查询光模块列表（含厂家信息摘要）
      */
     Page<ModuleDto> getModules(Pageable pageable);
 
     /**
-     * 多条件筛选查询
+     * 多条件筛选查询（支持自定义字段，含厂家信息摘要）
      */
     Page<ModuleDto> searchModules(
         String serialNumber,
-        String model,
         String speed,
+        String wavelength,
+        Integer transmissionDistance,
+        String connectorType,
+        LifecycleStatus lifecycleStatus,
+        String packageForm,
+        FiberType fiberType,
+        LightType lightType,
         Pageable pageable
     );
 

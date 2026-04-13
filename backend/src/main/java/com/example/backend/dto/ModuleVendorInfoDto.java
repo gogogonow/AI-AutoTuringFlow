@@ -43,6 +43,8 @@ public class ModuleVendorInfoDto {
 
     private String photodetectorData;
 
+    private String photodetectorDataFile;
+
     private String coveredBoards;
 
     private String testReportLink;
@@ -106,6 +108,9 @@ public class ModuleVendorInfoDto {
 
     public String getPhotodetectorData() { return photodetectorData; }
     public void setPhotodetectorData(String photodetectorData) { this.photodetectorData = photodetectorData; }
+
+    public String getPhotodetectorDataFile() { return photodetectorDataFile; }
+    public void setPhotodetectorDataFile(String photodetectorDataFile) { this.photodetectorDataFile = photodetectorDataFile; }
 
     public String getCoveredBoards() { return coveredBoards; }
     public void setCoveredBoards(String coveredBoards) { this.coveredBoards = coveredBoards; }

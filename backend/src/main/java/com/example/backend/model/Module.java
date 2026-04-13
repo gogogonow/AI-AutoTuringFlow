@@ -9,8 +9,7 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "module", indexes = {
-    @Index(name = "idx_serial_number", columnList = "serial_number"),
-    @Index(name = "idx_model", columnList = "model")
+    @Index(name = "idx_serial_number", columnList = "serial_number")
 })
 public class Module {
 
@@ -21,7 +20,7 @@ public class Module {
     @Column(name = "serial_number", nullable = false, unique = true, length = 50)
     private String serialNumber;
 
-    @Column(name = "model", nullable = false, length = 100)
+    @Column(name = "model", length = 100)
     private String model;
 
     @Column(name = "speed", length = 20)
@@ -125,9 +124,8 @@ public class Module {
     // Constructors
     public Module() {}
 
-    public Module(String serialNumber, String model) {
+    public Module(String serialNumber) {
         this.serialNumber = serialNumber;
-        this.model = model;
     }
 
     // Getters and Setters

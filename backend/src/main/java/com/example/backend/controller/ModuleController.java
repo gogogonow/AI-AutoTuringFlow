@@ -1,6 +1,9 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.ModuleDto;
+import com.example.backend.model.FiberType;
+import com.example.backend.model.LifecycleStatus;
+import com.example.backend.model.LightType;
 import com.example.backend.service.ModuleService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,13 +77,19 @@ public class ModuleController {
     }
 
     /**
-     * 分页查询光模块列表
+     * 分页查询光模块列表（支持自定义字段多条件搜索）
      */
     @GetMapping
     public ResponseEntity<Page<ModuleDto>> getModules(
         @RequestParam(required = false) String serialNumber,
-        @RequestParam(required = false) String model,
         @RequestParam(required = false) String speed,
+        @RequestParam(required = false) String wavelength,
+        @RequestParam(required = false) Integer transmissionDistance,
+        @RequestParam(required = false) String connectorType,
+        @RequestParam(required = false) LifecycleStatus lifecycleStatus,
+        @RequestParam(required = false) String packageForm,
+        @RequestParam(required = false) FiberType fiberType,
+        @RequestParam(required = false) LightType lightType,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size,
         @RequestParam(defaultValue = "id") String sortBy,
@@ -90,8 +99,15 @@ public class ModuleController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
         Page<ModuleDto> modules;
-        if (serialNumber != null || model != null || speed != null) {
-            modules = moduleService.searchModules(serialNumber, model, speed, pageable);
+        if (serialNumber != null || speed != null || wavelength != null ||
+            transmissionDistance != null || connectorType != null ||
+            lifecycleStatus != null || packageForm != null ||
+            fiberType != null || lightType != null) {
+            modules = moduleService.searchModules(
+                serialNumber, speed, wavelength, transmissionDistance,
+                connectorType, lifecycleStatus, packageForm, fiberType, lightType,
+                pageable
+            );
         } else {
             modules = moduleService.getModules(pageable);
         }
