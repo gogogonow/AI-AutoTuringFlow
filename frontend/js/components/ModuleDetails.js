@@ -271,7 +271,7 @@ class ModuleDetails {
                   if (isOwner) {
                     photoCell += `<br><label class="btn btn-secondary btn-sm" style="margin-top:4px; cursor:pointer; font-size:0.8em;">
                       📤 上传文件
-                      <input type="file" style="display:none;" data-upload-vendor="${Utils.escapeHtml(String(vi.id))}" data-module-id="${Utils.escapeHtml(String(this.moduleId))}">
+                      <input type="file" style="display:none;" data-upload-vendor="${parseInt(vi.id, 10)}" data-module-id="${parseInt(this.moduleId, 10)}">
                     </label>`;
                   }
                   rows += `<td${rs} style="max-width:150px; word-break:break-word;">${photoCell}</td>`;
@@ -289,8 +289,8 @@ class ModuleDetails {
                   if (isOwner) {
                     rows += `<td${rs}>
                       <div class="action-buttons">
-                        <button class="btn btn-secondary btn-sm" data-edit-vendor="${Utils.escapeHtml(String(vi.id))}">编辑</button>
-                        <button class="btn btn-danger btn-sm" data-delete-vendor="${Utils.escapeHtml(String(vi.id))}">删除</button>
+                        <button class="btn btn-secondary btn-sm" data-edit-vendor="${parseInt(vi.id, 10)}">编辑</button>
+                        <button class="btn btn-danger btn-sm" data-delete-vendor="${parseInt(vi.id, 10)}">删除</button>
                       </div>
                     </td>`;
                   }

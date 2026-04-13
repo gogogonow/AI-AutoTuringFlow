@@ -26,7 +26,7 @@ public interface ModuleService {
     ModuleDto getModuleById(Long id);
 
     /**
-     * 根据序列号获取光模块
+     * 根据编码获取光模块
      */
     ModuleDto getModuleBySerialNumber(String serialNumber);
 

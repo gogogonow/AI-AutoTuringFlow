@@ -29,7 +29,7 @@ public interface HistoryService {
     );
 
     /**
-     * 创建历史记录（无序列号和型号）
+     * 创建历史记录（无编码和型号）
      */
     default HistoryDto createHistory(
         Long moduleId,

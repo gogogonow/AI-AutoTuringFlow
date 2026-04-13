@@ -30,13 +30,13 @@ public interface ModuleRepository extends JpaRepository<Module, Long> {
     Page<Module> findAll(Pageable pageable);
 
     /**
-     * 根据序列号查找光模块
+     * 根据编码查找光模块
      */
     @Query("SELECT m FROM Module m WHERE m.serialNumber = :serialNumber AND m.deleted = false")
     Optional<Module> findBySerialNumber(@Param("serialNumber") String serialNumber);
 
     /**
-     * 检查序列号是否存在
+     * 检查编码是否存在
      */
     @Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END FROM Module m WHERE m.serialNumber = :serialNumber AND m.deleted = false")
     boolean existsBySerialNumber(@Param("serialNumber") String serialNumber);
