@@ -297,6 +297,21 @@ describe('App Component', () => {
 
   beforeEach(() => {
     document.body.innerHTML = '';
+    // Set up localStorage with current user for role checks
+    window.localStorage.setItem('currentUser', JSON.stringify({ username: 'admin', role: 'OWNER' }));
+    window.localStorage.setItem('authToken', 'fake-token');
+    // Ensure API mock has methods needed by App
+    // Return a token so App initializes as authenticated
+    global.API = {
+      getAuthToken: jest.fn().mockReturnValue('fake-token'),
+      getCurrentUser: jest.fn().mockReturnValue({ username: 'admin', role: 'OWNER' }),
+      getModules: jest.fn().mockResolvedValue({ content: [], totalPages: 0, totalElements: 0 }),
+      getModule: jest.fn(),
+      getModuleHistory: jest.fn().mockResolvedValue([]),
+      getVendorInfos: jest.fn().mockResolvedValue([]),
+      deleteModule: jest.fn().mockResolvedValue({})
+    };
+    window.API = global.API;
     app = new App();
   });
 
