@@ -191,6 +191,8 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
         appendIfNotNull(sb, "MCU", dto.getMcu());
         appendIfNotNull(sb, "PCN变更点", dto.getPcnChanges());
         appendIfNotNull(sb, "获取性", dto.getAvailability());
+        appendIfNotNull(sb, "已覆盖单板", dto.getCoveredBoards());
+        appendIfNotNull(sb, "测试报告", dto.getTestReportLink());
         appendIfNotNull(sb, "备注", dto.getRemark());
         return sb.toString();
     }
@@ -209,6 +211,8 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
         hasChange |= appendChange(sb, "PCN变更点", existing.getPcnChanges(), dto.getPcnChanges());
         hasChange |= appendChange(sb, "高速重点测试", existing.getHighSpeedTestRecommended(), dto.getHighSpeedTestRecommended());
         hasChange |= appendChange(sb, "获取性", existing.getAvailability(), dto.getAvailability());
+        hasChange |= appendChange(sb, "已覆盖单板", existing.getCoveredBoards(), dto.getCoveredBoards());
+        hasChange |= appendChange(sb, "测试报告", existing.getTestReportLink(), dto.getTestReportLink());
         hasChange |= appendChange(sb, "备注", existing.getRemark(), dto.getRemark());
         if (!hasChange) {
             sb.append("无变化");
@@ -228,6 +232,8 @@ public class ModuleVendorInfoServiceImpl implements ModuleVendorInfoService {
         appendIfNotNull(sb, "MCU", info.getMcu());
         appendIfNotNull(sb, "PCN变更点", info.getPcnChanges());
         appendIfNotNull(sb, "获取性", info.getAvailability());
+        appendIfNotNull(sb, "已覆盖单板", info.getCoveredBoards());
+        appendIfNotNull(sb, "测试报告", info.getTestReportLink());
         appendIfNotNull(sb, "备注", info.getRemark());
         return sb.toString();
     }

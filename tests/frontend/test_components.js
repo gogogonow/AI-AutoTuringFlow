@@ -234,6 +234,32 @@ describe('ModuleDetails Component', () => {
     expect(html).toContain('rowspan');
   });
 
+  test('should render vendor form with paired board/report input rows', () => {
+    const vi = {
+      vendor: 'Cisco',
+      coveredBoards: 'Board-A,Board-B',
+      testReportLink: 'https://example.com/report1,https://example.com/report2'
+    };
+    
+    const html = component.renderVendorForm(vi);
+    // Should contain paired input rows instead of textareas
+    expect(html).toContain('vi_board_input');
+    expect(html).toContain('vi_report_input');
+    expect(html).toContain('Board-A');
+    expect(html).toContain('Board-B');
+    expect(html).toContain('addBoardReportRow');
+    // Should NOT contain old separate textareas
+    expect(html).not.toContain('id="vi_coveredBoards"');
+    expect(html).not.toContain('id="vi_testReportLink"');
+  });
+
+  test('should render at least one empty board/report row for new vendor form', () => {
+    const html = component.renderVendorForm({});
+    expect(html).toContain('vi_board_input');
+    expect(html).toContain('vi_report_input');
+    expect(html).toContain('board-report-row');
+  });
+
   test('should use 编码 label in details', async () => {
     await component.loadData();
     const detailsHtml = component.container.innerHTML;
