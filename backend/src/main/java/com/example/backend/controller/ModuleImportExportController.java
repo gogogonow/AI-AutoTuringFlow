@@ -37,7 +37,7 @@ public class ModuleImportExportController {
 
     /** 导出列头顺序（与导入列顺序一致） */
     private static final String[] HEADERS = {
-        "序列号", "型号", "端口速率", "波长",
+        "编码", "型号", "端口速率", "波长",
         "传输距离(m)", "接口类型", "入库时间", "备注"
     };
 
@@ -57,7 +57,7 @@ public class ModuleImportExportController {
         Pageable pageable = PageRequest.of(0, 10000, Sort.by(Sort.Direction.DESC, "id"));
         Page<ModuleDto> page;
         if (serialNumber != null || model != null || speed != null) {
-            page = moduleService.searchModules(serialNumber, model, speed, pageable);
+            page = moduleService.searchModules(serialNumber, speed, null, null, null, null, null, null, null, pageable);
         } else {
             page = moduleService.getModules(pageable);
         }
@@ -185,15 +185,14 @@ public class ModuleImportExportController {
 
         String serialNumber = getCellString(row, 0);
         if (serialNumber == null || serialNumber.isBlank()) {
-            throw new IllegalArgumentException("序列号不能为空");
+            throw new IllegalArgumentException("编码不能为空");
         }
         dto.setSerialNumber(serialNumber.trim());
 
         String model = getCellString(row, 1);
-        if (model == null || model.isBlank()) {
-            throw new IllegalArgumentException("型号不能为空");
+        if (model != null && !model.isBlank()) {
+            dto.setModel(model.trim());
         }
-        dto.setModel(model.trim());
 
         dto.setSpeed(getCellString(row, 2));
         dto.setWavelength(getCellString(row, 3));

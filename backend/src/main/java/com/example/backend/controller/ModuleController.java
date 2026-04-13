@@ -47,7 +47,7 @@ public class ModuleController {
     }
 
     /**
-     * 根据序列号获取光模块
+     * 根据编码获取光模块
      */
     @GetMapping("/serial/{serialNumber}")
     public ResponseEntity<ModuleDto> getModuleBySerialNumber(@PathVariable String serialNumber) {
