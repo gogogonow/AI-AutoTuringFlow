@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS module_vendor_info (
     high_speed_test_recommended BOOLEAN,
     availability VARCHAR(100),
     photodetector_data TEXT,
+    photodetector_data_file VARCHAR(500),
     covered_boards TEXT,
     test_report_link VARCHAR(500),
     remark TEXT,

@@ -258,13 +258,11 @@ class ModuleDetails {
                   rows += `<td${rs} style="max-width:120px; word-break:break-word;">${Utils.escapeHtml(vi.pcnChanges || '-')}</td>`;
                   rows += `<td${rs}>${vi.highSpeedTestRecommended === true ? '✅ 是' : vi.highSpeedTestRecommended === false ? '❌ 否' : '-'}</td>`;
                   rows += `<td${rs}>${Utils.escapeHtml(vi.availability || '-')}</td>`;
-                  // Photodetector data with file upload support
+                  // Photodetector data - file upload only
                   let photoCell = '';
                   if (vi.photodetectorDataFile) {
                     const safeFilename = encodeURIComponent(vi.photodetectorDataFile);
                     photoCell = `<a href="${CONFIG.API_BASE_URL}/uploads/photodetector/${safeFilename}" target="_blank" rel="noopener noreferrer">📎 查看文件</a>`;
-                  } else if (vi.photodetectorData) {
-                    photoCell = Utils.escapeHtml(vi.photodetectorData);
                   } else {
                     photoCell = '-';
                   }
@@ -373,9 +371,10 @@ class ModuleDetails {
         </div>
       </div>
       <div class="form-row">
-        <div class="form-col">
+        <div class="form-col" style="grid-column: 1 / -1;">
           <label class="form-label">导入测试报告（链接）</label>
-          <input class="form-control" id="vi_testReportLink" type="url" value="${Utils.escapeHtml(vi.testReportLink || '')}" placeholder="https://...">
+          <textarea class="form-control" id="vi_testReportLink" rows="2" placeholder="多个链接可用逗号、分号或换行分隔">${Utils.escapeHtml(vi.testReportLink || '')}</textarea>
+          <small style="color:#666; font-size:0.85em;">支持多个链接，用逗号、分号或换行分隔</small>
         </div>
       </div>
       <div class="form-row">
@@ -388,10 +387,9 @@ class ModuleDetails {
         <div class="form-col" style="grid-column: 1 / -1;">
           <label class="form-label">电眼数据</label>
           <div style="display:flex; gap:8px; align-items:center;">
-            <input class="form-control" id="vi_photodetectorData" type="text" value="${Utils.escapeHtml(vi.photodetectorData || '')}" placeholder="文本描述或上传文件后自动填充">
-            ${vi.photodetectorDataFile ? `<span style="color:#28a745; font-size:0.85em;">📎 已上传文件</span>` : ''}
+            ${vi.photodetectorDataFile ? `<span style="color:#28a745; font-size:0.85em;">📎 已上传文件</span>` : '<span style="color:#999; font-size:0.85em;">暂无文件</span>'}
           </div>
-          <small style="color:#666; font-size:0.85em;">可输入文字描述，或在厂家信息表中通过"上传文件"按钮上传电眼数据文件</small>
+          <small style="color:#666; font-size:0.85em;">电眼数据仅支持上传文件，请在厂家信息表中通过"上传文件"按钮上传</small>
         </div>
       </div>
       <div class="form-row">
@@ -444,7 +442,6 @@ class ModuleDetails {
       pcnChanges: get('vi_pcnChanges') || null,
       highSpeedTestRecommended,
       availability: get('vi_availability') || null,
-      photodetectorData: get('vi_photodetectorData') || null,
       coveredBoards: get('vi_coveredBoards') || null,
       testReportLink: get('vi_testReportLink') || null,
       remark: get('vi_remark') || null

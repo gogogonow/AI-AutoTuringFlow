@@ -18,6 +18,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import com.example.backend.model.Module;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -63,6 +65,7 @@ class ModuleVendorInfoServiceTest {
     @Test
     void testCreateVendorInfo_Success() {
         when(moduleRepository.existsById(5L)).thenReturn(true);
+        when(moduleRepository.findById(5L)).thenReturn(Optional.of(createMockModule()));
         when(vendorInfoRepository.save(any(ModuleVendorInfo.class))).thenReturn(testVendorInfo);
 
         ModuleVendorInfoDto result = vendorInfoService.createVendorInfo(5L, testVendorInfoDto);
@@ -75,10 +78,10 @@ class ModuleVendorInfoServiceTest {
             eq(5L),
             eq(OperationType.VENDOR_ADD),
             anyString(),
-            isNull(),
-            isNull(),
             contains("Cisco"),
-            anyString()
+            anyString(),
+            eq("SN-TEST"),
+            eq("MODEL-TEST")
         );
     }
 
@@ -101,6 +104,7 @@ class ModuleVendorInfoServiceTest {
         updateDto.setProcessStatus("Updated");
 
         when(vendorInfoRepository.findById(1L)).thenReturn(Optional.of(testVendorInfo));
+        when(moduleRepository.findById(5L)).thenReturn(Optional.of(createMockModule()));
         when(vendorInfoRepository.save(any(ModuleVendorInfo.class))).thenReturn(testVendorInfo);
 
         ModuleVendorInfoDto result = vendorInfoService.updateVendorInfo(1L, updateDto);
@@ -112,10 +116,10 @@ class ModuleVendorInfoServiceTest {
             eq(5L),
             eq(OperationType.VENDOR_UPDATE),
             anyString(),
-            isNull(),
-            isNull(),
             contains("Huawei"),
-            anyString()
+            anyString(),
+            eq("SN-TEST"),
+            eq("MODEL-TEST")
         );
     }
 
@@ -133,6 +137,7 @@ class ModuleVendorInfoServiceTest {
     @Test
     void testDeleteVendorInfo_Success() {
         when(vendorInfoRepository.findById(1L)).thenReturn(Optional.of(testVendorInfo));
+        when(moduleRepository.findById(5L)).thenReturn(Optional.of(createMockModule()));
 
         vendorInfoService.deleteVendorInfo(1L);
 
@@ -146,10 +151,10 @@ class ModuleVendorInfoServiceTest {
             eq(5L),
             eq(OperationType.VENDOR_DELETE),
             anyString(),
-            isNull(),
-            isNull(),
             contains("Cisco"),
-            anyString()
+            anyString(),
+            eq("SN-TEST"),
+            eq("MODEL-TEST")
         );
     }
 
@@ -205,6 +210,14 @@ class ModuleVendorInfoServiceTest {
         assertThrows(ResourceNotFoundException.class, () ->
             vendorInfoService.getVendorInfoById(999L)
         );
+    }
+
+    private Module createMockModule() {
+        Module module = new Module();
+        module.setId(5L);
+        module.setSerialNumber("SN-TEST");
+        module.setModel("MODEL-TEST");
+        return module;
     }
 
     /**
