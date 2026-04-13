@@ -26,16 +26,9 @@ class ModuleForm {
             <div class="form-row">
               <div class="form-col">
                 <div class="form-group">
-                  <label class="form-label" data-required>序列号</label>
+                  <label class="form-label" data-required>编码</label>
                   <input class="form-control" type="text" name="serialNumber" required>
                   <div class="form-error" id="error-serialNumber"></div>
-                </div>
-              </div>
-              <div class="form-col">
-                <div class="form-group">
-                  <label class="form-label" data-required>型号</label>
-                  <input class="form-control" type="text" name="model" required>
-                  <div class="form-error" id="error-model"></div>
                 </div>
               </div>
             </div>
@@ -295,18 +288,13 @@ class ModuleForm {
 
     // Required fields
     const serialNumber = formData.get('serialNumber')?.trim();
-    const model = formData.get('model')?.trim();
 
     if (!serialNumber) {
-      errors.serialNumber = '序列号为必填项';
+      errors.serialNumber = '编码为必填项';
     } else if (serialNumber.length < 6 || serialNumber.length > 50) {
-      errors.serialNumber = '序列号长度应在 6-50 字符之间';
+      errors.serialNumber = '编码长度应在 6-50 字符之间';
     } else if (/\s/.test(serialNumber)) {
-      errors.serialNumber = '序列号不能包含空格';
-    }
-
-    if (!model) {
-      errors.model = '型号为必填项';
+      errors.serialNumber = '编码不能包含空格';
     }
 
     // Transmission distance validation

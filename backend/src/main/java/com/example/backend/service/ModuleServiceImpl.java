@@ -1,10 +1,10 @@
 package com.example.backend.service;
 
 import com.example.backend.dto.ModuleDto;
+import com.example.backend.dto.ModuleVendorInfoDto;
 import com.example.backend.exception.ResourceNotFoundException;
-import com.example.backend.model.History;
+import com.example.backend.model.*;
 import com.example.backend.model.Module;
-import com.example.backend.model.OperationType;
 import com.example.backend.repository.ModuleRepository;
 import com.example.backend.repository.ModuleVendorInfoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,9 +35,9 @@ public class ModuleServiceImpl implements ModuleService {
 
     @Override
     public ModuleDto createModule(ModuleDto moduleDto) {
-        // 检查序列号是否已存在
+        // 检查编码是否已存在
         if (moduleRepository.existsBySerialNumber(moduleDto.getSerialNumber())) {
-            throw new IllegalArgumentException("序列号已存在: " + moduleDto.getSerialNumber());
+            throw new IllegalArgumentException("编码已存在: " + moduleDto.getSerialNumber());
         }
 
         Module module = toEntity(moduleDto);
@@ -83,10 +83,10 @@ public class ModuleServiceImpl implements ModuleService {
         Module existingModule = moduleRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("光模块不存在: ID=" + id));
 
-        // 检查序列号是否被其他模块使用
+        // 检查编码是否被其他模块使用
         if (!existingModule.getSerialNumber().equals(moduleDto.getSerialNumber())) {
             if (moduleRepository.existsBySerialNumber(moduleDto.getSerialNumber())) {
-                throw new IllegalArgumentException("序列号已被占用: " + moduleDto.getSerialNumber());
+                throw new IllegalArgumentException("编码已被占用: " + moduleDto.getSerialNumber());
             }
         }
 
@@ -147,23 +147,80 @@ public class ModuleServiceImpl implements ModuleService {
     @Override
     @Transactional(readOnly = true)
     public Page<ModuleDto> getModules(Pageable pageable) {
-        return moduleRepository.findAll(pageable).map(this::toDto);
+        Page<ModuleDto> page = moduleRepository.findAll(pageable).map(this::toDto);
+        populateVendorInfos(page.getContent());
+        return page;
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<ModuleDto> searchModules(
         String serialNumber,
-        String model,
         String speed,
+        String wavelength,
+        Integer transmissionDistance,
+        String connectorType,
+        LifecycleStatus lifecycleStatus,
+        String packageForm,
+        FiberType fiberType,
+        LightType lightType,
         Pageable pageable
     ) {
-        return moduleRepository.findByMultipleConditions(
+        Page<ModuleDto> page = moduleRepository.findByMultipleConditions(
             serialNumber,
-            model,
             speed,
+            wavelength,
+            transmissionDistance,
+            connectorType,
+            lifecycleStatus,
+            packageForm,
+            fiberType,
+            lightType,
             pageable
         ).map(this::toDto);
+        populateVendorInfos(page.getContent());
+        return page;
+    }
+
+    /**
+     * 为列表中的模块批量填充厂家信息
+     */
+    private void populateVendorInfos(List<ModuleDto> modules) {
+        if (modules == null || modules.isEmpty()) return;
+
+        List<Long> moduleIds = modules.stream()
+            .map(ModuleDto::getId)
+            .collect(Collectors.toList());
+
+        // Bulk fetch all vendor infos for the modules
+        Map<Long, List<ModuleVendorInfoDto>> vendorInfoMap = new HashMap<>();
+        for (Long moduleId : moduleIds) {
+            List<ModuleVendorInfo> infos = vendorInfoRepository.findByModuleIdOrderByCreatedAtAsc(moduleId);
+            if (infos != null && !infos.isEmpty()) {
+                vendorInfoMap.put(moduleId, infos.stream().map(this::vendorInfoToDto).collect(Collectors.toList()));
+            }
+        }
+
+        for (ModuleDto dto : modules) {
+            dto.setVendorInfos(vendorInfoMap.getOrDefault(dto.getId(), Collections.emptyList()));
+        }
+    }
+
+    private ModuleVendorInfoDto vendorInfoToDto(ModuleVendorInfo info) {
+        if (info == null) return null;
+        ModuleVendorInfoDto dto = new ModuleVendorInfoDto();
+        dto.setId(info.getId());
+        dto.setModuleId(info.getModuleId());
+        dto.setVendor(info.getVendor());
+        dto.setProcessStatus(info.getProcessStatus());
+        dto.setVersionBatch(info.getVersionBatch());
+        dto.setHighSpeedTestRecommended(info.getHighSpeedTestRecommended());
+        dto.setCoveredBoards(info.getCoveredBoards());
+        dto.setTestReportLink(info.getTestReportLink());
+        dto.setPhotodetectorData(info.getPhotodetectorData());
+        dto.setPhotodetectorDataFile(info.getPhotodetectorDataFile());
+        dto.setRemark(info.getRemark());
+        return dto;
     }
 
     @Override
@@ -260,8 +317,7 @@ public class ModuleServiceImpl implements ModuleService {
     private String buildCreateDetails(Module module) {
         StringBuilder sb = new StringBuilder();
         sb.append("新增字段：");
-        appendField(sb, "序列号", null, module.getSerialNumber());
-        appendField(sb, "型号", null, module.getModel());
+        appendField(sb, "编码", null, module.getSerialNumber());
         appendField(sb, "速率", null, module.getSpeed());
         appendField(sb, "波长", null, module.getWavelength());
         appendField(sb, "传输距离", null, module.getTransmissionDistance());
@@ -277,8 +333,7 @@ public class ModuleServiceImpl implements ModuleService {
         StringBuilder sb = new StringBuilder();
         sb.append("更新字段：");
         boolean hasChange = false;
-        hasChange |= appendField(sb, "序列号", existing.getSerialNumber(), updated.getSerialNumber());
-        hasChange |= appendField(sb, "型号", existing.getModel(), updated.getModel());
+        hasChange |= appendField(sb, "编码", existing.getSerialNumber(), updated.getSerialNumber());
         hasChange |= appendField(sb, "速率", existing.getSpeed(), updated.getSpeed());
         hasChange |= appendField(sb, "波长", existing.getWavelength(), updated.getWavelength());
         hasChange |= appendField(sb, "传输距离", existing.getTransmissionDistance(), updated.getTransmissionDistance());
@@ -296,8 +351,7 @@ public class ModuleServiceImpl implements ModuleService {
     private String buildDeleteDetails(Module module) {
         StringBuilder sb = new StringBuilder();
         sb.append("删除前字段：");
-        sb.append("序列号=").append(nullSafe(module.getSerialNumber()));
-        sb.append(", 型号=").append(nullSafe(module.getModel()));
+        sb.append("编码=").append(nullSafe(module.getSerialNumber()));
         sb.append(", 速率=").append(nullSafe(module.getSpeed()));
         sb.append(", 波长=").append(nullSafe(module.getWavelength()));
         sb.append(", 传输距离=").append(nullSafe(module.getTransmissionDistance()));

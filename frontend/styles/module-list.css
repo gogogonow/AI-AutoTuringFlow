@@ -22,12 +22,17 @@
 }
 
 /* Module Table */
-#moduleTableBody tr {
+#moduleTableBody tr.module-row-clickable {
   cursor: pointer;
 }
 
 #moduleTableBody td {
   vertical-align: middle;
+}
+
+/* Multi-row vendor display: add subtle border between module groups */
+#moduleTableBody tr.module-row-clickable td[rowspan] {
+  border-top: 2px solid var(--color-border, #e0e0e0);
 }
 
 .action-buttons {

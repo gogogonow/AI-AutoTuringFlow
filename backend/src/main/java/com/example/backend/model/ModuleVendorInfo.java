@@ -76,6 +76,10 @@ public class ModuleVendorInfo {
     @Column(name = "photodetector_data", columnDefinition = "TEXT")
     private String photodetectorData;
 
+    /** 电眼数据文件路径 */
+    @Column(name = "photodetector_data_file", length = 500)
+    private String photodetectorDataFile;
+
     /** 目前已知已覆盖过的单板 */
     @Column(name = "covered_boards", columnDefinition = "TEXT")
     private String coveredBoards;
@@ -165,6 +169,9 @@ public class ModuleVendorInfo {
 
     public String getPhotodetectorData() { return photodetectorData; }
     public void setPhotodetectorData(String photodetectorData) { this.photodetectorData = photodetectorData; }
+
+    public String getPhotodetectorDataFile() { return photodetectorDataFile; }
+    public void setPhotodetectorDataFile(String photodetectorDataFile) { this.photodetectorDataFile = photodetectorDataFile; }
 
     public String getCoveredBoards() { return coveredBoards; }
     public void setCoveredBoards(String coveredBoards) { this.coveredBoards = coveredBoards; }

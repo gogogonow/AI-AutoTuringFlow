@@ -28,7 +28,7 @@ class HistoryList {
                 <tr>
                   <th>操作时间</th>
                   <th>操作类型</th>
-                  <th>序列号</th>
+                  <th>编码</th>
                   <th>型号</th>
                   <th>操作人</th>
                   <th>备注</th>

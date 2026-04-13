@@ -15,7 +15,7 @@
 
 .history-table th:nth-child(1) { width: 180px; } /* 操作时间 */
 .history-table th:nth-child(2) { width: 120px; } /* 操作类型 */
-.history-table th:nth-child(3) { width: 150px; } /* 序列号 */
+.history-table th:nth-child(3) { width: 150px; } /* 编码 */
 .history-table th:nth-child(4) { width: 120px; } /* 型号 */
 .history-table th:nth-child(5) { width: 100px; } /* 操作人 */
 .history-table th:nth-child(6) { width: 150px; } /* 备注 */

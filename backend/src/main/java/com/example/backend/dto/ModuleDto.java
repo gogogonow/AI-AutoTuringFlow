@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 光模块数据传输对象
@@ -15,12 +16,11 @@ public class ModuleDto {
 
     private Long id;
 
-    @NotBlank(message = "序列号不能为空")
-    @Size(min = 6, max = 50, message = "序列号长度必须在6-50之间")
-    @Pattern(regexp = "^\\S+$", message = "序列号不能包含空格")
+    @NotBlank(message = "编码不能为空")
+    @Size(min = 6, max = 50, message = "编码长度必须在6-50之间")
+    @Pattern(regexp = "^\\S+$", message = "编码不能包含空格")
     private String serialNumber;
 
-    @NotBlank(message = "型号不能为空")
     @Size(max = 100, message = "型号长度不能超过100")
     private String model;
 
@@ -73,6 +73,9 @@ public class ModuleDto {
     private String specTemplateVersion;
 
     private String currentShippingVendors;
+
+    /** Vendor info list for list display (populated on demand) */
+    private List<ModuleVendorInfoDto> vendorInfos;
 
     // Constructors
     public ModuleDto() {}
@@ -292,5 +295,13 @@ public class ModuleDto {
 
     public void setCurrentShippingVendors(String currentShippingVendors) {
         this.currentShippingVendors = currentShippingVendors;
+    }
+
+    public List<ModuleVendorInfoDto> getVendorInfos() {
+        return vendorInfos;
+    }
+
+    public void setVendorInfos(List<ModuleVendorInfoDto> vendorInfos) {
+        this.vendorInfos = vendorInfos;
     }
 }
