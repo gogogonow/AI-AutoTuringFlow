@@ -1,4 +1,7 @@
 // ModuleDetails Component
+// Delimiter regex for splitting multi-value fields (coveredBoards, testReportLink)
+const MULTI_VALUE_DELIMITER = /[,，;；\n]/;
+
 class ModuleDetails {
   constructor(options = {}) {
     this.container = null;
@@ -235,8 +238,8 @@ class ModuleDetails {
           <tbody>
             ${vendorInfos.map(vi => {
               // Split covered boards and test reports into arrays for multi-row display
-              const boards = (vi.coveredBoards || '').split(/[,，;；\n]/).map(s => s.trim()).filter(Boolean);
-              const reports = (vi.testReportLink || '').split(/[,，;；\n]/).map(s => s.trim()).filter(Boolean);
+              const boards = (vi.coveredBoards || '').split(MULTI_VALUE_DELIMITER).map(s => s.trim()).filter(Boolean);
+              const reports = (vi.testReportLink || '').split(MULTI_VALUE_DELIMITER).map(s => s.trim()).filter(Boolean);
               const maxRows = Math.max(boards.length, reports.length, 1);
 
               let rows = '';
@@ -415,8 +418,8 @@ class ModuleDetails {
   }
 
   _renderBoardReportRows(vi) {
-    const boards = (vi.coveredBoards || '').split(/[,，;；\n]/).map(s => s.trim()).filter(Boolean);
-    const reports = (vi.testReportLink || '').split(/[,，;；\n]/).map(s => s.trim()).filter(Boolean);
+    const boards = (vi.coveredBoards || '').split(MULTI_VALUE_DELIMITER).map(s => s.trim()).filter(Boolean);
+    const reports = (vi.testReportLink || '').split(MULTI_VALUE_DELIMITER).map(s => s.trim()).filter(Boolean);
     const maxRows = Math.max(boards.length, reports.length, 1);
 
     let html = '';
@@ -450,8 +453,8 @@ class ModuleDetails {
     const reportInputs = this.container.querySelectorAll('.vi_report_input');
     const boards = [];
     const reports = [];
-    const rowCount = Math.max(boardInputs.length, reportInputs.length);
-    for (let i = 0; i < rowCount; i++) {
+    const maxInputCount = Math.max(boardInputs.length, reportInputs.length);
+    for (let i = 0; i < maxInputCount; i++) {
       const b = boardInputs[i] ? boardInputs[i].value.trim() : '';
       const r = reportInputs[i] ? reportInputs[i].value.trim() : '';
       if (b || r) {
