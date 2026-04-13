@@ -59,12 +59,8 @@ class ModuleDetails {
         </div>
         <div class="details-grid">
           <div class="detail-item">
-            <div class="detail-label">序列号</div>
+            <div class="detail-label">编码</div>
             <div class="detail-value" id="detail-serialNumber">${Utils.escapeHtml(module.serialNumber || '-')}</div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">型号</div>
-            <div class="detail-value" id="detail-model">${Utils.escapeHtml(module.model || '-')}</div>
           </div>
           <div class="detail-item">
             <div class="detail-label">端口速率</div>
@@ -237,35 +233,69 @@ class ModuleDetails {
             </tr>
           </thead>
           <tbody>
-            ${vendorInfos.map(vi => `
-              <tr>
-                <td>${Utils.escapeHtml(vi.vendor || '-')}</td>
-                <td>${Utils.escapeHtml(vi.versionBatch || '-')}</td>
-                <td>${Utils.escapeHtml(vi.processStatus || '-')}</td>
-                <td>${Utils.formatDateTime(vi.entryTime)}</td>
-                <td>${Utils.formatDateTime(vi.exitTime)}</td>
-                <td>${Utils.escapeHtml(vi.ld || '-')}</td>
-                <td>${Utils.escapeHtml(vi.pd || '-')}</td>
-                <td>${Utils.escapeHtml(vi.laLdo || '-')}</td>
-                <td>${Utils.escapeHtml(vi.tia || '-')}</td>
-                <td>${Utils.escapeHtml(vi.mcu || '-')}</td>
-                <td style="max-width:120px; word-break:break-word;">${Utils.escapeHtml(vi.pcnChanges || '-')}</td>
-                <td>${vi.highSpeedTestRecommended === true ? '✅ 是' : vi.highSpeedTestRecommended === false ? '❌ 否' : '-'}</td>
-                <td>${Utils.escapeHtml(vi.availability || '-')}</td>
-                <td style="max-width:120px; word-break:break-word;">${Utils.escapeHtml(vi.photodetectorData || '-')}</td>
-                <td style="max-width:120px; word-break:break-word;">${Utils.escapeHtml(vi.coveredBoards || '-')}</td>
-                <td>${vi.testReportLink ? `<a href="${Utils.escapeHtml(vi.testReportLink)}" target="_blank" rel="noopener noreferrer">查看报告</a>` : '-'}</td>
-                <td>${Utils.escapeHtml(vi.remark || '-')}</td>
-                ${isOwner ? `
-                  <td>
-                    <div class="action-buttons">
-                      <button class="btn btn-secondary btn-sm" data-edit-vendor="${vi.id}">编辑</button>
-                      <button class="btn btn-danger btn-sm" data-delete-vendor="${vi.id}">删除</button>
-                    </div>
-                  </td>
-                ` : ''}
-              </tr>
-            `).join('')}
+            ${vendorInfos.map(vi => {
+              // Split covered boards and test reports into arrays for multi-row display
+              const boards = (vi.coveredBoards || '').split(/[,，;；\n]/).map(s => s.trim()).filter(Boolean);
+              const reports = (vi.testReportLink || '').split(/[,，;；\n]/).map(s => s.trim()).filter(Boolean);
+              const maxRows = Math.max(boards.length, reports.length, 1);
+
+              let rows = '';
+              for (let i = 0; i < maxRows; i++) {
+                rows += '<tr>';
+                if (i === 0) {
+                  // First row: all vendor fields with rowspan
+                  const rs = maxRows > 1 ? ` rowspan="${maxRows}"` : '';
+                  rows += `<td${rs}>${Utils.escapeHtml(vi.vendor || '-')}</td>`;
+                  rows += `<td${rs}>${Utils.escapeHtml(vi.versionBatch || '-')}</td>`;
+                  rows += `<td${rs}>${Utils.escapeHtml(vi.processStatus || '-')}</td>`;
+                  rows += `<td${rs}>${Utils.formatDateTime(vi.entryTime)}</td>`;
+                  rows += `<td${rs}>${Utils.formatDateTime(vi.exitTime)}</td>`;
+                  rows += `<td${rs}>${Utils.escapeHtml(vi.ld || '-')}</td>`;
+                  rows += `<td${rs}>${Utils.escapeHtml(vi.pd || '-')}</td>`;
+                  rows += `<td${rs}>${Utils.escapeHtml(vi.laLdo || '-')}</td>`;
+                  rows += `<td${rs}>${Utils.escapeHtml(vi.tia || '-')}</td>`;
+                  rows += `<td${rs}>${Utils.escapeHtml(vi.mcu || '-')}</td>`;
+                  rows += `<td${rs} style="max-width:120px; word-break:break-word;">${Utils.escapeHtml(vi.pcnChanges || '-')}</td>`;
+                  rows += `<td${rs}>${vi.highSpeedTestRecommended === true ? '✅ 是' : vi.highSpeedTestRecommended === false ? '❌ 否' : '-'}</td>`;
+                  rows += `<td${rs}>${Utils.escapeHtml(vi.availability || '-')}</td>`;
+                  // Photodetector data with file upload support
+                  let photoCell = '';
+                  if (vi.photodetectorDataFile) {
+                    photoCell = `<a href="${CONFIG.API_BASE_URL}/uploads/photodetector/${Utils.escapeHtml(vi.photodetectorDataFile)}" target="_blank" rel="noopener noreferrer">📎 查看文件</a>`;
+                  } else if (vi.photodetectorData) {
+                    photoCell = Utils.escapeHtml(vi.photodetectorData);
+                  } else {
+                    photoCell = '-';
+                  }
+                  if (isOwner) {
+                    photoCell += `<br><label class="btn btn-secondary btn-sm" style="margin-top:4px; cursor:pointer; font-size:0.8em;">
+                      📤 上传文件
+                      <input type="file" style="display:none;" data-upload-vendor="${vi.id}" data-module-id="${this.moduleId}">
+                    </label>`;
+                  }
+                  rows += `<td${rs} style="max-width:150px; word-break:break-word;">${photoCell}</td>`;
+                }
+                // Covered board for this row
+                rows += `<td style="max-width:120px; word-break:break-word;">${boards[i] ? Utils.escapeHtml(boards[i]) : '-'}</td>`;
+                // Test report for this row
+                rows += `<td>${reports[i] ? `<a href="${Utils.escapeHtml(reports[i])}" target="_blank" rel="noopener noreferrer">查看报告</a>` : '-'}</td>`;
+
+                if (i === 0) {
+                  const rs = maxRows > 1 ? ` rowspan="${maxRows}"` : '';
+                  rows += `<td${rs}>${Utils.escapeHtml(vi.remark || '-')}</td>`;
+                  if (isOwner) {
+                    rows += `<td${rs}>
+                      <div class="action-buttons">
+                        <button class="btn btn-secondary btn-sm" data-edit-vendor="${vi.id}">编辑</button>
+                        <button class="btn btn-danger btn-sm" data-delete-vendor="${vi.id}">删除</button>
+                      </div>
+                    </td>`;
+                  }
+                }
+                rows += '</tr>';
+              }
+              return rows;
+            }).join('')}
           </tbody>
         </table>
       </div>
@@ -354,7 +384,11 @@ class ModuleDetails {
       <div class="form-row">
         <div class="form-col" style="grid-column: 1 / -1;">
           <label class="form-label">电眼数据</label>
-          <textarea class="form-control" id="vi_photodetectorData" rows="2">${Utils.escapeHtml(vi.photodetectorData || '')}</textarea>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input class="form-control" id="vi_photodetectorData" type="text" value="${Utils.escapeHtml(vi.photodetectorData || '')}" placeholder="文本描述或上传文件后自动填充">
+            ${vi.photodetectorDataFile ? `<span style="color:#28a745; font-size:0.85em;">📎 已上传文件</span>` : ''}
+          </div>
+          <small style="color:#666; font-size:0.85em;">可输入文字描述，或在厂家信息表中通过"上传文件"按钮上传电眼数据文件</small>
         </div>
       </div>
       <div class="form-row">
@@ -487,6 +521,17 @@ class ModuleDetails {
         this._deleteVendorInfo(id);
       }
     });
+
+    // File upload for photodetector data
+    this.container.addEventListener('change', (e) => {
+      const uploadInput = e.target.closest('[data-upload-vendor]');
+      if (uploadInput && uploadInput.files.length > 0) {
+        const vendorId = uploadInput.dataset.uploadVendor;
+        const moduleId = uploadInput.dataset.moduleId;
+        this._uploadPhotodetectorFile(moduleId, vendorId, uploadInput.files[0]);
+        uploadInput.value = '';
+      }
+    });
   }
 
   _openVendorModal(vi) {
@@ -543,6 +588,21 @@ class ModuleDetails {
         Utils.showToast('删除失败: ' + error.message, 'error');
       }
     });
+  }
+
+  async _uploadPhotodetectorFile(moduleId, vendorId, file) {
+    try {
+      Utils.showLoading();
+      await API.uploadPhotodetectorFile(moduleId, vendorId, file);
+      this.vendorInfos = await API.getVendorInfos(this.moduleId);
+      Utils.hideLoading();
+      Utils.showToast('文件上传成功', 'success');
+      const section = this.container.querySelector('#vendorInfoSection');
+      if (section) section.innerHTML = this.renderVendorInfoTable(this.vendorInfos);
+    } catch (error) {
+      Utils.hideLoading();
+      Utils.showToast('文件上传失败: ' + error.message, 'error');
+    }
   }
 
   handleDelete() {

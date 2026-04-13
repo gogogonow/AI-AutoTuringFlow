@@ -216,6 +216,31 @@ class API {
     });
   }
 
+  static async uploadPhotodetectorFile(moduleId, vendorId, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const url = CONFIG.API_BASE_URL + `/modules/${moduleId}/vendor-infos/${vendorId}/photodetector-file`;
+    const headers = {};
+    const token = this.getAuthToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || '上传失败');
+    }
+
+    return response.json();
+  }
+
   // History APIs
   static async getHistories(params = {}) {
     const queryString = new URLSearchParams(params).toString();

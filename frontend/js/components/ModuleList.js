@@ -35,10 +35,52 @@ class ModuleList {
         <div class="filters-form">
           <div class="form-row">
             <div class="form-col">
-              <input class="form-control" type="text" placeholder="序列号" id="filterSn">
+              <input class="form-control" type="text" placeholder="编码" id="filterSn">
             </div>
             <div class="form-col">
-              <input class="form-control" type="text" placeholder="型号" id="filterModel">
+              <select class="form-control" id="filterSpeed">
+                <option value="">速率（全部）</option>
+                <option value="1G">1G</option>
+                <option value="10G">10G</option>
+                <option value="25G">25G</option>
+                <option value="40G">40G</option>
+                <option value="100G">100G</option>
+              </select>
+            </div>
+            <div class="form-col">
+              <input class="form-control" type="text" placeholder="波长" id="filterWavelength">
+            </div>
+            <div class="form-col">
+              <input class="form-control" type="number" placeholder="传输距离(m)" id="filterTransmissionDistance">
+            </div>
+          </div>
+          <div class="form-row" style="margin-top: var(--spacing-sm);">
+            <div class="form-col">
+              <select class="form-control" id="filterConnectorType">
+                <option value="">接口类型（全部）</option>
+                <option value="LC">LC</option>
+                <option value="SC">SC</option>
+                <option value="MPO">MPO</option>
+                <option value="RJ45">RJ45</option>
+              </select>
+            </div>
+            <div class="form-col">
+              <select class="form-control" id="filterLifecycleStatus">
+                <option value="">生命周期（全部）</option>
+                <option value="GA">GA（正式发布）</option>
+                <option value="EOM">EOM（停止销售）</option>
+                <option value="EOP">EOP（停止生产）</option>
+              </select>
+            </div>
+            <div class="form-col">
+              <input class="form-control" type="text" placeholder="封装形式" id="filterPackageForm">
+            </div>
+            <div class="form-col">
+              <select class="form-control" id="filterFiberType">
+                <option value="">光纤类型（全部）</option>
+                <option value="SMF">SMF（单模）</option>
+                <option value="MMF">MMF（多模）</option>
+              </select>
             </div>
           </div>
           <div class="form-actions">
@@ -65,17 +107,18 @@ class ModuleList {
             <thead>
               <tr>
                 ${isOwner ? '<th width="50"><input type="checkbox" id="selectAll"></th>' : ''}
-                <th width="150">序列号</th>
-                <th width="120">型号</th>
+                <th width="150">编码</th>
                 <th width="80">速率</th>
                 <th width="80">波长</th>
-                <th width="150">入库时间</th>
+                <th width="100">传输距离</th>
+                <th width="120">厂家</th>
+                <th width="100">高速重点测试</th>
                 ${isOwner ? '<th width="150">操作</th>' : ''}
               </tr>
             </thead>
             <tbody id="moduleTableBody">
               <tr>
-                <td colspan="${isOwner ? '7' : '5'}" style="text-align: center; padding: 40px;">
+                <td colspan="${isOwner ? '8' : '6'}" style="text-align: center; padding: 40px;">
                   <div class="loading-spinner" style="margin: 0 auto;"></div>
                 </td>
               </tr>
@@ -95,7 +138,13 @@ class ModuleList {
     const resetBtn = this.container.querySelector('#resetFiltersBtn');
     resetBtn.addEventListener('click', () => {
       this.container.querySelector('#filterSn').value = '';
-      this.container.querySelector('#filterModel').value = '';
+      this.container.querySelector('#filterSpeed').value = '';
+      this.container.querySelector('#filterWavelength').value = '';
+      this.container.querySelector('#filterTransmissionDistance').value = '';
+      this.container.querySelector('#filterConnectorType').value = '';
+      this.container.querySelector('#filterLifecycleStatus').value = '';
+      this.container.querySelector('#filterPackageForm').value = '';
+      this.container.querySelector('#filterFiberType').value = '';
       this.filters = {};
       this.currentPage = 0;
       this.loadData();
@@ -165,10 +214,22 @@ class ModuleList {
   getFilters() {
     const filters = {};
     const sn = this.container.querySelector('#filterSn').value.trim();
-    const model = this.container.querySelector('#filterModel').value.trim();
+    const speed = this.container.querySelector('#filterSpeed').value;
+    const wavelength = this.container.querySelector('#filterWavelength').value.trim();
+    const transmissionDistance = this.container.querySelector('#filterTransmissionDistance').value.trim();
+    const connectorType = this.container.querySelector('#filterConnectorType').value;
+    const lifecycleStatus = this.container.querySelector('#filterLifecycleStatus').value;
+    const packageForm = this.container.querySelector('#filterPackageForm').value.trim();
+    const fiberType = this.container.querySelector('#filterFiberType').value;
 
     if (sn) filters.serialNumber = sn;
-    if (model) filters.model = model;
+    if (speed) filters.speed = speed;
+    if (wavelength) filters.wavelength = wavelength;
+    if (transmissionDistance) filters.transmissionDistance = transmissionDistance;
+    if (connectorType) filters.connectorType = connectorType;
+    if (lifecycleStatus) filters.lifecycleStatus = lifecycleStatus;
+    if (packageForm) filters.packageForm = packageForm;
+    if (fiberType) filters.fiberType = fiberType;
 
     return filters;
   }
@@ -194,7 +255,7 @@ class ModuleList {
       }
     } catch (error) {
       const tbody = this.container.querySelector('#moduleTableBody');
-      const colspan = this.isOwner() ? '7' : '5';
+      const colspan = this.isOwner() ? '8' : '6';
       tbody.innerHTML = `
         <tr>
           <td colspan="${colspan}">
@@ -211,7 +272,7 @@ class ModuleList {
   renderTable(modules) {
     const tbody = this.container.querySelector('#moduleTableBody');
     const isOwner = this.isOwner();
-    const colspan = isOwner ? '7' : '5';
+    const colspan = isOwner ? '8' : '6';
 
     if (modules.length === 0) {
       tbody.innerHTML = `
@@ -228,28 +289,58 @@ class ModuleList {
       return;
     }
 
-    tbody.innerHTML = modules.map(module => `
-      <tr onclick="window.app.showPage('details', {id: ${module.id}})">
-        ${isOwner ? `<td onclick="event.stopPropagation()">
-          <input type="checkbox" data-id="${module.id}"
-            ${this.selectedIds.has(String(module.id)) ? 'checked' : ''}
-            onchange="window.app.currentComponent.handleCheckbox(this)">
-        </td>` : ''}
-        <td>${Utils.escapeHtml(module.serialNumber || '-')}</td>
-        <td>${Utils.escapeHtml(module.model || '-')}</td>
-        <td>${Utils.escapeHtml(module.speed || '-')}</td>
-        <td>${Utils.escapeHtml(module.wavelength || '-')}</td>
-        <td>${Utils.formatDateTime(module.inboundTime)}</td>
-        ${isOwner ? `<td onclick="event.stopPropagation()">
-          <div class="action-buttons">
-            <button class="btn btn-secondary btn-sm"
-              onclick="window.app.showPage('edit', {id: ${module.id}})">编辑</button>
-            <button class="btn btn-danger btn-sm"
-              onclick="window.app.currentComponent.handleDelete(${module.id})">删除</button>
-          </div>
-        </td>` : ''}
-      </tr>
-    `).join('');
+    const rows = [];
+    modules.forEach(module => {
+      const vendorInfos = module.vendorInfos || [];
+      const vendorCount = Math.max(vendorInfos.length, 1);
+
+      for (let i = 0; i < vendorCount; i++) {
+        const vi = vendorInfos[i] || null;
+        const isFirstRow = i === 0;
+        let rowHtml = '<tr' + (isFirstRow ? ` onclick="window.app.showPage('details', {id: ${module.id}})" class="module-row-clickable"` : '') + '>';
+
+        if (isFirstRow) {
+          // Module fields with rowspan
+          const rs = vendorCount > 1 ? ` rowspan="${vendorCount}"` : '';
+          if (isOwner) {
+            rowHtml += `<td${rs} onclick="event.stopPropagation()">
+              <input type="checkbox" data-id="${module.id}"
+                ${this.selectedIds.has(String(module.id)) ? 'checked' : ''}
+                onchange="window.app.currentComponent.handleCheckbox(this)">
+            </td>`;
+          }
+          rowHtml += `<td${rs}>${Utils.escapeHtml(module.serialNumber || '-')}</td>`;
+          rowHtml += `<td${rs}>${Utils.escapeHtml(module.speed || '-')}</td>`;
+          rowHtml += `<td${rs}>${Utils.escapeHtml(module.wavelength || '-')}</td>`;
+          rowHtml += `<td${rs}>${module.transmissionDistance ? module.transmissionDistance + ' m' : '-'}</td>`;
+        }
+
+        // Vendor info columns (per row)
+        if (vi) {
+          rowHtml += `<td>${Utils.escapeHtml(vi.vendor || '-')}</td>`;
+          rowHtml += `<td>${vi.highSpeedTestRecommended === true ? '✅ 是' : vi.highSpeedTestRecommended === false ? '❌ 否' : '-'}</td>`;
+        } else {
+          rowHtml += `<td>-</td><td>-</td>`;
+        }
+
+        if (isFirstRow && isOwner) {
+          const rs = vendorCount > 1 ? ` rowspan="${vendorCount}"` : '';
+          rowHtml += `<td${rs} onclick="event.stopPropagation()">
+            <div class="action-buttons">
+              <button class="btn btn-secondary btn-sm"
+                onclick="window.app.showPage('edit', {id: ${module.id}})">编辑</button>
+              <button class="btn btn-danger btn-sm"
+                onclick="window.app.currentComponent.handleDelete(${module.id})">删除</button>
+            </div>
+          </td>`;
+        }
+
+        rowHtml += '</tr>';
+        rows.push(rowHtml);
+      }
+    });
+
+    tbody.innerHTML = rows.join('');
   }
 
   renderPagination() {
