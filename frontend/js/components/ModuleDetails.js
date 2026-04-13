@@ -261,7 +261,8 @@ class ModuleDetails {
                   // Photodetector data with file upload support
                   let photoCell = '';
                   if (vi.photodetectorDataFile) {
-                    photoCell = `<a href="${CONFIG.API_BASE_URL}/uploads/photodetector/${Utils.escapeHtml(vi.photodetectorDataFile)}" target="_blank" rel="noopener noreferrer">📎 查看文件</a>`;
+                    const safeFilename = encodeURIComponent(vi.photodetectorDataFile);
+                    photoCell = `<a href="${CONFIG.API_BASE_URL}/uploads/photodetector/${safeFilename}" target="_blank" rel="noopener noreferrer">📎 查看文件</a>`;
                   } else if (vi.photodetectorData) {
                     photoCell = Utils.escapeHtml(vi.photodetectorData);
                   } else {
@@ -270,7 +271,7 @@ class ModuleDetails {
                   if (isOwner) {
                     photoCell += `<br><label class="btn btn-secondary btn-sm" style="margin-top:4px; cursor:pointer; font-size:0.8em;">
                       📤 上传文件
-                      <input type="file" style="display:none;" data-upload-vendor="${vi.id}" data-module-id="${this.moduleId}">
+                      <input type="file" style="display:none;" data-upload-vendor="${Utils.escapeHtml(String(vi.id))}" data-module-id="${Utils.escapeHtml(String(this.moduleId))}">
                     </label>`;
                   }
                   rows += `<td${rs} style="max-width:150px; word-break:break-word;">${photoCell}</td>`;
@@ -278,7 +279,9 @@ class ModuleDetails {
                 // Covered board for this row
                 rows += `<td style="max-width:120px; word-break:break-word;">${boards[i] ? Utils.escapeHtml(boards[i]) : '-'}</td>`;
                 // Test report for this row
-                rows += `<td>${reports[i] ? `<a href="${Utils.escapeHtml(reports[i])}" target="_blank" rel="noopener noreferrer">查看报告</a>` : '-'}</td>`;
+                const reportUrl = reports[i] || '';
+                const isValidUrl = reportUrl.startsWith('http://') || reportUrl.startsWith('https://');
+                rows += `<td>${isValidUrl ? `<a href="${Utils.escapeHtml(reportUrl)}" target="_blank" rel="noopener noreferrer">查看报告</a>` : (reportUrl ? Utils.escapeHtml(reportUrl) : '-')}</td>`;
 
                 if (i === 0) {
                   const rs = maxRows > 1 ? ` rowspan="${maxRows}"` : '';
@@ -286,8 +289,8 @@ class ModuleDetails {
                   if (isOwner) {
                     rows += `<td${rs}>
                       <div class="action-buttons">
-                        <button class="btn btn-secondary btn-sm" data-edit-vendor="${vi.id}">编辑</button>
-                        <button class="btn btn-danger btn-sm" data-delete-vendor="${vi.id}">删除</button>
+                        <button class="btn btn-secondary btn-sm" data-edit-vendor="${Utils.escapeHtml(String(vi.id))}">编辑</button>
+                        <button class="btn btn-danger btn-sm" data-delete-vendor="${Utils.escapeHtml(String(vi.id))}">删除</button>
                       </div>
                     </td>`;
                   }

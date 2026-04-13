@@ -293,19 +293,20 @@ class ModuleList {
     modules.forEach(module => {
       const vendorInfos = module.vendorInfos || [];
       const vendorCount = Math.max(vendorInfos.length, 1);
+      const safeId = parseInt(module.id, 10);
 
       for (let i = 0; i < vendorCount; i++) {
         const vi = vendorInfos[i] || null;
         const isFirstRow = i === 0;
-        let rowHtml = '<tr' + (isFirstRow ? ` onclick="window.app.showPage('details', {id: ${module.id}})" class="module-row-clickable"` : '') + '>';
+        let rowHtml = '<tr' + (isFirstRow ? ` onclick="window.app.showPage('details', {id: ${safeId}})" class="module-row-clickable"` : '') + '>';
 
         if (isFirstRow) {
           // Module fields with rowspan
           const rs = vendorCount > 1 ? ` rowspan="${vendorCount}"` : '';
           if (isOwner) {
             rowHtml += `<td${rs} onclick="event.stopPropagation()">
-              <input type="checkbox" data-id="${module.id}"
-                ${this.selectedIds.has(String(module.id)) ? 'checked' : ''}
+              <input type="checkbox" data-id="${safeId}"
+                ${this.selectedIds.has(String(safeId)) ? 'checked' : ''}
                 onchange="window.app.currentComponent.handleCheckbox(this)">
             </td>`;
           }
@@ -328,9 +329,9 @@ class ModuleList {
           rowHtml += `<td${rs} onclick="event.stopPropagation()">
             <div class="action-buttons">
               <button class="btn btn-secondary btn-sm"
-                onclick="window.app.showPage('edit', {id: ${module.id}})">编辑</button>
+                onclick="window.app.showPage('edit', {id: ${safeId}})">编辑</button>
               <button class="btn btn-danger btn-sm"
-                onclick="window.app.currentComponent.handleDelete(${module.id})">删除</button>
+                onclick="window.app.currentComponent.handleDelete(${safeId})">删除</button>
             </div>
           </td>`;
         }

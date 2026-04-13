@@ -101,14 +101,23 @@ public class ModuleVendorInfoController {
             Path uploadPath = Paths.get(uploadDir, "photodetector");
             Files.createDirectories(uploadPath);
 
-            // Generate unique filename
+            // Sanitize filename: extract only the extension and validate it
             String originalFilename = file.getOriginalFilename();
             String extension = "";
             if (originalFilename != null && originalFilename.contains(".")) {
-                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+                String rawExt = originalFilename.substring(originalFilename.lastIndexOf(".") + 1);
+                // Only allow alphanumeric extensions to prevent path traversal
+                if (rawExt.matches("[a-zA-Z0-9]+")) {
+                    extension = "." + rawExt;
+                }
             }
             String uniqueFilename = UUID.randomUUID().toString() + extension;
-            Path filePath = uploadPath.resolve(uniqueFilename);
+
+            // Resolve and validate the target path is within upload directory
+            Path filePath = uploadPath.resolve(uniqueFilename).normalize();
+            if (!filePath.startsWith(uploadPath.normalize())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "无效的文件名"));
+            }
 
             // Save file
             Files.copy(file.getInputStream(), filePath);
