@@ -6,14 +6,15 @@
 
 ## 技术栈
 
-- **Java 17**
-- **Spring Boot 3.2.0**
+- **Java 21** (LTS, 支持 Virtual Threads)
+- **Spring Boot 3.4.5**
+- **Spring Security 6.4.10**（显式覆盖，修复 6.4.x 授权绕过 CVE）
 - **Spring Data JPA**
 - **Spring Security + JWT**（用户认证与授权）
 - **MySQL 8.0**
 - **HikariCP**（连接池）
 - **Flyway**（数据库版本管理与迁移）
-- **Apache POI 5.2.5**（Excel 导入/导出）
+- **Apache POI 5.3.0**（Excel 导入/导出）
 - **Maven**（构建工具）
 
 ## 项目结构
@@ -203,7 +204,7 @@ spring.datasource.password=your_password
 ## 运行项目
 
 ### 前置要求
-- Java 17+
+- Java 21+
 - Maven 3.6+
 - MySQL 8.0
 
