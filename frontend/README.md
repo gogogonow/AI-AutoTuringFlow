@@ -22,10 +22,13 @@ frontend/
 ├── js/
 │   ├── api.js             # API 服务封装
 │   ├── app.js             # 主应用程序
+│   ├── config.js          # 全局配置（状态枚举、操作类型映射、速率选项等）
+│   ├── utils.js           # 工具函数（加载动画、Toast、确认对话框、日期格式化等）
 │   └── components/
-│       ├── Header.js      # 顶部导航栏组件
-│       ├── Sidebar.js     # 侧边栏菜单组件
-│       ├── ModuleList.js  # 光模块列表组件
+│       ├── Header.js          # 顶部导航栏组件
+│       ├── Login.js           # 登录页面组件
+│       ├── Sidebar.js         # 侧边栏菜单组件
+│       ├── ModuleList.js      # 光模块列表组件
 │       ├── ModuleDetails.js   # 光模块详情组件
 │       ├── ModuleForm.js      # 光模块表单组件（创建/编辑）
 │       └── HistoryList.js     # 修改历史记录组件
@@ -34,32 +37,40 @@ frontend/
 
 ## 功能特性
 
-### 1. 光模块列表页面
-- 显示所有光模块的基本信息
+### 1. 登录页面
+- 用户名/密码登录，获取 JWT Token
+- 登录状态持久化（本地存储）
+- 未登录自动跳转到登录页
+
+### 2. 光模块列表页面
+- 显示所有光模块的基本信息（支持分页）
+- 多条件搜索与筛选（序列号、速率、波长、状态等）
 - 支持查看详情、编辑、删除操作
 - 空状态提示
 - 响应式表格设计
 
-### 2. 光模块详情页面
+### 3. 光模块详情页面
 - 展示光模块的完整信息
 - 网格布局显示各项属性
 - 提供编辑和查看历史的快捷入口
 
-### 3. 创建/编辑光模块页面
+### 4. 创建/编辑光模块页面
 - 完整的表单验证
 - 必填字段标识
 - 实时错误提示
 - 支持所有光模块属性的编辑
 
-### 4. 修改历史记录页面
+### 5. 修改历史记录页面
 - 时间线展示操作历史
 - 显示字段变更的旧值和新值
-- 操作类型分类（创建、更新、删除）
+- 操作类型分类（入库、出库、部署、收回、故障、维修等）
 
-### 5. 通用功能
-- 加载动画
-- Toast 提示消息
-- 确认对话框
+### 6. 通用功能
+- JWT 认证请求头自动注入
+- 加载动画（`Utils.showLoading` / `Utils.hideLoading`）
+- Toast 提示消息（`Utils.showToast`）
+- 确认对话框（`Utils.confirm`，支持 Promise 和回调两种用法）
+- 日期格式化（`Utils.formatDateTime`）
 - 响应式设计
 - 浏览器历史管理
 
@@ -98,10 +109,15 @@ const API = {
 
 ## 组件说明
 
+### Login 组件
+- 渲染登录表单
+- 调用认证 API 获取 JWT Token
+- 登录成功后跳转到主页
+
 ### Header 组件
 - 显示系统标题
-- 显示用户信息
-- 提供退出功能
+- 显示当前登录用户信息
+- 提供退出功能（清除 Token）
 
 ### Sidebar 组件
 - 显示主要功能导航
@@ -109,7 +125,7 @@ const API = {
 - 响应式菜单
 
 ### ModuleList 组件
-- 渲染光模块列表表格
+- 渲染光模块列表表格（支持分页与多条件筛选）
 - 处理删除操作
 - 提供创建入口
 
@@ -125,6 +141,24 @@ const API = {
 ### HistoryList 组件
 - 渲染操作历史时间线
 - 显示字段变更详情
+
+### 全局工具
+
+#### `config.js` — 全局配置对象（`window.CONFIG`）
+- `API_BASE_URL`：API 基础路径（默认 `/api`）
+- `STATUS_TEXT`：光模块状态枚举的中文映射（IN_STOCK / DEPLOYED / FAULTY / UNDER_REPAIR / SCRAPPED）
+- `OPERATION_TYPE_TEXT`：操作类型枚举的中文映射
+- `SPEED_OPTIONS`：端口速率选项列表
+- `CONNECTOR_TYPE_OPTIONS`：接口类型选项列表
+
+#### `utils.js` — 工具函数类（`window.Utils`）
+- `showLoading()` / `hideLoading()`：全局加载遮罩
+- `showToast(message, type)`：浮动提示消息（success / error / warning）
+- `confirm(message, onConfirm?)`：确认对话框（支持回调和 Promise 两种用法）
+- `formatDateTime(dateString)`：将日期字符串格式化为 `YYYY-MM-DD HH:mm:ss`
+- `getStatusText(status)` / `getOperationTypeText(type)`：枚举值转中文文本
+- `renderErrorState(message)` / `renderEmptyState(icon, text)`：渲染错误/空状态占位符
+- `escapeHtml(text)`：HTML 转义防 XSS
 
 ## 样式主题
 

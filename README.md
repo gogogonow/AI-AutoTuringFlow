@@ -63,8 +63,8 @@ python main.py
 
 | 层级 | 模型 | 负责 Agent | 说明 |
 |------|------|-----------|------|
-| **推理层** `llm_reasoning` | `chatgpt-4o-latest` | 首席系统架构师、UI/UX 设计师、代码审查工程师 | 深度推理与结构化输出 |
-| **编码层** `llm_coding` | `claude-sonnet-4-5` | 高级前端工程师、高级后端工程师 | 高质量代码生成 |
+| **推理层** `llm_reasoning` | `claude-sonnet-4-5-20250929` | 首席系统架构师、UI/UX 设计师、代码审查工程师 | 深度推理与结构化输出 |
+| **编码层** `llm_coding` | `claude-sonnet-4-5-20250929` | 高级前端工程师、高级后端工程师 | 高质量代码生成 |
 
 > **注意**：所有 LLM 实例必须设置 `is_litellm=True`，以绕过 CrewAI 的原生 SDK 路由，确保兼容 OAIPro 代理端点。
 
