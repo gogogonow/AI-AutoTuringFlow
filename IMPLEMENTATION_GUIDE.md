@@ -233,9 +233,8 @@ curl -X POST http://localhost:8080/api/modules \
 
 ## 技术栈
 
-- Spring Boot 3.2.0
-- Spring Security
+- Spring Boot 3.4.5
+- Spring Security 6.4.10（显式覆盖，修复 6.4.x 授权绕过 CVE）
 - JWT (jjwt 0.12.3)
 - Flyway
 - H2 (测试) / MySQL (生产)
-- Vanilla JavaScript (前端)

@@ -301,6 +301,9 @@ main.py 启动
 | 模块边界 | `docs/module-boundaries.md` | frontend/backend 职责划分与禁止越界说明 |
 | 架构约束 | `docs/architecture.md` | 架构决策、编码约定、安全约束 |
 | Multi-Agent 规则 | `docs/multi-agent-rules.md` | Agent 分工、执行流程、禁止行为清单 |
+| 前端组件规范 | `docs/frontend-component-spec.md` | 前端唯一允许的组件结构与复用规则（Agent 强制读取） |
+| Flyway 迁移指南 | `docs/flyway-migration-guide.md` | 数据库迁移脚本说明与版本历史 |
+| Flyway 修复说明 | `docs/FLYWAY_FIX_SUMMARY.md` | 迁移失败自动修复机制说明 |
 | 任务卡模板 | `docs/templates/agent-task-template.md` | 结构化任务卡格式（减少需求歧义） |
 | 上下文快照模板 | `docs/templates/context-snapshot-template.md` | 上下文快照格式参考 |
 | 历史快照 | `docs/snapshots/` | 每次刷新时自动归档的上下文快照 |
@@ -357,6 +360,9 @@ AI-AutoTuringFlow/
 │   ├── module-boundaries.md     #     前后端职责边界
 │   ├── architecture.md          #     架构约束与决策记录
 │   ├── multi-agent-rules.md     #     Multi-Agent 协作规则
+│   ├── frontend-component-spec.md #   前端组件规范（Agent 强制读取）
+│   ├── flyway-migration-guide.md  #   数据库迁移脚本说明
+│   ├── FLYWAY_FIX_SUMMARY.md    #     迁移失败自动修复机制说明
 │   ├── templates/               #     可复用模板
 │   │   ├── agent-task-template.md       # 任务卡模板
 │   │   └── context-snapshot-template.md # 上下文快照模板
@@ -377,6 +383,8 @@ AI-AutoTuringFlow/
 │       ├── upgrade.yml          # 依赖升级模板
 │       ├── ui-beautify.yml      # 🆕 UI 美化需求模板
 │       └── context-refresh.yml  # 上下文刷新请求模板
+├── DEPLOYMENT.md                # 部署指南（Railway / 自有服务器）
+├── IMPLEMENTATION_GUIDE.md      # 角色权限管控实现说明
 ├── requirements.txt             # Python 依赖
 └── README.md                    # 本文档
 ```

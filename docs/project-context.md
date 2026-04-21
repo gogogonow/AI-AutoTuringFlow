@@ -58,9 +58,9 @@
 
 | 项目 | 详情 |
 |------|------|
-| 框架 | Spring Boot 3.2.0 |
+| 框架 | Spring Boot 3.4.5 |
 | JDK | Java 21 |
-| 持久层 | JPA + H2（开发）/ PostgreSQL（生产） |
+| 持久层 | JPA + H2（测试）/ MySQL（生产） |
 | 包名前缀 | `com.example.backend` |
 | 入口类 | `com.example.backend.BackendApplication` |
 | 主要实体 | `Module`（光模块）、`History`（操作历史） |
@@ -120,7 +120,11 @@
 | 模块边界 | `docs/module-boundaries.md` | 前后端职责划分、禁止越界说明 |
 | 架构约束 | `docs/architecture.md` | 整体架构、编码约定、安全约束 |
 | Multi-Agent 规则 | `docs/multi-agent-rules.md` | Agent 分工、输入输出契约、禁止行为 |
+| 前端组件规范 | `docs/frontend-component-spec.md` | 前端唯一允许的组件结构与复用规则 |
+| Flyway 迁移指南 | `docs/flyway-migration-guide.md` | 数据库迁移脚本版本说明 |
+| Flyway 修复说明 | `docs/FLYWAY_FIX_SUMMARY.md` | 迁移失败自动修复机制说明 |
 | 任务卡模板 | `docs/templates/agent-task-template.md` | 结构化任务卡格式 |
 | 上下文快照模板 | `docs/templates/context-snapshot-template.md` | 上下文快照格式 |
 | 部署说明 | `DEPLOYMENT.md` | Railway 部署操作手册 |
+| 权限实现说明 | `IMPLEMENTATION_GUIDE.md` | 角色权限管控实现说明 |
 | 主 README | `README.md` | 系统总览与使用说明 |
