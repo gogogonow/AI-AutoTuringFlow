@@ -35,7 +35,7 @@ public class DatabaseInitializer implements CommandLineRunner {
     @Autowired
     private HistoryRepository historyRepository;
 
-    @Autowired
+    @Autowired(required = false)
     private Flyway flyway;
 
     @Override
@@ -60,6 +60,10 @@ public class DatabaseInitializer implements CommandLineRunner {
     }
 
     private void logFlywayMigrationStatus() {
+        if (flyway == null) {
+            logger.info("Flyway is disabled — skipping migration status log.");
+            return;
+        }
         try {
             MigrationInfoService info = flyway.info();
             MigrationInfo[] all = info.all();

@@ -54,9 +54,9 @@ class RoleAuthorizationTest {
     @BeforeEach
     void setUp() throws Exception {
         // Clean up
+        moduleRepository.deleteAll();
         userRepository.deleteAll();
         roleRepository.deleteAll();
-        moduleRepository.deleteAll();
 
         // Create roles
         Role ownerRole = new Role();
