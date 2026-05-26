@@ -2,7 +2,7 @@ name: GitHub Native Copilot Auto-Fix
 
 on:
   workflow_run:
-    workflows: ["Backend (Java) CI", "Frontend (Node.js) CI"]
+    workflows: ["Backend (Java) CI", "Frontend (Node.js) CI"] # 监听你前后端对应的 CI 流水线名称
     types:
       - completed
 
@@ -14,27 +14,68 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      actions: read # 🎯 必须显式声明读取上一步 Actions 日志的权限
 
     steps:
+      # 1. 检出触发 CI 的具体开发分支
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
 
-      # 下载上一步失败的日志
-      # （此处省略下载日志到 logs.txt 的步骤，可参考之前的官方 Script）
+      # 2. 🎯 修复“No such file or directory”：利用 GitHub Script 动态抓取失败日志并写入本地
+      - name: Download and Truncate Failed CI Logs
+        uses: actions/github-script@v7
+        id: get-logs
+        with:
+          script: |
+            const runId = context.payload.workflow_run.id;
+            const repo = context.repo;
+            
+            // 找出失败的 Job
+            const jobs = await github.rest.actions.listJobsForWorkflowRun({
+              owner: repo.owner,
+              repo: repo.repo,
+              run_id: runId
+            });
+            const failedJob = jobs.data.jobs.find(j => j.conclusion === 'failure');
+            
+            if (failedJob) {
+              core.info(`Found failed job: ${failedJob.name}, downloading logs...`);
+              const logs = await github.rest.actions.downloadJobLogsForWorkflowRun({
+                owner: repo.owner,
+                repo: repo.repo,
+                job_id: failedJob.id
+              });
+              
+              // 将日志截取最后 80 行（防止过长超出 CLI 限制），并安全写入到当前工作目录下的 logs.txt
+              const fs = require('fs');
+              const logLines = logs.data.split('\n');
+              const truncatedLogs = logLines.slice(-80).join('\n');
+              fs.writeFileSync('logs.txt', truncatedLogs);
+              core.setOutput('failed_job_name', failedJob.name);
+            } else {
+              core.setFailed('No failed job found in this run.');
+            }
 
-      # 🎯 核心：利用虚拟机原生自带的 gh cli 和官方 copilot 扩展进行诊断
-      - name: Use GitHub Native CLI Copilot
+      # 3. 安装官方 gh-copilot 扩展并进行身份授权绑定
+      - name: Install GitHub Copilot CLI Extension
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 借用环境默认 Token 免去登录
+        run: |
+          gh extension install github/gh-copilot || true
+
+      # 4. 🎯 修复“Invalid command format”：采用官方指定的非交互模式（-p）让 AI 诊断
+      - name: Run Native Copilot Troubleshooting
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FAILED_JOB_NAME: ${{ steps.get-logs.outputs.failed_job_name }}
         run: |
-          # 1. 安装官方的 gh copilot 扩展
-          gh extension install github/gh-copilot || true
+          echo "### 🤖 GitHub Copilot Native Error Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "Analyzing failure context for module: **$FAILED_JOB_NAME**..." >> $GITHUB_STEP_SUMMARY
           
-          # 2. 纯原生调用：让官方扩展根据日志给出修复建议并尝试应用
-          # 利用 gh copilot explain 或 gh copilot suggest 解析错误
-          gh copilot explain "The CI failed with these logs. Optimize the code to fix it. Logs: $(cat logs.txt | tail -n 50)" > ai_suggestion.md
+          # 构造完整的 Prompt
+          PROMPT_TEXT="The CI pipeline failed for the module '$FAILED_JOB_NAME'. Based on the following error logs, explain the root cause and provide the exact fix. Logs: $(cat logs.txt)"
           
-          # 3. 让原生 AI 尝试直接重写或者生成 Patch 文件
-          # （注：gh copilot 目前在 CLI 中主要提供交互引导，如果需要全自动，建议采用下面的方案 B 门禁激活）
+          # 🎯 核心修正：使用 -p (或 --prompt) 运行非交互模式，并将 AI 诊断结论直接打进 Actions 的 Summary 面板
+          gh copilot -p "$PROMPT_TEXT" >> $GITHUB_STEP_SUMMARY
