@@ -4,6 +4,7 @@ WORKDIR /app
 COPY pom.xml .
 # Download dependencies first to leverage Docker layer caching
 RUN mvn dependency:go-offline -B
+
 COPY src ./src
 RUN mvn package -DskipTests -B
 
