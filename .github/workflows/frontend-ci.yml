@@ -1,0 +1,37 @@
+name: Frontend (Node.js) CI
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'frontend/**' # 🎯 关键：只有 frontend 目录下的文件变动时，才触发此流水线
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'frontend/**' # 🎯 关键：PR 中包含 frontend 目录的修改时才触发
+
+jobs:
+  node-ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm' # 如果用 pnpm 或 yarn，请更改对应的缓存
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend # 🎯 关键：切换到前端目录
+        run: npm ci
+
+      - name: Run Frontend Lint
+        working-directory: ./frontend
+        run: npm run lint --if-present
+
+      - name: Run Frontend Tests
+        working-directory: ./frontend
+        run: npm test --if-present
