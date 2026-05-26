@@ -65,7 +65,7 @@ jobs:
         run: |
           gh extension install github/gh-copilot || true
 
-      # 4. 🎯 修复“Invalid command format”：采用官方指定的非交互模式（-p）让 AI 诊断
+      # 4. 🎯 彻底修复 Exit code 1：通过管道（Pipeline）安全传递日志流
       - name: Run Native Copilot Troubleshooting
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -74,8 +74,9 @@ jobs:
           echo "### 🤖 GitHub Copilot Native Error Analysis" >> $GITHUB_STEP_SUMMARY
           echo "Analyzing failure context for module: **$FAILED_JOB_NAME**..." >> $GITHUB_STEP_SUMMARY
           
-          # 构造完整的 Prompt
-          PROMPT_TEXT="The CI pipeline failed for the module '$FAILED_JOB_NAME'. Based on the following error logs, explain the root cause and provide the exact fix. Logs: $(cat logs.txt)"
+          # 1. 先定义清晰的引导指令（不包含日志本体，防止符号冲突）
+          INSTRUCTION="You are a senior developer. The CI pipeline failed for the '$FAILED_JOB_NAME' module. Analyze the following trailing log from stdin, pinpoint the exact file and line causing the issue, explain the root cause, and output the correct code snippet to fix it."
           
-          # 🎯 核心修正：使用 -p (或 --prompt) 运行非交互模式，并将 AI 诊断结论直接打进 Actions 的 Summary 面板
-          gh copilot -p "$PROMPT_TEXT" >> $GITHUB_STEP_SUMMARY
+          # 2. 🎯 核心修正：利用管道符 | 将 logs.txt 的内容作为标准输入喂给 gh copilot
+          # 这样大模型就能安全接收到完整的日志上下文，而不会破坏 Bash 命令行结构
+          cat logs.txt | gh copilot -p "$INSTRUCTION" >> $GITHUB_STEP_SUMMARY
