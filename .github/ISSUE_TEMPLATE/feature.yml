@@ -1,12 +1,12 @@
 name: 🆕 新功能需求
-description: 提交新功能的开发需求，由 AI 多智能体团队自动实现
+description: 提交新功能的开发需求
 labels: ["mode:feature", "scope:fullstack"]
 body:
   - type: markdown
     attributes:
       value: |
-        ## AI 多智能体软件工厂 — 新功能需求单
-        填写完成后，给 Issue 打上 `run-ai` 标签即可触发 AI 自动开发流水线。
+        ## 光模块管理项目 — 新功能需求单
+        填写完成后，可分配给AI自动实施开发。
 
   - type: dropdown
     id: scope
