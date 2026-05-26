@@ -147,7 +147,7 @@ class ModuleControllerTest {
         List<ModuleDto> modules = Arrays.asList(simpleDto);
         Page<ModuleDto> modulePage = new PageImpl<>(modules, PageRequest.of(0, 20), 1);
 
-        when(moduleService.searchModules(any(), any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(modulePage);
+        when(moduleService.searchModules(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(modulePage);
 
         mockMvc.perform(get("/api/modules")
                 .param("serialNumber", "TEST")

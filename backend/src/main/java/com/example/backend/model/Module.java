@@ -20,6 +20,9 @@ public class Module {
     @Column(name = "serial_number", nullable = false, unique = true, length = 50)
     private String serialNumber;
 
+    @Column(name = "module_name", length = 100)
+    private String moduleName;
+
     @Column(name = "model", length = 100)
     private String model;
 
@@ -143,6 +146,14 @@ public class Module {
 
     public void setSerialNumber(String serialNumber) {
         this.serialNumber = serialNumber;
+    }
+
+    public String getModuleName() {
+        return moduleName;
+    }
+
+    public void setModuleName(String moduleName) {
+        this.moduleName = moduleName;
     }
 
     public String getModel() {

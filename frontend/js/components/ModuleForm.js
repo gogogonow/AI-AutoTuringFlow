@@ -31,6 +31,13 @@ class ModuleForm {
                   <div class="form-error" id="error-serialNumber"></div>
                 </div>
               </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" data-required>光模块名称</label>
+                  <input class="form-control" type="text" name="moduleName" required maxlength="100">
+                  <div class="form-error" id="error-moduleName"></div>
+                </div>
+              </div>
             </div>
             <div class="form-row">
               <div class="form-col">
@@ -288,6 +295,7 @@ class ModuleForm {
 
     // Required fields
     const serialNumber = formData.get('serialNumber')?.trim();
+    const moduleName = formData.get('moduleName')?.trim();
 
     if (!serialNumber) {
       errors.serialNumber = '编码为必填项';
@@ -295,6 +303,12 @@ class ModuleForm {
       errors.serialNumber = '编码长度应在 6-50 字符之间';
     } else if (/\s/.test(serialNumber)) {
       errors.serialNumber = '编码不能包含空格';
+    }
+
+    if (!moduleName) {
+      errors.moduleName = '光模块名称为必填项';
+    } else if (moduleName.length > 100) {
+      errors.moduleName = '光模块名称长度不能超过100';
     }
 
     // Transmission distance validation

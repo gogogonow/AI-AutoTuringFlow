@@ -95,6 +95,7 @@ public class ModuleServiceImpl implements ModuleService {
 
         // 更新字段
         existingModule.setSerialNumber(moduleDto.getSerialNumber());
+        existingModule.setModuleName(moduleDto.getModuleName());
         existingModule.setModel(moduleDto.getModel());
         existingModule.setSpeed(moduleDto.getSpeed());
         existingModule.setWavelength(moduleDto.getWavelength());
@@ -156,6 +157,7 @@ public class ModuleServiceImpl implements ModuleService {
     @Transactional(readOnly = true)
     public Page<ModuleDto> searchModules(
         String serialNumber,
+        String moduleName,
         String speed,
         String wavelength,
         Integer transmissionDistance,
@@ -168,6 +170,7 @@ public class ModuleServiceImpl implements ModuleService {
     ) {
         Page<ModuleDto> page = moduleRepository.findByMultipleConditions(
             serialNumber,
+            moduleName,
             speed,
             wavelength,
             transmissionDistance,
@@ -244,6 +247,7 @@ public class ModuleServiceImpl implements ModuleService {
         ModuleDto dto = new ModuleDto();
         dto.setId(module.getId());
         dto.setSerialNumber(module.getSerialNumber());
+        dto.setModuleName(module.getModuleName());
         dto.setModel(module.getModel());
         dto.setSpeed(module.getSpeed());
         dto.setWavelength(module.getWavelength());
@@ -282,6 +286,7 @@ public class ModuleServiceImpl implements ModuleService {
         Module module = new Module();
         module.setId(dto.getId());
         module.setSerialNumber(dto.getSerialNumber());
+        module.setModuleName(dto.getModuleName());
         module.setModel(dto.getModel());
         module.setSpeed(dto.getSpeed());
         module.setWavelength(dto.getWavelength());
@@ -318,6 +323,7 @@ public class ModuleServiceImpl implements ModuleService {
         StringBuilder sb = new StringBuilder();
         sb.append("新增字段：");
         appendField(sb, "编码", null, module.getSerialNumber());
+        appendField(sb, "光模块名称", null, module.getModuleName());
         appendField(sb, "速率", null, module.getSpeed());
         appendField(sb, "波长", null, module.getWavelength());
         appendField(sb, "传输距离", null, module.getTransmissionDistance());
@@ -334,6 +340,7 @@ public class ModuleServiceImpl implements ModuleService {
         sb.append("更新字段：");
         boolean hasChange = false;
         hasChange |= appendField(sb, "编码", existing.getSerialNumber(), updated.getSerialNumber());
+        hasChange |= appendField(sb, "光模块名称", existing.getModuleName(), updated.getModuleName());
         hasChange |= appendField(sb, "速率", existing.getSpeed(), updated.getSpeed());
         hasChange |= appendField(sb, "波长", existing.getWavelength(), updated.getWavelength());
         hasChange |= appendField(sb, "传输距离", existing.getTransmissionDistance(), updated.getTransmissionDistance());
@@ -352,6 +359,7 @@ public class ModuleServiceImpl implements ModuleService {
         StringBuilder sb = new StringBuilder();
         sb.append("删除前字段：");
         sb.append("编码=").append(nullSafe(module.getSerialNumber()));
+        sb.append(", 光模块名称=").append(nullSafe(module.getModuleName()));
         sb.append(", 速率=").append(nullSafe(module.getSpeed()));
         sb.append(", 波长=").append(nullSafe(module.getWavelength()));
         sb.append(", 传输距离=").append(nullSafe(module.getTransmissionDistance()));

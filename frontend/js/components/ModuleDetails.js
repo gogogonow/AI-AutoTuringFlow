@@ -66,6 +66,10 @@ class ModuleDetails {
             <div class="detail-value" id="detail-serialNumber">${Utils.escapeHtml(module.serialNumber || '-')}</div>
           </div>
           <div class="detail-item">
+            <div class="detail-label">光模块名称</div>
+            <div class="detail-value" id="detail-moduleName">${Utils.escapeHtml(module.moduleName || '-')}</div>
+          </div>
+          <div class="detail-item">
             <div class="detail-label">端口速率</div>
             <div class="detail-value" id="detail-speed">${Utils.escapeHtml(module.speed || '-')}</div>
           </div>

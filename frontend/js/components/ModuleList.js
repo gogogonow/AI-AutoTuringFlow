@@ -108,6 +108,7 @@ class ModuleList {
               <tr>
                 ${isOwner ? '<th width="50"><input type="checkbox" id="selectAll"></th>' : ''}
                 <th width="150">编码</th>
+                <th width="120">光模块名称</th>
                 <th width="80">速率</th>
                 <th width="80">波长</th>
                 <th width="100">传输距离</th>
@@ -118,7 +119,7 @@ class ModuleList {
             </thead>
             <tbody id="moduleTableBody">
               <tr>
-                <td colspan="${isOwner ? '8' : '6'}" style="text-align: center; padding: 40px;">
+                <td colspan="${isOwner ? '9' : '7'}" style="text-align: center; padding: 40px;">
                   <div class="loading-spinner" style="margin: 0 auto;"></div>
                 </td>
               </tr>
@@ -255,7 +256,7 @@ class ModuleList {
       }
     } catch (error) {
       const tbody = this.container.querySelector('#moduleTableBody');
-      const colspan = this.isOwner() ? '8' : '6';
+      const colspan = this.isOwner() ? '9' : '7';
       tbody.innerHTML = `
         <tr>
           <td colspan="${colspan}">
@@ -272,7 +273,7 @@ class ModuleList {
   renderTable(modules) {
     const tbody = this.container.querySelector('#moduleTableBody');
     const isOwner = this.isOwner();
-    const colspan = isOwner ? '8' : '6';
+    const colspan = isOwner ? '9' : '7';
 
     if (modules.length === 0) {
       tbody.innerHTML = `
@@ -311,6 +312,7 @@ class ModuleList {
             </td>`;
           }
           rowHtml += `<td${rs}>${Utils.escapeHtml(module.serialNumber || '-')}</td>`;
+          rowHtml += `<td${rs}>${Utils.escapeHtml(module.moduleName || '-')}</td>`;
           rowHtml += `<td${rs}>${Utils.escapeHtml(module.speed || '-')}</td>`;
           rowHtml += `<td${rs}>${Utils.escapeHtml(module.wavelength || '-')}</td>`;
           rowHtml += `<td${rs}>${module.transmissionDistance ? module.transmissionDistance + ' m' : '-'}</td>`;
