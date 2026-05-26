@@ -119,7 +119,7 @@ backend/
 
 #### 分页查询光模块列表（支持多条件搜索）
 - **URL**: `GET /api/modules`
-- **Query 参数**（均可选）: `serialNumber`、`speed`、`wavelength`、`transmissionDistance`、`connectorType`、`lifecycleStatus`、`packageForm`、`fiberType`、`lightType`、`page`（默认 0）、`size`（默认 20）、`sortBy`、`sortDir`
+- **Query 参数**（均可选）: `serialNumber`、`moduleName`、`speed`、`wavelength`、`transmissionDistance`、`connectorType`、`lifecycleStatus`、`packageForm`、`fiberType`、`lightType`、`page`（默认 0）、`size`（默认 20）、`sortBy`、`sortDir`
 - **响应**: 200 OK，返回分页光模块列表
 
 #### 根据 ID 获取光模块

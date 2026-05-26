@@ -37,7 +37,7 @@ public class ModuleImportExportController {
 
     /** 导出列头顺序（与导入列顺序一致） */
     private static final String[] HEADERS = {
-        "编码", "型号", "端口速率", "波长",
+        "编码", "光模块名称", "型号", "端口速率", "波长",
         "传输距离(m)", "接口类型", "入库时间", "备注"
     };
 
@@ -57,7 +57,7 @@ public class ModuleImportExportController {
         Pageable pageable = PageRequest.of(0, 10000, Sort.by(Sort.Direction.DESC, "id"));
         Page<ModuleDto> page;
         if (serialNumber != null || model != null || speed != null) {
-            page = moduleService.searchModules(serialNumber, speed, null, null, null, null, null, null, null, pageable);
+            page = moduleService.searchModules(serialNumber, null, speed, null, null, null, null, null, null, null, pageable);
         } else {
             page = moduleService.getModules(pageable);
         }
@@ -159,15 +159,16 @@ public class ModuleImportExportController {
             for (ModuleDto m : modules) {
                 Row row = sheet.createRow(rowIdx++);
                 row.createCell(0).setCellValue(nullSafe(m.getSerialNumber()));
-                row.createCell(1).setCellValue(nullSafe(m.getModel()));
-                row.createCell(2).setCellValue(nullSafe(m.getSpeed()));
-                row.createCell(3).setCellValue(nullSafe(m.getWavelength()));
-                row.createCell(4).setCellValue(
+                row.createCell(1).setCellValue(nullSafe(m.getModuleName()));
+                row.createCell(2).setCellValue(nullSafe(m.getModel()));
+                row.createCell(3).setCellValue(nullSafe(m.getSpeed()));
+                row.createCell(4).setCellValue(nullSafe(m.getWavelength()));
+                row.createCell(5).setCellValue(
                         m.getTransmissionDistance() != null ? m.getTransmissionDistance() : 0);
-                row.createCell(5).setCellValue(nullSafe(m.getConnectorType()));
-                row.createCell(6).setCellValue(
+                row.createCell(6).setCellValue(nullSafe(m.getConnectorType()));
+                row.createCell(7).setCellValue(
                         m.getInboundTime() != null ? m.getInboundTime().format(DT_FORMATTER) : "");
-                row.createCell(7).setCellValue(nullSafe(m.getRemark()));
+                row.createCell(8).setCellValue(nullSafe(m.getRemark()));
             }
 
             // 自动列宽
@@ -189,15 +190,20 @@ public class ModuleImportExportController {
         }
         dto.setSerialNumber(serialNumber.trim());
 
-        String model = getCellString(row, 1);
+        String moduleName = getCellString(row, 1);
+        if (moduleName != null && !moduleName.isBlank()) {
+            dto.setModuleName(moduleName.trim());
+        }
+
+        String model = getCellString(row, 2);
         if (model != null && !model.isBlank()) {
             dto.setModel(model.trim());
         }
 
-        dto.setSpeed(getCellString(row, 2));
-        dto.setWavelength(getCellString(row, 3));
+        dto.setSpeed(getCellString(row, 3));
+        dto.setWavelength(getCellString(row, 4));
 
-        Cell distCell = row.getCell(4);
+        Cell distCell = row.getCell(5);
         if (distCell != null) {
             try {
                 dto.setTransmissionDistance((int) distCell.getNumericCellValue());
@@ -206,9 +212,9 @@ public class ModuleImportExportController {
             }
         }
 
-        dto.setConnectorType(getCellString(row, 5));
+        dto.setConnectorType(getCellString(row, 6));
 
-        String inboundTimeStr = getCellString(row, 6);
+        String inboundTimeStr = getCellString(row, 7);
         if (inboundTimeStr != null && !inboundTimeStr.isBlank()) {
             try {
                 dto.setInboundTime(LocalDateTime.parse(inboundTimeStr.trim(), DT_FORMATTER));
@@ -217,7 +223,7 @@ public class ModuleImportExportController {
             }
         }
 
-        dto.setRemark(getCellString(row, 7));
+        dto.setRemark(getCellString(row, 8));
 
         return dto;
     }

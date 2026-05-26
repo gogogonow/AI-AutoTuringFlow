@@ -50,6 +50,7 @@ public interface ModuleService {
      */
     Page<ModuleDto> searchModules(
         String serialNumber,
+        String moduleName,
         String speed,
         String wavelength,
         Integer transmissionDistance,

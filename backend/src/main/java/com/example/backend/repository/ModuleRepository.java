@@ -52,6 +52,7 @@ public interface ModuleRepository extends JpaRepository<Module, Long> {
      */
     @Query("SELECT m FROM Module m WHERE " +
            "(:serialNumber IS NULL OR m.serialNumber LIKE %:serialNumber%) AND " +
+           "(:moduleName IS NULL OR m.moduleName LIKE %:moduleName%) AND " +
            "(:speed IS NULL OR m.speed = :speed) AND " +
            "(:wavelength IS NULL OR m.wavelength LIKE %:wavelength%) AND " +
            "(:transmissionDistance IS NULL OR m.transmissionDistance = :transmissionDistance) AND " +
@@ -63,6 +64,7 @@ public interface ModuleRepository extends JpaRepository<Module, Long> {
            "m.deleted = false")
     Page<Module> findByMultipleConditions(
         @Param("serialNumber") String serialNumber,
+        @Param("moduleName") String moduleName,
         @Param("speed") String speed,
         @Param("wavelength") String wavelength,
         @Param("transmissionDistance") Integer transmissionDistance,

@@ -21,6 +21,9 @@ public class ModuleDto {
     @Pattern(regexp = "^\\S+$", message = "编码不能包含空格")
     private String serialNumber;
 
+    @Size(max = 100, message = "光模块名称长度不能超过100")
+    private String moduleName;
+
     @Size(max = 100, message = "型号长度不能超过100")
     private String model;
 
@@ -95,6 +98,14 @@ public class ModuleDto {
 
     public void setSerialNumber(String serialNumber) {
         this.serialNumber = serialNumber;
+    }
+
+    public String getModuleName() {
+        return moduleName;
+    }
+
+    public void setModuleName(String moduleName) {
+        this.moduleName = moduleName;
     }
 
     public String getModel() {

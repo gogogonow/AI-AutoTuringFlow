@@ -6,6 +6,7 @@
 CREATE TABLE IF NOT EXISTS module (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     serial_number VARCHAR(50) NOT NULL UNIQUE,
+    module_name VARCHAR(100),
     model VARCHAR(100) NOT NULL,
     vendor VARCHAR(100) NOT NULL,
     speed VARCHAR(20),

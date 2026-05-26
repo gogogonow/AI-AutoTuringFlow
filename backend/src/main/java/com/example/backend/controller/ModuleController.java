@@ -82,6 +82,7 @@ public class ModuleController {
     @GetMapping
     public ResponseEntity<Page<ModuleDto>> getModules(
         @RequestParam(required = false) String serialNumber,
+        @RequestParam(required = false) String moduleName,
         @RequestParam(required = false) String speed,
         @RequestParam(required = false) String wavelength,
         @RequestParam(required = false) Integer transmissionDistance,
@@ -99,12 +100,12 @@ public class ModuleController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
         Page<ModuleDto> modules;
-        if (serialNumber != null || speed != null || wavelength != null ||
+        if (serialNumber != null || moduleName != null || speed != null || wavelength != null ||
             transmissionDistance != null || connectorType != null ||
             lifecycleStatus != null || packageForm != null ||
             fiberType != null || lightType != null) {
             modules = moduleService.searchModules(
-                serialNumber, speed, wavelength, transmissionDistance,
+                serialNumber, moduleName, speed, wavelength, transmissionDistance,
                 connectorType, lifecycleStatus, packageForm, fiberType, lightType,
                 pageable
             );
