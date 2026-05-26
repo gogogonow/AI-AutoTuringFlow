@@ -1,12 +1,12 @@
 name: 🐛 Bug 修复
-description: 提交 Bug 报告，由 AI 多智能体团队自动定位和修复
+description: 提交 Bug 报告，由 AI 自动定位和修复
 labels: ["mode:bugfix", "scope:fullstack"]
 body:
   - type: markdown
     attributes:
       value: |
-        ## AI 多智能体软件工厂 — Bug 修复需求单
-        填写完成后，给 Issue 打上 `run-ai` 标签即可触发 AI 自动修复流水线。
+        ## 光模块管理项目 — Bug 修复需求单
+        填写完成后，可分配给AI自动实施开发。
 
   - type: dropdown
     id: scope
