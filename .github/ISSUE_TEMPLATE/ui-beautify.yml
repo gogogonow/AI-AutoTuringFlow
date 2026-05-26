@@ -1,12 +1,12 @@
 name: 🎨 UI 美化需求
-description: 提交界面视觉优化需求，由 AI 多智能体团队（架构师 + UI 设计师 + 前端工程师）自动实现
+description: 提交界面视觉优化需求
 labels: ["mode:ui-beautify", "scope:frontend"]
 body:
   - type: markdown
     attributes:
       value: |
-        ## AI 多智能体软件工厂 — UI 美化需求单
-        填写完成后，给 Issue 打上 `run-ai` 标签即可触发 AI 自动美化流水线。
+        ## 光模块管理项目 — UI 美化需求单
+        填写完成后，可分配给AI自动实施开发。
 
         > **提示**：`mode:ui-beautify` 会自动强制影响范围为 `scope:frontend`，无需手动设置 scope 标签。
 
