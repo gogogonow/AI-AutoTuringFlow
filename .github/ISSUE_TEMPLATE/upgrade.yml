@@ -5,8 +5,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        ## AI 多智能体软件工厂 — 依赖升级需求单
-        填写完成后，给 Issue 打上 `run-ai` 标签即可触发 AI 自动升级流水线。
+        ## 光模块管理项目 — 依赖升级需求单
+        填写完成后，可分配给AI开发。
 
   - type: dropdown
     id: scope
