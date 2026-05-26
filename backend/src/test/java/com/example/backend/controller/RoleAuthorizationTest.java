@@ -53,10 +53,10 @@ class RoleAuthorizationTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        // Clean up
+        // Clean up in FK-safe order: modules -> users -> roles
+        moduleRepository.deleteAll();
         userRepository.deleteAll();
         roleRepository.deleteAll();
-        moduleRepository.deleteAll();
 
         // Create roles
         Role ownerRole = new Role();
@@ -78,7 +78,8 @@ class RoleAuthorizationTest {
 
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(ownerRequest)));
+                .content(objectMapper.writeValueAsString(ownerRequest)))
+                .andExpect(status().isCreated());
 
         // Register READER user
         RegisterRequest readerRequest = new RegisterRequest();
@@ -89,7 +90,8 @@ class RoleAuthorizationTest {
 
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(readerRequest)));
+                .content(objectMapper.writeValueAsString(readerRequest)))
+                .andExpect(status().isCreated());
 
         // Login as OWNER
         LoginRequest ownerLogin = new LoginRequest();
@@ -99,6 +101,7 @@ class RoleAuthorizationTest {
         String ownerResponse = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(ownerLogin)))
+                .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -113,6 +116,7 @@ class RoleAuthorizationTest {
         String readerResponse = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(readerLogin)))
+                .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
