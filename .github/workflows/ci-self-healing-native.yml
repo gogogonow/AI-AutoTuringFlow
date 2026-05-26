@@ -1,0 +1,46 @@
+name: GitHub Native Copilot Auto-Fix
+
+on:
+  workflow_run:
+    workflows: ["Backend (Java) CI", "Frontend (Node.js) CI"]
+    types:
+      - completed
+
+jobs:
+  copilot-native-fix:
+    # 只有当上游的目录 CI 失败时才触发
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    
+    # 核心：必须赋予 Actions 写入代码和读取 Copilot 算力的权限
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+      # 1. 检出触发 CI 的具体开发分支
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+
+      # 2. 唤醒官方 GitHub Copilot CLI 动作
+      # 这是 GitHub 官方维护的 Action，它会自动绑定你当前 GitHub 账号/组织的 Copilot 订阅
+      - name: GitHub Copilot Code Explainer & Fixer
+        uses: github/copilot-action@main
+        id: copilot-fix
+        with:
+          # 核心指令：让官方 Copilot 直接去分析刚才挂掉的 workflow 运行日志
+          command: "fix"
+          context: "Analyze the failed workflow run ${{ github.event.workflow_run.id }}. Identify whether the bug is in the 'frontend' or 'backend' directory based on the logs, and fix the broken implementation or test."
+
+      # 3. 如果 Copilot 修复了代码，原生自带的 Bot 自动提回分支
+      - name: Commit and Push Native Fixes
+        if: steps.copilot-fix.outputs.has_changes == 'true'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore: GitHub Copilot native auto-fix for broken CI"
+          git push origin HEAD:${{ github.event.workflow_run.head_branch }}
